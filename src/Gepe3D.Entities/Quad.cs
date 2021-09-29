@@ -7,13 +7,14 @@ namespace Gepe3D.Entities
     {
 
         float[] _vertices = new float[4 * 3];
-        int[] _indices = new int[] {
+        uint[] _indices = new uint[] {
             0, 1, 2,
             0, 3, 2
         };
 
         int _vboID;
         int _vaoID;
+        int _eboID;
 
 
         public Quad(float x, float y, float width, float height)
@@ -42,11 +43,17 @@ namespace Gepe3D.Entities
             GL.BindVertexArray(_vaoID);
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
+
+            _eboID = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _eboID);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(uint), _indices, BufferUsageHint.StaticDraw);
+
         }
 
         public override void Render()
         {
-
+            GL.BindVertexArray(_vaoID);
+            GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
         }
 
         public override void Update()

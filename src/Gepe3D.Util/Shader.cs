@@ -18,6 +18,7 @@ namespace Gepe3D.Util
         {
             string shaderSource = File.ReadAllText(vertPath);
 
+
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
 
             GL.ShaderSource(vertexShader, shaderSource);

@@ -3,6 +3,11 @@ namespace Gepe3D.Entities
 {
     public class Entity
     {
+
+        // public Entity()
+        // {
+        // }
+
         public virtual void Update()
         {
 

@@ -14,6 +14,14 @@ namespace Gepe3D.Core
 
         public abstract void Update(float delta);
 
+        public void Render()
+        {
+            foreach (Entity e in _entities)
+            {
+                e.Render();
+            }
+        }
+
         public void AddChild(Entity e)
         {
             _entities.Add(e);

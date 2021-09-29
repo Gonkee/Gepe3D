@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
 using OpenTK;
+using Gepe3D.Util;
 
 namespace Gepe3D.Core
 {
@@ -22,6 +23,8 @@ namespace Gepe3D.Core
         {
             private readonly GpScene _scene;
 
+            private Shader _shader;
+
             public EncapsulatedWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GpScene scene)
                 : base(gameWindowSettings, nativeWindowSettings)
             {
@@ -35,6 +38,9 @@ namespace Gepe3D.Core
                 GL.Enable(EnableCap.DepthTest);
 
                 _scene.Init();
+
+                _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
+                _shader.Use();
             }
 
             protected override void OnUpdateFrame(FrameEventArgs e)
@@ -47,6 +53,11 @@ namespace Gepe3D.Core
                 base.OnRenderFrame(e);
 
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                
+                _shader.Use();
+                
+                _scene.Render();
+
                 SwapBuffers();
             }
         }
