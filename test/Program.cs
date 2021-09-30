@@ -21,9 +21,24 @@ namespace test
         {
             public override void Init()
             {
-                AddChild( new Quad(-0.7f, -0.6f, 0.3f, 0.3f) );
-                AddChild( new Quad(0.2f, 0.0f, 0.1f, 0.2f) );
-                AddChild( new Quad(-0.7f, 0.5f, 0.3f, 0.15f) );
+                QuadMesh quad = new QuadMesh(0.5f, 0.5f, true);
+
+
+                var e1 = new Entity(quad);
+                var e2 = new Entity(quad);
+                var e3 = new Entity(quad);
+                
+                AddChild(e1);
+                AddChild(e2);
+                AddChild(e3);
+
+                e1.SetPosition( 0.5f,  0.5f, 0);
+                e2.SetPosition(-0.5f,  0.5f, 0);
+                e3.SetPosition( 0.5f, -0.5f, 0);
+
+                e1.SetScale(0.5f);
+                e2.SetScale(0.75f);
+                e3.SetScale(0.2f);
             }
             public override void Update(float delta)
             {

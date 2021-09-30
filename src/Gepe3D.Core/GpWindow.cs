@@ -56,7 +56,7 @@ namespace Gepe3D.Core
                 
                 _shader.Use();
                 
-                _scene.Render();
+                _scene.Render(_shader);
 
                 SwapBuffers();
             }
