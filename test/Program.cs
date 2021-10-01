@@ -40,10 +40,6 @@ namespace test
                 e2.SetScale(0.75f);
                 e3.SetScale(0.2f);
             }
-            public override void Update(float delta)
-            {
-                
-            }
         }
     }
 }

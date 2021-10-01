@@ -22,9 +22,6 @@ namespace Gepe3D.Core
             _vboID = GL.GenBuffer();
             _vaoID = GL.GenVertexArray();
             _eboID = GL.GenBuffer();
-            System.Console.WriteLine("VBO: " + _vboID);
-            System.Console.WriteLine("VAO: " + _vaoID);
-            System.Console.WriteLine("EBO: " + _eboID);
 
         }
 
@@ -46,9 +43,6 @@ namespace Gepe3D.Core
 
         private void SendToGPU()
         {
-            
-            System.Console.WriteLine(string.Join(", ", _vertPos));
-            System.Console.WriteLine(string.Join(", ", _indices));
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vboID);
             GL.BufferData(BufferTarget.ArrayBuffer, _vertPos.Length * sizeof(float), _vertPos, BufferUsageHint.StaticDraw);
 
@@ -65,7 +59,6 @@ namespace Gepe3D.Core
 
         public void Draw()
         {
-            System.Console.WriteLine("drawing");
             if (_dataDirty) SendToGPU();
             GL.BindVertexArray(_vaoID);
             GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);

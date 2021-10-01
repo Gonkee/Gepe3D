@@ -66,7 +66,7 @@ namespace Gepe3D.Entities
 
         public virtual void Update()
         {
-
+            
         }
 
         public virtual void Render(Shader shader)

@@ -3,6 +3,8 @@
 using System.Collections.Generic;
 using Gepe3D.Entities;
 using Gepe3D.Util;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Mathematics;
 
 namespace Gepe3D.Core
 {
@@ -10,13 +12,18 @@ namespace Gepe3D.Core
     {
 
         private readonly List<Entity> _entities = new List<Entity>();
+        private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public abstract void Init();
 
-        public abstract void Update(float delta);
+        public void Update(float delta)
+        {
+            activeCam.Update();
+        }
 
         public void Render(Shader shader)
         {
+            shader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
             foreach (Entity e in _entities)
             {
                 e.Render(shader);

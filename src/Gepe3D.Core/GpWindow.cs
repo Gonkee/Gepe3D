@@ -41,11 +41,25 @@ namespace Gepe3D.Core
 
                 _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
                 _shader.Use();
+
+                CursorGrabbed = true;
+
+                Global.keyboardState = KeyboardState;
+                Global.mouseState = MouseState;
             }
 
             protected override void OnUpdateFrame(FrameEventArgs e)
             {
+                Global.keyboardState = KeyboardState;
+                Global.mouseState = MouseState;
+                Global.Delta = (float) e.Time;
                 _scene.Update((float) e.Time);
+
+                
+                if (Global.IsKeyDown(Keys.Escape))
+                {
+                    Close();
+                }
             }
 
             protected override void OnRenderFrame(FrameEventArgs e)
