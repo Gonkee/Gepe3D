@@ -73,7 +73,7 @@ namespace Gepe3D.Entities
         {
             if (_dirtyTransform) UpdateTransform();
             shader.SetMatrix4("modelMatrix", transform);
-            if (_mesh != null) _mesh.Draw();
+            if (_mesh != null) _mesh.Draw(shader);
         }
     }
 }

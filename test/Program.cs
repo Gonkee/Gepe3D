@@ -21,12 +21,12 @@ namespace test
         {
             public override void Init()
             {
-                QuadMesh quad = new QuadMesh(0.5f, 0.5f, true);
+                Mesh mesh = new CubeMesh(0.5f, 0.5f, 0.5f, true);
 
 
-                var e1 = new Entity(quad);
-                var e2 = new Entity(quad);
-                var e3 = new Entity(quad);
+                var e1 = new Entity(mesh);
+                var e2 = new Entity(mesh);
+                var e3 = new Entity(mesh);
                 
                 AddChild(e1);
                 AddChild(e2);

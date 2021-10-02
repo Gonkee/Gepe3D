@@ -34,7 +34,7 @@ namespace Gepe3D.Core
             protected override void OnLoad()
             {
                 base.OnLoad();
-                GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+                GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                 GL.Enable(EnableCap.DepthTest);
 
                 _scene.Init();
@@ -68,6 +68,7 @@ namespace Gepe3D.Core
 
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                 
+
                 _shader.Use();
                 
                 _scene.Render(_shader);

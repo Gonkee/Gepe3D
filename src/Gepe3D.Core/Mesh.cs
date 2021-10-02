@@ -1,4 +1,5 @@
 using System;
+using Gepe3D.Util;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Gepe3D.Core
@@ -57,11 +58,36 @@ namespace Gepe3D.Core
         }
 
 
-        public void Draw()
+        public void Draw(Shader shader)
         {
             if (_dataDirty) SendToGPU();
             GL.BindVertexArray(_vaoID);
+
+            // drawStyle
+            // 0 = fill
+            // 1 = line
+            // 2 = point
+
+            shader.SetInt("drawStyle", 0);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
+
+            shader.SetInt("drawStyle", 1);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            GL.Enable(EnableCap.PolygonOffsetLine);
+            GL.PolygonOffset(-1, -1);
+            GL.LineWidth(4f);
+            GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
+            GL.Disable(EnableCap.PolygonOffsetLine);
+            
+            shader.SetInt("drawStyle", 2);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
+            GL.Enable(EnableCap.PolygonOffsetPoint);
+            GL.PolygonOffset(-2, -2);
+            GL.PointSize(10f);
+            GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
+            GL.Disable(EnableCap.PolygonOffsetPoint);
+
         }
     }
 }
