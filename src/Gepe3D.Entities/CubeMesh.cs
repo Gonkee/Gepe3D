@@ -9,41 +9,44 @@ namespace Gepe3D.Entities
 
         public CubeMesh(float width, float height, float depth, bool centeredOrigin) : base(8, 12)
         {
-            
+            // first letter = b or t (bottom/top)
+            // second letter = l or r (left/right)
+            // third letter = f or b (front/back)
+            int blf, blb, brb, brf, tlf, tlb, trb, trf;
             if (centeredOrigin)
             {
-                SetVertPos(0, -width / 2, -height / 2, -depth / 2);
-                SetVertPos(1, -width / 2, -height / 2,  depth / 2);
-                SetVertPos(2,  width / 2, -height / 2,  depth / 2);
-                SetVertPos(3,  width / 2, -height / 2, -depth / 2);
-                SetVertPos(4, -width / 2,  height / 2, -depth / 2);
-                SetVertPos(5, -width / 2,  height / 2,  depth / 2);
-                SetVertPos(6,  width / 2,  height / 2,  depth / 2);
-                SetVertPos(7,  width / 2,  height / 2, -depth / 2);
+                blf = AddVertex(-width / 2, -height / 2, -depth / 2);
+                blb = AddVertex(-width / 2, -height / 2,  depth / 2);
+                brb = AddVertex( width / 2, -height / 2,  depth / 2);
+                brf = AddVertex( width / 2, -height / 2, -depth / 2);
+                tlf = AddVertex(-width / 2,  height / 2, -depth / 2);
+                tlb = AddVertex(-width / 2,  height / 2,  depth / 2);
+                trb = AddVertex( width / 2,  height / 2,  depth / 2);
+                trf = AddVertex( width / 2,  height / 2, -depth / 2);
             }
             else
             {
-                SetVertPos(0,     0,      0,     0);
-                SetVertPos(1,     0,      0, depth);
-                SetVertPos(2, width,      0, depth);
-                SetVertPos(3, width,      0,     0);
-                SetVertPos(4,     0, height,     0);
-                SetVertPos(5,     0, height, depth);
-                SetVertPos(6, width, height, depth);
-                SetVertPos(7, width, height,     0);
+                blf = AddVertex(    0,      0,     0);
+                blb = AddVertex(    0,      0, depth);
+                brb = AddVertex(width,      0, depth);
+                brf = AddVertex(width,      0,     0);
+                tlf = AddVertex(    0, height,     0);
+                tlb = AddVertex(    0, height, depth);
+                trb = AddVertex(width, height, depth);
+                trf = AddVertex(width, height,     0);
             }
-            DeclareTriangle( 0, 0, 1, 2);
-            DeclareTriangle( 1, 0, 3, 2);
-            DeclareTriangle( 2, 0, 1, 5);
-            DeclareTriangle( 3, 0, 4, 5);
-            DeclareTriangle( 4, 1, 2, 6);
-            DeclareTriangle( 5, 1, 5, 6);
-            DeclareTriangle( 6, 2, 3, 7);
-            DeclareTriangle( 7, 2, 6, 7);
-            DeclareTriangle( 8, 3, 0, 4);
-            DeclareTriangle( 9, 3, 7, 4);
-            DeclareTriangle(10, 4, 5, 6);
-            DeclareTriangle(11, 4, 7, 6);
+            AddTriangle(blf, brb, blb);
+            AddTriangle(blf, brf, brb);
+            AddTriangle(blf, blb, tlb);
+            AddTriangle(blf, tlb, tlf);
+            AddTriangle(blb, brb, trb);
+            AddTriangle(blb, trb, tlb);
+            AddTriangle(brb, brf, trf);
+            AddTriangle(brb, trf, trb);
+            AddTriangle(brf, blf, tlf);
+            AddTriangle(brf, tlf, trf);
+            AddTriangle(tlf, tlb, trb);
+            AddTriangle(tlf, trb, trf);
         }
 
     }

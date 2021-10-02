@@ -37,6 +37,9 @@ namespace Gepe3D.Core
                 GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                 GL.Enable(EnableCap.DepthTest);
 
+                GL.Enable(EnableCap.CullFace);
+                GL.CullFace(CullFaceMode.Back);
+
                 _scene.Init();
 
                 _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");

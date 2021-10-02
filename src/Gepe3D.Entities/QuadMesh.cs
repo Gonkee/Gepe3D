@@ -16,22 +16,24 @@ namespace Gepe3D.Entities
             this.height = height;
             this._centeredOrigin = centeredOrigin;
             
+            int bl, br, tl, tr; // bottom left, borrom right, top left, top right
             if (_centeredOrigin)
             {
-                SetVertPos(0, -width / 2, -height / 2, 0);
-                SetVertPos(1, -width / 2,  height / 2, 0);
-                SetVertPos(2,  width / 2,  height / 2, 0);
-                SetVertPos(3,  width / 2, -height / 2, 0);
+                bl = AddVertex(-width / 2, -height / 2, 0);
+                tl = AddVertex(-width / 2,  height / 2, 0);
+                tr = AddVertex( width / 2,  height / 2, 0);
+                br = AddVertex( width / 2, -height / 2, 0);
             }
             else
             {
-                SetVertPos(0,     0,      0, 0);
-                SetVertPos(1,     0, height, 0);
-                SetVertPos(2, width, height, 0);
-                SetVertPos(3, width,      0, 0);
+                bl = AddVertex(    0,      0, 0);
+                tl = AddVertex(    0, height, 0);
+                tr = AddVertex(width, height, 0);
+                br = AddVertex(width,      0, 0);
             }
-            DeclareTriangle(0, 0, 1, 2);
-            DeclareTriangle(1, 0, 3, 2);
+            // counter clockwise triangles
+            AddTriangle(bl, tr, tl);
+            AddTriangle(bl, br, tr);
         }
 
     }
