@@ -34,7 +34,6 @@ namespace Gepe3D.Core
             protected override void OnLoad()
             {
                 base.OnLoad();
-                GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                 GL.Enable(EnableCap.DepthTest);
 
                 GL.Enable(EnableCap.CullFace);
@@ -44,6 +43,7 @@ namespace Gepe3D.Core
 
                 _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
                 _shader.Use();
+                _shader.SetVector3("lightPos", new Vector3(10, 10, 10));
 
                 CursorGrabbed = true;
 
@@ -69,6 +69,7 @@ namespace Gepe3D.Core
             {
                 base.OnRenderFrame(e);
 
+                GL.ClearColor(_scene.ambientLight.X, _scene.ambientLight.Y, _scene.ambientLight.Z, 1.0f);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                 
 

@@ -14,6 +14,9 @@ namespace Gepe3D.Core
         private readonly List<Entity> _entities = new List<Entity>();
         private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
+        public Vector3 ambientLight = new Vector3(0.65f, 0.84f, 0.95f);
+
+
         public abstract void Init();
 
         public abstract void Update(float delta);
@@ -22,6 +25,8 @@ namespace Gepe3D.Core
         {
             activeCam.Update();
             shader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
+            shader.SetVector3("viewPos", activeCam.Position);
+            shader.SetVector3("ambientLight", ambientLight);
             foreach (Entity e in _entities)
             {
                 e.Render(shader);
