@@ -24,6 +24,7 @@ namespace Gepe3D.Core
             private readonly GpScene _scene;
 
             private Shader _shader;
+            private Shader _skyboxShader;
 
             public EncapsulatedWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GpScene scene)
                 : base(gameWindowSettings, nativeWindowSettings)
@@ -40,10 +41,13 @@ namespace Gepe3D.Core
                 GL.CullFace(CullFaceMode.Back);
 
                 _scene.Init();
+                _scene.skyBox = new SkyBox();
 
+                _skyboxShader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
                 _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
                 _shader.Use();
                 _shader.SetVector3("lightPos", new Vector3(10, 10, 10));
+                
 
                 CursorGrabbed = true;
 
@@ -72,6 +76,7 @@ namespace Gepe3D.Core
                 GL.ClearColor(_scene.ambientLight.X, _scene.ambientLight.Y, _scene.ambientLight.Z, 1.0f);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                 
+                _scene.RenderSkyBox(_skyboxShader);
 
                 _shader.Use();
                 

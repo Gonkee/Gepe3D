@@ -7,7 +7,7 @@ namespace Gepe3D.Entities
     public class CubeMesh : Mesh
     {
 
-        public CubeMesh(float width, float height, float depth, bool centeredOrigin) : base(8, 12)
+        public CubeMesh(float width, float height, float depth, bool centeredOrigin)
         {
             // first letter = b or t (bottom/top)
             // second letter = l or r (left/right)

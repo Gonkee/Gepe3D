@@ -8,31 +8,19 @@ namespace Gepe3D.Core
 {
     public abstract class Mesh
     {
-        Vector3[] colors = new Vector3[]
-        {
-            new Vector3(1, 0, 0),
-            new Vector3(0, 1, 0),
-            new Vector3(0, 0, 1),
-            new Vector3(1, 1, 0),
-            new Vector3(0, 1, 1),
-            new Vector3(1, 0, 1)
-        };
-        int colorID = 0;
 
         private readonly List<Vector3 > vertices  = new List<Vector3 >();
         private readonly List<Vector3i> triangles = new List<Vector3i>();
 
-        private readonly int floatsPerVertex = 6; // just position
+        private readonly int floatsPerVertex = 6;
         private float[] _vertexData;
         private bool _dataDirty = false;
         
         private int _vboID;
         private int _vaoID;
 
-        public Mesh (int vertexCount, int triangleCount)
+        public Mesh ()
         {
-            _vertexData = new float[vertexCount * 3];
-
             _vboID = GL.GenBuffer();
             _vaoID = GL.GenVertexArray();
         }
@@ -84,8 +72,6 @@ namespace Gepe3D.Core
                 _vertexData[pointer++] = normal.X;
                 _vertexData[pointer++] = normal.Y;
                 _vertexData[pointer++] = normal.Z;
-
-                colorID = (colorID + 1) % colors.Length;
             }
         }
 

@@ -10,7 +10,7 @@ namespace Gepe3D.Entities
         private float width, height;
         private bool _centeredOrigin;
 
-        public QuadMesh(float width, float height, bool centeredOrigin) : base(4, 2)
+        public QuadMesh(float width, float height, bool centeredOrigin)
         {
             this.width = width;
             this.height = height;

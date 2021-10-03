@@ -16,10 +16,18 @@ namespace Gepe3D.Core
 
         public Vector3 ambientLight = new Vector3(0.65f, 0.84f, 0.95f);
 
+        public SkyBox skyBox;
 
         public abstract void Init();
 
         public abstract void Update(float delta);
+
+        public void RenderSkyBox(Shader skyboxShader)
+        {
+            skyboxShader.Use();
+            skyboxShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
+            skyBox.Render(skyboxShader, activeCam);
+        }
 
         public void Render(Shader shader)
         {
