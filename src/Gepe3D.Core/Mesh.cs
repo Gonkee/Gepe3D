@@ -55,34 +55,36 @@ namespace Gepe3D.Core
             _vertexData = new float[triangles.Count * 3 * floatsPerVertex];
 
             int pointer = 0;
+            Vector3 v1, v2, v3, normal;
             foreach (Vector3i tri in triangles)
             {
-                Vector3 v1 = vertices[tri.X];
-                Vector3 v2 = vertices[tri.Y];
-                Vector3 v3 = vertices[tri.Z];
+                v1 = vertices[tri.X];
+                v2 = vertices[tri.Y];
+                v3 = vertices[tri.Z];
+
+                normal = Vector3.Cross( v2 - v1, v3 - v1 ).Normalized();
 
                 _vertexData[pointer++] = v1.X;
                 _vertexData[pointer++] = v1.Y;
                 _vertexData[pointer++] = v1.Z;
-                _vertexData[pointer++] = colors[colorID].X;
-                _vertexData[pointer++] = colors[colorID].Y;
-                _vertexData[pointer++] = colors[colorID].Z;
+                _vertexData[pointer++] = normal.X;
+                _vertexData[pointer++] = normal.Y;
+                _vertexData[pointer++] = normal.Z;
 
                 _vertexData[pointer++] = v2.X;
                 _vertexData[pointer++] = v2.Y;
                 _vertexData[pointer++] = v2.Z;
-                _vertexData[pointer++] = colors[colorID].X;
-                _vertexData[pointer++] = colors[colorID].Y;
-                _vertexData[pointer++] = colors[colorID].Z;
+                _vertexData[pointer++] = normal.X;
+                _vertexData[pointer++] = normal.Y;
+                _vertexData[pointer++] = normal.Z;
 
                 _vertexData[pointer++] = v3.X;
                 _vertexData[pointer++] = v3.Y;
                 _vertexData[pointer++] = v3.Z;
-                _vertexData[pointer++] = colors[colorID].X;
-                _vertexData[pointer++] = colors[colorID].Y;
-                _vertexData[pointer++] = colors[colorID].Z;
+                _vertexData[pointer++] = normal.X;
+                _vertexData[pointer++] = normal.Y;
+                _vertexData[pointer++] = normal.Z;
 
-                System.Console.WriteLine(colors[colorID]);
                 colorID = (colorID + 1) % colors.Length;
             }
         }

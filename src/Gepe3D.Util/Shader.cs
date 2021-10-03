@@ -106,6 +106,12 @@ namespace Gepe3D.Util
             GL.UseProgram(Handle);
             GL.UniformMatrix4(_uniformLocations[name], true, ref data);
         }
+        
+        public void SetMatrix3(string name, Matrix3 data)
+        {
+            GL.UseProgram(Handle);
+            GL.UniformMatrix3(_uniformLocations[name], true, ref data);
+        }
 
         public void SetVector3(string name, Vector3 data)
         {

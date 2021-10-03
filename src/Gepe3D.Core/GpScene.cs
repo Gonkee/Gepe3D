@@ -16,13 +16,11 @@ namespace Gepe3D.Core
 
         public abstract void Init();
 
-        public void Update(float delta)
-        {
-            activeCam.Update();
-        }
+        public abstract void Update(float delta);
 
         public void Render(Shader shader)
         {
+            activeCam.Update();
             shader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
             foreach (Entity e in _entities)
             {

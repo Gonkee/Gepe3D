@@ -11,11 +11,11 @@ vec4 fillColor  = vec4(0.0, 1.0, 0.0, 1.0);
 vec4 lineColor  = vec4(0.0, 0.0, 0.0, 1.0);
 vec4 pointColor = vec4(1.0, 0.0, 0.0, 1.0);
 
-in vec3 aColor;
+in vec3 fragNormal;
 
 void main()
 {
-    if (drawStyle == 0) { FragColor = vec4(aColor, 1.0); }
+    if (drawStyle == 0) { FragColor = vec4(fragNormal, 1.0); }
     if (drawStyle == 1) { FragColor = lineColor; }
     if (drawStyle == 2) { FragColor = pointColor; }
 }
