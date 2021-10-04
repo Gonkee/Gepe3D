@@ -22,7 +22,7 @@ namespace test
         {
 
 
-            Entity cube, ground;
+            Entity spin, ground;
 
             public override void Init()
             {
@@ -36,25 +36,26 @@ namespace test
                     color = new Vector3(0.6f, 0.6f, 0.6f)
                 };
 
-                Mesh mesh = new CubeMesh(1f, 1f, 1f, true);
+                Mesh cubeMesh = new CubeMesh(1f, 1f, 1f, true);
+                Mesh icoMesh = new IcoSphereMesh(0.5f, 2);
 
-                cube = new Entity(mesh, red);
-                ground = new Entity(mesh, white);
+                spin = new Entity(icoMesh, red);
+                ground = new Entity(cubeMesh, white);
                 
-                AddChild(cube);
+                AddChild(spin);
                 AddChild(ground);
 
-                cube.SetPosition( 0, 0, 0);
+                spin.SetPosition( 0, 0, 0);
                 ground.SetPosition(  0, -1f, 0);
 
                 ground.SetScale(8, 0.5f, 8);
 
-                cube.DrawWireframe = true;
+                spin.DrawWireframe = true;
             }
 
             public override void Update(float delta)
             {
-                cube.ApplyRotation( Vector3.UnitY, delta * 20 );
+                spin.ApplyRotation( Vector3.UnitY, delta * 20 );
             }
         }
     }
