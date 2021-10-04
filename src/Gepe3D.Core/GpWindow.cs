@@ -1,11 +1,10 @@
-using System;
+
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
-using OpenTK;
-using Gepe3D.Util;
+
 
 namespace Gepe3D.Core
 {
@@ -23,9 +22,6 @@ namespace Gepe3D.Core
         {
             private readonly GpScene _scene;
 
-            private Shader _shader;
-            private Shader _skyboxShader;
-
             public EncapsulatedWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GpScene scene)
                 : base(gameWindowSettings, nativeWindowSettings)
             {
@@ -35,53 +31,32 @@ namespace Gepe3D.Core
             protected override void OnLoad()
             {
                 base.OnLoad();
+                GL.ClearColor(0, 0, 0, 1);
                 GL.Enable(EnableCap.DepthTest);
-
                 GL.Enable(EnableCap.CullFace);
                 GL.CullFace(CullFaceMode.Back);
 
-                _scene.Init();
-                _scene.skyBox = new SkyBox();
-
-                _skyboxShader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
-                _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
-                _shader.Use();
-                _shader.SetVector3("lightPos", new Vector3(10, 10, 10));
+                _scene.InitInternal();
                 
-
                 CursorGrabbed = true;
-
                 Global.keyboardState = KeyboardState;
                 Global.mouseState = MouseState;
-            }
-
-            protected override void OnUpdateFrame(FrameEventArgs e)
-            {
-                Global.keyboardState = KeyboardState;
-                Global.mouseState = MouseState;
-                Global.Delta = (float) e.Time;
-                _scene.Update((float) e.Time);
-
-                
-                if (Global.IsKeyDown(Keys.Escape))
-                {
-                    Close();
-                }
             }
 
             protected override void OnRenderFrame(FrameEventArgs e)
             {
-                base.OnRenderFrame(e);
+                if (Global.IsKeyDown(Keys.Escape)) { Close(); }
 
-                GL.ClearColor(_scene.ambientLight.X, _scene.ambientLight.Y, _scene.ambientLight.Z, 1.0f);
+                Global.keyboardState = KeyboardState;
+                Global.mouseState = MouseState;
+                Global.Delta = (float) e.Time;
+
+                _scene.Update(Global.Delta);
+
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-                
-                _scene.RenderSkyBox(_skyboxShader);
 
-                _shader.Use();
+                _scene.Render();
                 
-                _scene.Render(_shader);
-
                 SwapBuffers();
             }
         }
@@ -101,11 +76,5 @@ namespace Gepe3D.Core
             );
             _window.Run();
         }
-
-
-
-        
-
     }
-
 }

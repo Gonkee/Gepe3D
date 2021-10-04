@@ -11,8 +11,8 @@ namespace test
         {
             GpWindow.Config config = new GpWindow.Config
             {
-                Width = 1280,
-                Height = 720,
+                Width = 1920,
+                Height = 1080,
                 Title = "Breugh"
             };
             GpWindow window = new GpWindow(config, new TestScene());
@@ -21,29 +21,40 @@ namespace test
         private class TestScene : GpScene
         {
 
-            Entity e1, e2, e3;
+
+            Entity cube, ground;
+
             public override void Init()
             {
-                Mesh mesh = new CubeMesh(0.5f, 0.5f, 0.5f, true);
-
-                e1 = new Entity(mesh);
-                e2 = new Entity(mesh);
-                e3 = new Entity(mesh);
+                Material red = new Material()
+                {
+                    color = new Vector3(1.0f, 0.2f, 0.2f)
+                };
                 
-                AddChild(e1);
-                AddChild(e2);
-                AddChild(e3);
+                Material white = new Material()
+                {
+                    color = new Vector3(0.6f, 0.6f, 0.6f)
+                };
 
-                e1.SetPosition( -1, 0, 0);
-                e2.SetPosition(  0, 0, 0);
-                e3.SetPosition(  1, 0, 0);
+                Mesh mesh = new CubeMesh(1f, 1f, 1f, true);
+
+                cube = new Entity(mesh, red);
+                ground = new Entity(mesh, white);
+                
+                AddChild(cube);
+                AddChild(ground);
+
+                cube.SetPosition( 0, 0, 0);
+                ground.SetPosition(  0, -1f, 0);
+
+                ground.SetScale(8, 0.5f, 8);
+
+                cube.DrawWireframe = true;
             }
 
             public override void Update(float delta)
             {
-                e1.ApplyRotation( Vector3.UnitX, delta * 20 );
-                e2.ApplyRotation( Vector3.UnitY, delta * 20 );
-                e3.ApplyRotation( Vector3.UnitZ, delta * 20 );
+                cube.ApplyRotation( Vector3.UnitY, delta * 20 );
             }
         }
     }

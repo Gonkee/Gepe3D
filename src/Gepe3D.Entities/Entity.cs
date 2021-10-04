@@ -1,7 +1,6 @@
 
 using System;
 using Gepe3D.Core;
-using Gepe3D.Util;
 using OpenTK.Mathematics;
 
 namespace Gepe3D.Entities
@@ -9,14 +8,17 @@ namespace Gepe3D.Entities
     public class Entity
     {
 
-        private Matrix4 transform;
-        private Matrix3 normalMatrix;
         private bool _dirtyTransform = true;
-        private readonly Mesh _mesh;
+        internal readonly Mesh Mesh;
+        internal readonly Material Material;
 
         private float posX = 0, posY = 0, posZ = 0;
         private float sclX = 1, sclY = 1, sclZ = 1;
         private Quaternion rotation = Quaternion.Identity;
+
+        public Matrix4 TransformMatrix { get; private set; }
+        public Matrix3 NormalMatrix    { get; private set; }
+        public bool DrawWireframe = false;
 
         public float PosX { get { return posX; } set { posX = value; _dirtyTransform = true; } }
         public float PosY { get { return posY; } set { posY = value; _dirtyTransform = true; } }
@@ -26,9 +28,10 @@ namespace Gepe3D.Entities
         public float SclZ { get { return sclZ; } set { sclZ = value; _dirtyTransform = true; } }
 
 
-        public Entity (Mesh mesh)
+        public Entity (Mesh mesh, Material material)
         {
-            this._mesh = mesh;
+            this.Mesh = mesh;
+            this.Material = material;
         }
 
         public void SetPosition(float x, float y, float z)
@@ -69,8 +72,10 @@ namespace Gepe3D.Entities
             _dirtyTransform = true;
         }
 
-        private void UpdateTransform()
+        internal void UpdateTransform()
         {
+            if (!_dirtyTransform) return;
+
             // OpenTK matrices are transposed by default for some reason
             Matrix4 scaleMatrix = Matrix4.CreateScale(sclX, sclY, sclZ);
             scaleMatrix.Transpose();
@@ -79,24 +84,11 @@ namespace Gepe3D.Entities
             Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
             rotationMatrix.Transpose();
 
-            transform = positionMatrix * rotationMatrix * scaleMatrix; // transformations go from right to left
-
-            normalMatrix = new Matrix3( Matrix4.Transpose( Matrix4.Invert(transform) ) );
+            TransformMatrix = positionMatrix * rotationMatrix * scaleMatrix; // transformations go from right to left
+            NormalMatrix = new Matrix3( Matrix4.Transpose( Matrix4.Invert(TransformMatrix) ) );
 
             _dirtyTransform = false;
         }
 
-        public virtual void Update()
-        {
-            
-        }
-
-        public virtual void Render(Shader shader)
-        {
-            if (_dirtyTransform) UpdateTransform();
-            shader.SetMatrix4("modelMatrix", transform);
-            shader.SetMatrix3("normalMatrix", normalMatrix);
-            if (_mesh != null) _mesh.Draw(shader);
-        }
     }
 }

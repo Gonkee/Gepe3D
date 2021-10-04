@@ -11,7 +11,7 @@ vec3 lightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 viewPos;
 uniform vec3 ambientLight;
 
-vec4 fillColor  = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec3 fillColor;
 vec4 lineColor  = vec4(0.0, 0.0, 0.0, 1.0);
 vec4 pointColor = vec4(1.0, 0.0, 0.0, 1.0);
 
@@ -47,7 +47,7 @@ void main()
         vec3 diffuse  = diffuseColor(lightColor, normal, lightDirection);
         vec3 specular = specularColor(lightColor, reflectDirection, viewDirection);
 
-        vec3 color = (ambientLight + diffuse + specular) * vec3(fillColor);
+        vec3 color = (ambientLight + diffuse + specular) * fillColor;
         FragColor = vec4(color, 1.0);
     }
 }
