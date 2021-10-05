@@ -1,6 +1,7 @@
 ﻿using System;
 using Gepe3D.Core;
 using Gepe3D.Entities;
+using Gepe3D.Physics;
 using OpenTK.Mathematics;
 
 namespace test
@@ -22,7 +23,6 @@ namespace test
         {
 
 
-            Entity spin, ground;
 
             public override void Init()
             {
@@ -36,26 +36,18 @@ namespace test
                     color = new Vector3(0.6f, 0.6f, 0.6f)
                 };
 
-                Mesh cubeMesh = new CubeMesh(1f, 1f, 1f, true);
-                Mesh icoMesh = new IcoSphereMesh(0.5f, 2);
+                Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
 
-                spin = new Entity(icoMesh, red);
-                ground = new Entity(cubeMesh, white);
+
+                StaticBody sphere = new StaticBody(ico, red);
                 
-                AddChild(spin);
-                AddChild(ground);
+                AddBody(sphere);
 
-                spin.SetPosition( 0, 0, 0);
-                ground.SetPosition(  0, -1f, 0);
-
-                ground.SetScale(8, 0.5f, 8);
-
-                spin.DrawWireframe = true;
+                sphere.DrawWireframe = true;
             }
 
             public override void Update(float delta)
             {
-                spin.ApplyRotation( Vector3.UnitY, delta * 20 );
             }
         }
     }

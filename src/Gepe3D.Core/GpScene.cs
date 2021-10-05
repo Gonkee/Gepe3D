@@ -6,6 +6,7 @@ using Gepe3D.Util;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
+using Gepe3D.Physics;
 
 namespace Gepe3D.Core
 {
@@ -16,7 +17,7 @@ namespace Gepe3D.Core
         private Shader _entityShader;
         private Shader _skyboxShader;
 
-        private readonly List<Entity> _entities = new List<Entity>();
+        private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
         private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.5f, 0.5f, 0.5f);
@@ -58,51 +59,50 @@ namespace Gepe3D.Core
             _entityShader.SetVector3("viewPos", activeCam.Position);
             _entityShader.SetVector3("ambientLight", ambientLight);
 
-            foreach (Entity e in _entities)
+            foreach (PhysicsBody body in _bodies)
             {
-                e.UpdateTransform();
-                _entityShader.SetMatrix4("modelMatrix", e.TransformMatrix);
-                _entityShader.SetMatrix3("normalMatrix", e.NormalMatrix);
+                // e.UpdateTransform();
+                // _entityShader.SetMatrix4("modelMatrix", e.TransformMatrix);
+                // _entityShader.SetMatrix3("normalMatrix", e.NormalMatrix);
+
+                // body.Update()
                 
-                if (e.Mesh != null)
+
+                _entityShader.SetVector3("fillColor", body.Material.color);
+                // drawStyle
+                // 0 = fill
+                // 1 = line
+                // 2 = point
+
+                _entityShader.SetInt("drawStyle", 0);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                body.Draw();
+
+                if (body.DrawWireframe)
                 {
-
-                    _entityShader.SetVector3("fillColor", e.Material.color);
-                    // drawStyle
-                    // 0 = fill
-                    // 1 = line
-                    // 2 = point
-
-                    _entityShader.SetInt("drawStyle", 0);
-                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-                    e.Mesh.Draw();
-
-                    if (e.DrawWireframe)
-                    {
-                        _entityShader.SetInt("drawStyle", 1);
-                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                        GL.Enable(EnableCap.PolygonOffsetLine);
-                        GL.PolygonOffset(-1, -1);
-                        GL.LineWidth(4f);
-                        e.Mesh.Draw();
-                        GL.Disable(EnableCap.PolygonOffsetLine);
-                        
-                        _entityShader.SetInt("drawStyle", 2);
-                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
-                        GL.Enable(EnableCap.PolygonOffsetPoint);
-                        GL.PolygonOffset(-2, -2);
-                        GL.PointSize(10f);
-                        e.Mesh.Draw();
-                        GL.Disable(EnableCap.PolygonOffsetPoint);
-                    }
+                    _entityShader.SetInt("drawStyle", 1);
+                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                    GL.Enable(EnableCap.PolygonOffsetLine);
+                    GL.PolygonOffset(-1, -1);
+                    GL.LineWidth(4f);
+                    body.Draw();
+                    GL.Disable(EnableCap.PolygonOffsetLine);
+                    
+                    _entityShader.SetInt("drawStyle", 2);
+                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
+                    GL.Enable(EnableCap.PolygonOffsetPoint);
+                    GL.PolygonOffset(-2, -2);
+                    GL.PointSize(10f);
+                    body.Draw();
+                    GL.Disable(EnableCap.PolygonOffsetPoint);
                 }
             }
         }
 
-        public void AddChild(Entity e)
+        public void AddBody(PhysicsBody body)
         {
-            if ( !_entities.Contains(e) )
-            _entities.Add(e);
+            if ( !_bodies.Contains(body) )
+            _bodies.Add(body);
         }
 
         public void Draw(Shader shader)
