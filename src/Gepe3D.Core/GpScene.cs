@@ -32,8 +32,8 @@ namespace Gepe3D.Core
             Init();
             skyBox = new SkyBox();
 
-            _skyboxShader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
-            _entityShader = new Shader("Shaders/entity.vert", "Shaders/entity.frag");
+            _skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
+            _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", new Vector3(10, 10, 10));
         }

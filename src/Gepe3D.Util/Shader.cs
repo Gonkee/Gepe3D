@@ -16,8 +16,10 @@ namespace Gepe3D.Util
 
         public Shader(string vertPath, string fragPath)
         {
-            string shaderSource = File.ReadAllText(vertPath);
+            vertPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), vertPath);
+            fragPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), fragPath);
 
+            string shaderSource = File.ReadAllText(vertPath);
 
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
 
