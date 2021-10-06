@@ -3,6 +3,7 @@ using Gepe3D.Core;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using System;
 
 namespace Gepe3D.Physics
 {
@@ -11,8 +12,8 @@ namespace Gepe3D.Physics
         
         public readonly Material Material;
         public bool DrawWireframe = false;
-        private readonly List<Vector3 > vertices  = new List<Vector3 >();
-        private readonly List<Vector3i> triangles = new List<Vector3i>();
+        protected readonly List<Vector3 > vertices  = new List<Vector3 >();
+        protected readonly List<Vector3i> triangles = new List<Vector3i>();
 
         private readonly int floatsPerVertex = 6;
         private float[] _vertexData;
@@ -23,13 +24,29 @@ namespace Gepe3D.Physics
 
         public PhysicsBody (Geometry geometry, Material material)
         {
-            _vboID = GL.GenBuffer();
-            _vaoID = GL.GenVertexArray();
             this.vertices  = new List<Vector3 >( geometry.vertices    );
             this.triangles = new List<Vector3i>( geometry.triangleIDs );
             this.Material = material;
+
+            _vboID = GL.GenBuffer();
+            _vaoID = GL.GenVertexArray();
+            
+            _vertexData = new float[triangles.Count * 3 * floatsPerVertex];
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vboID);
+            GL.BufferData(BufferTarget.ArrayBuffer, _vertexData.Length * sizeof(float), _vertexData, BufferUsageHint.StaticDraw);
+
+            GL.BindVertexArray(_vaoID);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, floatsPerVertex * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, floatsPerVertex * sizeof(float), 3 * sizeof(float));
+            GL.EnableVertexAttribArray(1);
         }
 
+        public void SetVertexPos(int id, float x, float y, float z)
+        {
+            vertices[id] = new Vector3(x, y, z);
+            _dataDirty = true;
+        }
 
         private void GenerateVertexData()
         {
@@ -72,14 +89,7 @@ namespace Gepe3D.Physics
         {
             GenerateVertexData();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vboID);
-            GL.BufferData(BufferTarget.ArrayBuffer, _vertexData.Length * sizeof(float), _vertexData, BufferUsageHint.StaticDraw);
-
-            GL.BindVertexArray(_vaoID);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, floatsPerVertex * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, floatsPerVertex * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(1);
-
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), _vertexData.Length * sizeof(float), _vertexData);
             _dataDirty = false;
         }
 
@@ -89,5 +99,7 @@ namespace Gepe3D.Physics
             GL.BindVertexArray(_vaoID);
             GL.DrawArrays(PrimitiveType.Triangles, 0, _vertexData.Length / floatsPerVertex);
         }
+
+        public abstract void Update();
     }
 }

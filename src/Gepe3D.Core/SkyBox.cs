@@ -1,54 +1,67 @@
 
-using Gepe3D.Entities;
 using Gepe3D.Util;
 using OpenTK.Graphics.OpenGL4;
-using System.Collections.Generic;
-using OpenTK.Mathematics;
 
 namespace Gepe3D.Core
 {
-    public class SkyBox : Entity
+    public class SkyBox
     {
 
-        private class SkyBoxMesh : Mesh
+        private static readonly float SIDE_LENGTH = 200;
+        
+        private readonly float[] vertices = new float[]
         {
-            private static readonly float SIDE_LENGTH = 200;
+            -SIDE_LENGTH / 2, -SIDE_LENGTH / 2, -SIDE_LENGTH / 2,
+            -SIDE_LENGTH / 2, -SIDE_LENGTH / 2,  SIDE_LENGTH / 2,
+             SIDE_LENGTH / 2, -SIDE_LENGTH / 2,  SIDE_LENGTH / 2,
+             SIDE_LENGTH / 2, -SIDE_LENGTH / 2, -SIDE_LENGTH / 2,
+            -SIDE_LENGTH / 2,  SIDE_LENGTH / 2, -SIDE_LENGTH / 2,
+            -SIDE_LENGTH / 2,  SIDE_LENGTH / 2,  SIDE_LENGTH / 2,
+             SIDE_LENGTH / 2,  SIDE_LENGTH / 2,  SIDE_LENGTH / 2,
+             SIDE_LENGTH / 2,  SIDE_LENGTH / 2, -SIDE_LENGTH / 2
+        };
+        
+        // counter clockwise specification, faces facing inward
+        private readonly uint[] indices = new uint[]
+        {
+            0, 1, 2,    0, 2, 3,    0, 5, 1,    0, 4, 5,
+            1, 6, 2,    1, 5, 6,    2, 7, 3,    2, 6, 7,
+            3, 4, 0,    3, 7, 4,    4, 6, 5,    4, 7, 6
+        };
 
-            public SkyBoxMesh()
-            {
+        private int _vboID, _vaoID, _eboID;
+        
+        private Shader _skyboxShader;
 
-                // first letter = b or t (bottom/top)
-                // second letter = l or r (left/right)
-                // third letter = f or b (front/back)
-                int blf, blb, brb, brf, tlf, tlb, trb, trf;
-                
-                blf = AddVertex(-SIDE_LENGTH / 2, -SIDE_LENGTH / 2, -SIDE_LENGTH / 2);
-                blb = AddVertex(-SIDE_LENGTH / 2, -SIDE_LENGTH / 2,  SIDE_LENGTH / 2);
-                brb = AddVertex( SIDE_LENGTH / 2, -SIDE_LENGTH / 2,  SIDE_LENGTH / 2);
-                brf = AddVertex( SIDE_LENGTH / 2, -SIDE_LENGTH / 2, -SIDE_LENGTH / 2);
-                tlf = AddVertex(-SIDE_LENGTH / 2,  SIDE_LENGTH / 2, -SIDE_LENGTH / 2);
-                tlb = AddVertex(-SIDE_LENGTH / 2,  SIDE_LENGTH / 2,  SIDE_LENGTH / 2);
-                trb = AddVertex( SIDE_LENGTH / 2,  SIDE_LENGTH / 2,  SIDE_LENGTH / 2);
-                trf = AddVertex( SIDE_LENGTH / 2,  SIDE_LENGTH / 2, -SIDE_LENGTH / 2);
-                
-                // counter clockwise specification, faces facing inward
-                AddTriangle(blf, blb, brb);
-                AddTriangle(blf, brb, brf);
-                AddTriangle(blf, tlb, blb);
-                AddTriangle(blf, tlf, tlb);
-                AddTriangle(blb, trb, brb);
-                AddTriangle(blb, tlb, trb);
-                AddTriangle(brb, trf, brf);
-                AddTriangle(brb, trb, trf);
-                AddTriangle(brf, tlf, blf);
-                AddTriangle(brf, trf, tlf);
-                AddTriangle(tlf, trb, tlb);
-                AddTriangle(tlf, trf, trb);
-            }
+        public SkyBox()
+        {
+            _vboID = GL.GenBuffer();
+            _vaoID = GL.GenVertexArray();
+            _eboID = GL.GenBuffer();
+            
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vboID);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
+
+            GL.BindVertexArray(_vaoID);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
+
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _eboID);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
+            
+            _skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
         }
 
-        public SkyBox() : base(new SkyBoxMesh(), new Material())
+        public void Draw(Camera camera)
         {
+            _skyboxShader.Use();
+            _skyboxShader.SetVector3("cameraPos", camera.Position);
+            _skyboxShader.SetMatrix4("cameraMatrix", camera.GetMatrix());
+            
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+
+            GL.BindVertexArray(_vaoID);
+            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
         }
         
     }

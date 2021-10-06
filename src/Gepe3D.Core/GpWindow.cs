@@ -50,6 +50,7 @@ namespace Gepe3D.Core
                 Global.keyboardState = KeyboardState;
                 Global.mouseState = MouseState;
                 Global.Delta = (float) e.Time;
+                Global.Elapsed += Global.Delta;
 
                 _scene.Update(Global.Delta);
 

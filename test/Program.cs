@@ -1,6 +1,5 @@
 ﻿using System;
 using Gepe3D.Core;
-using Gepe3D.Entities;
 using Gepe3D.Physics;
 using OpenTK.Mathematics;
 
@@ -39,7 +38,7 @@ namespace test
                 Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
 
 
-                StaticBody sphere = new StaticBody(ico, red);
+                SoftBody sphere = new SoftBody(ico, red);
                 
                 AddBody(sphere);
 

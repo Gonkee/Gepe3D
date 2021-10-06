@@ -1,7 +1,6 @@
 
 
 using System.Collections.Generic;
-using Gepe3D.Entities;
 using Gepe3D.Util;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
@@ -15,10 +14,9 @@ namespace Gepe3D.Core
 
 
         private Shader _entityShader;
-        private Shader _skyboxShader;
 
         private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
-        private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
+        private Camera activeCam = new Camera( new Vector3(-5, 0, 0), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.5f, 0.5f, 0.5f);
 
@@ -32,7 +30,6 @@ namespace Gepe3D.Core
             Init();
             skyBox = new SkyBox();
 
-            _skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", new Vector3(10, 10, 10));
@@ -42,17 +39,7 @@ namespace Gepe3D.Core
         {
             activeCam.Update();
 
-            _skyboxShader.Use();
-            _skyboxShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
-            
-            skyBox.PosX = activeCam.Position.X;
-            skyBox.PosY = activeCam.Position.Y;
-            skyBox.PosZ = activeCam.Position.Z;
-            skyBox.UpdateTransform();
-            _skyboxShader.SetMatrix4("modelMatrix", skyBox.TransformMatrix);
-            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            skyBox.Mesh.Draw();
-
+            skyBox.Draw(activeCam);
 
             _entityShader.Use();
             _entityShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
@@ -65,7 +52,7 @@ namespace Gepe3D.Core
                 // _entityShader.SetMatrix4("modelMatrix", e.TransformMatrix);
                 // _entityShader.SetMatrix3("normalMatrix", e.NormalMatrix);
 
-                // body.Update()
+                body.Update();
                 
 
                 _entityShader.SetVector3("fillColor", body.Material.color);

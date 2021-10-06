@@ -14,8 +14,8 @@ namespace Gepe3D.Core
         public float MovementSpeed = 1.5f;
         public float Sensitivity = 0.2f;
 
-        private float pitch;
-        private float yaw;
+        private float pitch = 0;
+        private float yaw = 0;
 
         private Vector3 _localForward = -Vector3.UnitZ;
         private Vector3 _localUp      =  Vector3.UnitY;

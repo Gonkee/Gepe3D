@@ -10,5 +10,11 @@ namespace Gepe3D.Physics
         {
             
         }
+
+
+        public override void Update()
+        {
+        }
+
     }
 }
