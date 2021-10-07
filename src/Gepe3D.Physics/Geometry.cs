@@ -32,5 +32,14 @@ namespace Gepe3D.Physics
         {
             triangleIDs.Add(new Vector3i(v1_ID, v2_ID, v3_ID));
         }
+
+        public void OffsetPosition(float x, float y, float z)
+        {
+            Vector3 offset = new Vector3(x, y, z);
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                vertices[i] += offset;
+            }
+        }
     }
 }

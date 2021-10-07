@@ -36,11 +36,15 @@ namespace test
                 };
 
                 Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
+                Geometry cube = GeometryGenerator.GenCube(5, 1, 5);
+                cube.OffsetPosition(0, -2.001f, 0);
 
 
                 SoftBody sphere = new SoftBody(ico, red);
+                StaticBody ground = new StaticBody(cube, white);
                 
                 AddBody(sphere);
+                AddBody(ground);
 
                 sphere.DrawWireframe = true;
             }

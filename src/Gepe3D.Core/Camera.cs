@@ -14,6 +14,7 @@ namespace Gepe3D.Core
         public float MovementSpeed = 1.5f;
         public float Sensitivity = 0.2f;
 
+        // initially points in the positive X
         private float pitch = 0;
         private float yaw = 0;
 
@@ -60,10 +61,23 @@ namespace Gepe3D.Core
 
             Position += movement * MovementSpeed * Global.Delta;
 
-            yaw   += Global.MouseDelta.X * Sensitivity;
-            pitch -= Global.MouseDelta.Y * Sensitivity;
+            // yaw   += Global.MouseDelta.X * Sensitivity;
+            // pitch -= Global.MouseDelta.Y * Sensitivity;
             pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
             UpdateLocalVectors();
+        }
+
+        public void LookAt(float x, float y, float z)
+        {
+            float dx = x - Position.X;
+            float dy = y - Position.Y;
+            float dz = z - Position.Z;
+            float horizontalDist = MathF.Sqrt(dx * dx + dz * dz);
+            if (horizontalDist == 0) return;
+
+            pitch = MathHelper.RadiansToDegrees( MathF.Atan2(dy, horizontalDist) );
+            yaw =   MathHelper.RadiansToDegrees( MathF.Atan2(dz, dx) );
+
         }
 
         private void UpdateLocalVectors()

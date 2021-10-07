@@ -6,6 +6,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 using Gepe3D.Physics;
+using System;
 
 namespace Gepe3D.Core
 {
@@ -16,7 +17,7 @@ namespace Gepe3D.Core
         private Shader _entityShader;
 
         private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
-        private Camera activeCam = new Camera( new Vector3(-5, 0, 0), 16f / 9f);
+        private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.5f, 0.5f, 0.5f);
 
@@ -33,10 +34,16 @@ namespace Gepe3D.Core
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", new Vector3(10, 10, 10));
+
+            activeCam.Position = new Vector3( 2, 1.5f, 2 );
+            activeCam.LookAt(0, -0.5f, 0);
         }
 
         public void Render()
         {
+            // activeCam.Position = new Vector3( MathF.Cos(Global.Elapsed) * 3, 2, MathF.Sin(Global.Elapsed) * 2 );
+            // activeCam.LookAt(0, 0, 0);
+
             activeCam.Update();
 
             skyBox.Draw(activeCam);
