@@ -61,8 +61,8 @@ namespace Gepe3D.Core
 
             Position += movement * MovementSpeed * Global.Delta;
 
-            // yaw   += Global.MouseDelta.X * Sensitivity;
-            // pitch -= Global.MouseDelta.Y * Sensitivity;
+            yaw   += Global.MouseDelta.X * Sensitivity;
+            pitch -= Global.MouseDelta.Y * Sensitivity;
             pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
             UpdateLocalVectors();
         }

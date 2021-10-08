@@ -17,8 +17,8 @@ namespace Gepe3D.Physics
 
             private readonly float initialLength;
 
-            private float springConstant = 2;
-            private float dampingConstant = 0.2f;
+            private float springConstant = 10;
+            private float dampingConstant = 0.4f;
 
             public Spring(PointMass m1, PointMass m2)
             {
@@ -51,12 +51,16 @@ namespace Gepe3D.Physics
 
                 float contractionForce = (posDiff.Length - initialLength)  * springConstant;
                 float dampingForce     = Vector3.Dot(velDiff, posDiffNorm) * dampingConstant;
-                float totalForce = contractionForce + dampingForce;
+
+                // magnitude of damp force must be less than magnitude of contraction (spring) force
+                // float dampMagnitude = Math.Min( Math.Abs(dampingForce), 0.99f * Math.Abs(contractionForce) );
+                // dampingForce = Math.Sign(dampingForce) * dampMagnitude;
 
                 // if contraction & total forces are in opposite directions,
                 // that means damping force is overpowering the contraction (spring) force
                 // that will result in bugginess
-                if (contractionForce * totalForce < 0) totalForce = 0;
+                float totalForce = contractionForce + dampingForce;
+                // if (contractionForce * totalForce < 0) totalForce = 0;
 
                 Vector3 m1_force = totalForce * posDiffNorm;
                 Vector3 m2_force = -m1_force;
@@ -68,6 +72,8 @@ namespace Gepe3D.Physics
         }
 
         public static readonly float GROUND_Y = -1.5f;
+
+        private readonly float nRT_pressureConstant;
 
         float gravity = 1;
 
@@ -101,6 +107,10 @@ namespace Gepe3D.Physics
                 GenSpringID(id3, id1);
             }
 
+            float volume = GetVolume();
+            nRT_pressureConstant = volume * 20; // nRT is proportional to volume (Avogadro's Law)
+            System.Console.WriteLine(volume);
+            System.Console.WriteLine(nRT_pressureConstant);
         }
 
         private int GenSpringID(int m1_ID, int m2_ID)
@@ -131,6 +141,32 @@ namespace Gepe3D.Physics
                 spr.Update();
             }
 
+            float volume = GetVolume();
+            volume = Math.Max(volume, 0.01f); // avoid divide by 0
+
+            foreach (Vector3i tri in triangles)
+            {
+                Vector3 v1 = vertices[tri.X];
+                Vector3 v2 = vertices[tri.Y];
+                Vector3 v3 = vertices[tri.Z];
+
+                Vector3 crossProduct = Vector3.Cross( v2 - v1, v3 - v1 );
+                Vector3 normal = crossProduct.Normalized();
+                float triangleArea = crossProduct.Length / 2;
+
+                // PV = nRT   therefore   P = nRT / V
+                // P = F / A  therefore   nRT / V = F / A
+                // F = nRT * A / V
+                float pressureForce = nRT_pressureConstant * triangleArea / volume;
+                pressureForce /= 3; // distribute the triangle's force into the 3 vertices
+
+                Vector3 forceVector = normal * pressureForce;
+                masses[tri.X].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
+                masses[tri.Y].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
+                masses[tri.Z].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
+
+            }
+
             for (int i = 0; i < masses.Length; i++)
             {
                 PointMass p = masses[i];
@@ -149,6 +185,29 @@ namespace Gepe3D.Physics
                 SetVertexPos(i, p.x, p.y, p.z);
 
             }
+        }
+
+        private float GetVolume()
+        {
+            float volume = 0;
+            foreach (Vector3i tri in triangles)
+            {
+                Vector3 v1 = vertices[tri.X];
+                Vector3 v2 = vertices[tri.Y];
+                Vector3 v3 = vertices[tri.Z];
+                volume += SignedVolumeOfTriangle(v1, v2, v3);
+            }
+            return Math.Abs(volume);
+        }
+
+        public float SignedVolumeOfTriangle(Vector3 p1, Vector3 p2, Vector3 p3) {
+            var v321 = p3.X * p2.Y * p1.Z;
+            var v231 = p2.X * p3.Y * p1.Z;
+            var v312 = p3.X * p1.Y * p2.Z;
+            var v132 = p1.X * p3.Y * p2.Z;
+            var v213 = p2.X * p1.Y * p3.Z;
+            var v123 = p1.X * p2.Y * p3.Z;
+            return (1.0f / 6.0f) * (-v321 + v231 + v312 - v132 - v213 + v123);
         }
 
     }
