@@ -100,6 +100,11 @@ namespace Gepe3D.Physics
             GL.DrawArrays(PrimitiveType.Triangles, 0, _vertexData.Length / floatsPerVertex);
         }
 
-        public abstract void Update();
+
+        public abstract float[] GetState();
+
+        public abstract float[] GetDerivative(float[] state);
+
+        public abstract void UpdateState(float[] change);
     }
 }

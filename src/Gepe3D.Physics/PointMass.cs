@@ -37,13 +37,13 @@ namespace Gepe3D.Physics
 
         public void Update()
         {
-            velX += forceX / mass * Global.Delta;
-            velY += forceY / mass * Global.Delta;
-            velZ += forceZ / mass * Global.Delta;
+            velX += forceX / mass * Global.Delta * 0.1f;
+            velY += forceY / mass * Global.Delta * 0.1f;
+            velZ += forceZ / mass * Global.Delta * 0.1f;
 
-            x += velX * Global.Delta;
-            y += velY * Global.Delta;
-            z += velZ * Global.Delta;
+            x += velX * Global.Delta * 0.1f;
+            y += velY * Global.Delta * 0.1f;
+            z += velZ * Global.Delta * 0.1f;
         }
     }
 }

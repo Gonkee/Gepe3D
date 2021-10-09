@@ -10,90 +10,56 @@ namespace Gepe3D.Physics
     public class SoftBody : PhysicsBody
     {
 
-        private class Spring
+        private float springConstant = 40;
+        private float dampingConstant = 0.7f;
+
+        private struct Spring
         {
-            public readonly PointMass m1;
-            public readonly PointMass m2;
+            public readonly int mass1;
+            public readonly int mass2;
+            public readonly float initialLength;
 
-            private readonly float initialLength;
-
-            private float springConstant = 10;
-            private float dampingConstant = 0.4f;
-
-            public Spring(PointMass m1, PointMass m2)
+            public Spring(int mass1, int mass2, float initialLength)
             {
-                this.m1 = m1;
-                this.m2 = m2;
-
-                float dx2 = (m2.x - m1.x) * (m2.x - m1.x);
-                float dy2 = (m2.y - m1.y) * (m2.y - m1.y);
-                float dz2 = (m2.z - m1.z) * (m2.z - m1.z);
-                initialLength = MathF.Sqrt( dx2 + dy2 + dz2 );
+                this.mass1 = mass1;
+                this.mass2 = mass2;
+                this.initialLength = initialLength;
             }
-
-            public void Update()
-            {
-                Vector3 posDiff = new Vector3(
-                    m2.x - m1.x,
-                    m2.y - m1.y,
-                    m2.z - m1.z
-                );
-
-                if (posDiff.Length == 0) return;
-
-                Vector3 velDiff = new Vector3(
-                    m2.velX - m1.velX,
-                    m2.velY - m1.velY,
-                    m2.velZ - m1.velZ
-                );
-
-                Vector3 posDiffNorm = posDiff.Normalized();
-
-                float contractionForce = (posDiff.Length - initialLength)  * springConstant;
-                float dampingForce     = Vector3.Dot(velDiff, posDiffNorm) * dampingConstant;
-
-                // magnitude of damp force must be less than magnitude of contraction (spring) force
-                // float dampMagnitude = Math.Min( Math.Abs(dampingForce), 0.99f * Math.Abs(contractionForce) );
-                // dampingForce = Math.Sign(dampingForce) * dampMagnitude;
-
-                // if contraction & total forces are in opposite directions,
-                // that means damping force is overpowering the contraction (spring) force
-                // that will result in bugginess
-                float totalForce = contractionForce + dampingForce;
-                // if (contractionForce * totalForce < 0) totalForce = 0;
-
-                Vector3 m1_force = totalForce * posDiffNorm;
-                Vector3 m2_force = -m1_force;
-
-                m1.ApplyForce(m1_force.X, m1_force.Y, m1_force.Z);
-                m2.ApplyForce(m2_force.X, m2_force.Y, m2_force.Z);
-            }
-
         }
 
-        public static readonly float GROUND_Y = -1.5f;
+        public static readonly float GROUND_Y = -3f;
 
         private readonly float nRT_pressureConstant;
 
         float gravity = 1;
 
-        PointMass[] masses;
         List<Spring> springs = new List<Spring>();
         Dictionary<long, int> existingSprings = new Dictionary<long, int>();
 
-        float totalMass = 2;
+        float totalMass = 4;
 
+        private readonly float[] state;
+
+        private readonly float massPerPoint;
+
+        private int  x (int id) { return id * 6 + 0; }
+        private int  y (int id) { return id * 6 + 1; }
+        private int  z (int id) { return id * 6 + 2; }
+        private int vx (int id) { return id * 6 + 3; }
+        private int vy (int id) { return id * 6 + 4; }
+        private int vz (int id) { return id * 6 + 5; }
 
         public SoftBody(Geometry geometry, Material material) : base(geometry, material)
         {
-            int massCount = geometry.vertices.Count;
-            masses = new PointMass[massCount];
-            for (int i = 0; i < masses.Length; i++)
+
+            state = new float[geometry.vertices.Count * 6];
+            massPerPoint = totalMass / geometry.vertices.Count;
+
+            for (int i = 0; i < vertices.Count; i++)
             {
-                float x = geometry.vertices[i].X;
-                float y = geometry.vertices[i].Y;
-                float z = geometry.vertices[i].Z;
-                masses[i] = new PointMass(totalMass / massCount, x, y, z);
+                state[ x(i) ] = geometry.vertices[i].X;
+                state[ y(i) ] = geometry.vertices[i].Y;
+                state[ z(i) ] = geometry.vertices[i].Z;
             }
 
             foreach (Vector3i tri in geometry.triangleIDs)
@@ -108,17 +74,15 @@ namespace Gepe3D.Physics
             }
 
             float volume = GetVolume();
-            nRT_pressureConstant = volume * 20; // nRT is proportional to volume (Avogadro's Law)
-            System.Console.WriteLine(volume);
-            System.Console.WriteLine(nRT_pressureConstant);
+            nRT_pressureConstant = volume * 50; // nRT is proportional to volume (Avogadro's Law)
         }
 
         private int GenSpringID(int m1_ID, int m2_ID)
         {
             // check if spring has already been generated for these two masses
-            long id0 = Math.Min(m1_ID, m2_ID);
-            long id1 = Math.Max(m1_ID, m2_ID);
-            long uniqueCombination = (id0 << 32) + id1;
+            int id0 = Math.Min(m1_ID, m2_ID);
+            int id1 = Math.Max(m1_ID, m2_ID);
+            long uniqueCombination = ( (long) id0 << 32) + (long) id1;
 
             if ( existingSprings.ContainsKey(uniqueCombination) )
             {
@@ -126,65 +90,18 @@ namespace Gepe3D.Physics
             }
 
             // generate new spring
-            Spring spring = new Spring( masses[id0], masses[id1] );
+            float dx2 = (state[ x(id1) ] - state[ x(id0) ]) * (state[ x(id1) ] - state[ x(id0) ]);
+            float dy2 = (state[ y(id1) ] - state[ y(id0) ]) * (state[ y(id1) ] - state[ y(id0) ]);
+            float dz2 = (state[ z(id1) ] - state[ z(id0) ]) * (state[ z(id1) ] - state[ z(id0) ]);
+            float initialLength = MathF.Sqrt( dx2 + dy2 + dz2 );
+            Spring spring = new Spring( (int) id0, (int) id1, initialLength );
+
+            // add new spring
             int newID = springs.Count; 
             existingSprings.Add(uniqueCombination, newID);
             springs.Add(spring);
 
             return newID;
-        }
-
-        public override void Update()
-        {
-            foreach (Spring spr in springs)
-            {
-                spr.Update();
-            }
-
-            float volume = GetVolume();
-            volume = Math.Max(volume, 0.01f); // avoid divide by 0
-
-            foreach (Vector3i tri in triangles)
-            {
-                Vector3 v1 = vertices[tri.X];
-                Vector3 v2 = vertices[tri.Y];
-                Vector3 v3 = vertices[tri.Z];
-
-                Vector3 crossProduct = Vector3.Cross( v2 - v1, v3 - v1 );
-                Vector3 normal = crossProduct.Normalized();
-                float triangleArea = crossProduct.Length / 2;
-
-                // PV = nRT   therefore   P = nRT / V
-                // P = F / A  therefore   nRT / V = F / A
-                // F = nRT * A / V
-                float pressureForce = nRT_pressureConstant * triangleArea / volume;
-                pressureForce /= 3; // distribute the triangle's force into the 3 vertices
-
-                Vector3 forceVector = normal * pressureForce;
-                masses[tri.X].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
-                masses[tri.Y].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
-                masses[tri.Z].ApplyForce(forceVector.X, forceVector.Y, forceVector.Z);
-
-            }
-
-            for (int i = 0; i < masses.Length; i++)
-            {
-                PointMass p = masses[i];
-
-                p.ApplyForce(0, -gravity * p.mass, 0);
-
-                p.Update();
-                p.ClearForces();
-
-                if (p.y < GROUND_Y)
-                {
-                    p.y = GROUND_Y;
-                    p.velY = MathHelper.Max(p.velY, 0);
-                }
-
-                SetVertexPos(i, p.x, p.y, p.z);
-
-            }
         }
 
         private float GetVolume()
@@ -208,6 +125,120 @@ namespace Gepe3D.Physics
             var v213 = p2.X * p1.Y * p3.Z;
             var v123 = p1.X * p2.Y * p3.Z;
             return (1.0f / 6.0f) * (-v321 + v231 + v312 - v132 - v213 + v123);
+        }
+
+        public override float[] GetState()
+        {
+            return state;
+        }
+
+        public override float[] GetDerivative(float[] state)
+        {
+            float[] derivative = new float[state.Length];
+
+            foreach (Spring spr in springs)
+            {
+                float  x1 = state[  x(spr.mass1) ];
+                float  y1 = state[  y(spr.mass1) ];
+                float  z1 = state[  z(spr.mass1) ];
+                float vx1 = state[ vx(spr.mass1) ];
+                float vy1 = state[ vy(spr.mass1) ];
+                float vz1 = state[ vz(spr.mass1) ];
+
+                float  x2 = state[  x(spr.mass2) ];
+                float  y2 = state[  y(spr.mass2) ];
+                float  z2 = state[  z(spr.mass2) ];
+                float vx2 = state[ vx(spr.mass2) ];
+                float vy2 = state[ vy(spr.mass2) ];
+                float vz2 = state[ vz(spr.mass2) ];
+
+                Vector3 posDiff = new Vector3( x2 - x1, y2 - y1, z2 - z1 );
+                if (posDiff.Length == 0) continue;
+                Vector3 velDiff = new Vector3( vx2 - vx1, vy2 - y1, vz2 - vz1 );
+                Vector3 posDiffNorm = posDiff.Normalized();
+
+                float contractionForce = (posDiff.Length - spr.initialLength)  * springConstant;
+                float dampingForce     = Vector3.Dot(velDiff, posDiffNorm) * dampingConstant;
+                float totalForce = contractionForce + dampingForce;
+
+                Vector3 m1_force = totalForce * posDiffNorm;
+                Vector3 m2_force = -m1_force;
+
+                derivative[ vx(spr.mass1) ] += m1_force.X / massPerPoint;
+                derivative[ vy(spr.mass1) ] += m1_force.Y / massPerPoint;
+                derivative[ vz(spr.mass1) ] += m1_force.Z / massPerPoint;
+
+                derivative[ vx(spr.mass2) ] += m2_force.X / massPerPoint;
+                derivative[ vy(spr.mass2) ] += m2_force.Y / massPerPoint;
+                derivative[ vz(spr.mass2) ] += m2_force.Z / massPerPoint;
+            }
+
+            float volume = GetVolume();
+            volume = Math.Max(volume, 0.01f); // avoid divide by 0
+
+            foreach (Vector3i tri in triangles)
+            {
+                Vector3 v1 = new Vector3( state[ x(tri.X) ], state[ y(tri.X) ], state[ z(tri.X) ] );
+                Vector3 v2 = new Vector3( state[ x(tri.Y) ], state[ y(tri.Y) ], state[ z(tri.Y) ] );
+                Vector3 v3 = new Vector3( state[ x(tri.Z) ], state[ y(tri.Z) ], state[ z(tri.Z) ] );
+
+                Vector3 crossProduct = Vector3.Cross( v2 - v1, v3 - v1 );
+                Vector3 normal = crossProduct.Normalized();
+                float triangleArea = crossProduct.Length / 2;
+
+                // PV = nRT   therefore   P = nRT / V
+                // P = F / A  therefore   nRT / V = F / A
+                // F = nRT * A / V
+                float pressureForce = nRT_pressureConstant * triangleArea / volume;
+                pressureForce /= 3; // distribute the triangle's force into the 3 vertices
+
+                Vector3 forceVector = normal * pressureForce;
+
+                derivative[ vx(tri.X) ] += forceVector.X / massPerPoint;
+                derivative[ vy(tri.X) ] += forceVector.Y / massPerPoint;
+                derivative[ vz(tri.X) ] += forceVector.Z / massPerPoint;
+                
+                derivative[ vx(tri.Y) ] += forceVector.X / massPerPoint;
+                derivative[ vy(tri.Y) ] += forceVector.Y / massPerPoint;
+                derivative[ vz(tri.Y) ] += forceVector.Z / massPerPoint;
+                
+                derivative[ vx(tri.Z) ] += forceVector.X / massPerPoint;
+                derivative[ vy(tri.Z) ] += forceVector.Y / massPerPoint;
+                derivative[ vz(tri.Z) ] += forceVector.Z / massPerPoint;
+            }
+
+            for (int i = 0; i < state.Length / 6; i++)
+            {
+                derivative[ vy(i) ] -= gravity;
+
+                // set the position derivative to just equal the velocity values
+                derivative[ x(i) ] = state[ vx(i) ];
+                derivative[ y(i) ] = state[ vy(i) ];
+                derivative[ z(i) ] = state[ vz(i) ];
+            }
+
+            return derivative;
+        }
+
+        public override void UpdateState(float[] change)
+        {
+            for (int i = 0; i < state.Length / 6; i++)
+            {
+                state[  x(i) ] += change[  x(i) ];
+                state[  y(i) ] += change[  y(i) ];
+                state[  z(i) ] += change[  z(i) ];
+                state[ vx(i) ] += change[ vx(i) ];
+                state[ vy(i) ] += change[ vy(i) ];
+                state[ vz(i) ] += change[ vz(i) ];
+
+                if (state[  y(i) ] < GROUND_Y)
+                {
+                    state[  y(i) ] = GROUND_Y;
+                    state[ vy(i) ] = Math.Max( state[ vy(i) ], 0 );
+                }
+
+                SetVertexPos( i, state[ x(i) ], state[ y(i) ], state[ z(i) ] );
+            }
         }
 
     }

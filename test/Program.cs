@@ -41,10 +41,10 @@ namespace test
 
 
                 SoftBody sphere = new SoftBody(ico, red);
-                StaticBody ground = new StaticBody(cube, white);
+                // StaticBody ground = new StaticBody(cube, white);
                 
                 AddBody(sphere);
-                AddBody(ground);
+                // AddBody(ground);
 
                 sphere.DrawWireframe = true;
             }

@@ -11,9 +11,19 @@ namespace Gepe3D.Physics
             
         }
 
-
-        public override void Update()
+        public override float[] GetState()
         {
+            throw new System.NotImplementedException();
+        }
+
+        public override float[] GetDerivative(float[] state)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override void UpdateState(float[] change)
+        {
+            throw new System.NotImplementedException();
         }
 
     }
