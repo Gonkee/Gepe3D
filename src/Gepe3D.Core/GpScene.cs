@@ -35,7 +35,7 @@ namespace Gepe3D.Core
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", new Vector3(10, 10, 10));
 
-            activeCam.Position = new Vector3( 2, 1.5f, 2 );
+            activeCam.Position = new Vector3( 3, 0, 0 );
             activeCam.LookAt(0, -0.5f, 0);
         }
 
@@ -61,7 +61,7 @@ namespace Gepe3D.Core
 
                 PhysicsSolver.IntegrateRungeKutta4(body, Global.Delta, _bodies);
                 
-
+                if (!body.Visible) continue;
                 _entityShader.SetVector3("fillColor", body.Material.color);
                 // drawStyle
                 // 0 = fill

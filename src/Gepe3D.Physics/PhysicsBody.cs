@@ -12,6 +12,7 @@ namespace Gepe3D.Physics
         
         public readonly Material Material;
         public bool DrawWireframe = false;
+        public bool Visible = true;
         public readonly List<Vector3 > vertices  = new List<Vector3 >();
         public readonly List<Vector3i> triangles = new List<Vector3i>();
 

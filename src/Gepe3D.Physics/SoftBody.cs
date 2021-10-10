@@ -26,7 +26,7 @@ namespace Gepe3D.Physics
 
         private static readonly float GRAVITY = 1;
         private static readonly float SPRING_CONSTANT = 30;
-        private static readonly float DAMPING_CONSTANT = 0.5f;
+        private static readonly float DAMPING_CONSTANT = 0.3f;
         private readonly float nRT_pressureConstant;
 
         List<Spring> springs = new List<Spring>();
@@ -291,10 +291,10 @@ namespace Gepe3D.Physics
                         ) continue;
 
                         P += normal * 0.01f; // small buffer distance
-                        
                         movement = P - current;
                         velocity -= Vector3.Dot(velocity, normal) * normal;
-                        velocity = new Vector3();
+                        velocity *= 0.5f; // friction? i dont even know
+                        // velocity = new Vector3();
                     }
 
                 }
