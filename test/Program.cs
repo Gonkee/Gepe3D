@@ -11,8 +11,8 @@ namespace test
         {
             GpWindow.Config config = new GpWindow.Config
             {
-                Width = 1920,
-                Height = 1080,
+                Width = 1000,
+                Height = 500,
                 Title = "Breugh"
             };
             GpWindow window = new GpWindow(config, new TestScene());
@@ -37,14 +37,17 @@ namespace test
 
                 Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
                 Geometry cube = GeometryGenerator.GenCube(5, 1, 5);
-                cube.OffsetPosition(0, -2.001f, 0);
+
+                cube.Rotate( new Vector3(1, 0, 0), 45);
+                cube.Rotate( new Vector3(0, 1, 0), 45);
+                cube.OffsetPosition(0, -3f, 0);
 
 
                 SoftBody sphere = new SoftBody(ico, red);
-                // StaticBody ground = new StaticBody(cube, white);
+                StaticBody ground = new StaticBody(cube, white);
                 
                 AddBody(sphere);
-                // AddBody(ground);
+                AddBody(ground);
 
                 sphere.DrawWireframe = true;
             }

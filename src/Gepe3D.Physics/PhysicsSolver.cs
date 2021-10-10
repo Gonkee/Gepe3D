@@ -1,18 +1,20 @@
 
+using System.Collections.Generic;
+
 namespace Gepe3D.Physics
 {
     public class PhysicsSolver
     {
 
-        public static void IntegrateExplicitEuler(PhysicsBody body, float delta)
+        public static void IntegrateExplicitEuler(PhysicsBody body, float delta, List<PhysicsBody> bodies)
         {
             float[] derivative = body.GetDerivative( body.GetState() );
             float[] change = new float[derivative.Length];
             for (int i = 0; i < change.Length; i++) change[i] = derivative[i] * delta;
-            body.UpdateState(change);
+            body.UpdateState(change, bodies);
         }
         
-        public static void IntegrateRungeKutta4(PhysicsBody body, float delta)
+        public static void IntegrateRungeKutta4(PhysicsBody body, float delta, List<PhysicsBody> bodies)
         {
             float[] initialState, state1, state2, state3,
                 dA, dB, dC, dD, change;
@@ -34,7 +36,7 @@ namespace Gepe3D.Physics
             }
 
 
-            body.UpdateState(change);
+            body.UpdateState(change, bodies);
             
         }
 

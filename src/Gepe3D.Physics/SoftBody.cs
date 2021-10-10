@@ -10,9 +10,6 @@ namespace Gepe3D.Physics
     public class SoftBody : PhysicsBody
     {
 
-        private float springConstant = 40;
-        private float dampingConstant = 0.7f;
-
         private struct Spring
         {
             public readonly int mass1;
@@ -27,20 +24,19 @@ namespace Gepe3D.Physics
             }
         }
 
-        public static readonly float GROUND_Y = -3f;
-
+        private static readonly float GRAVITY = 1;
+        private static readonly float SPRING_CONSTANT = 30;
+        private static readonly float DAMPING_CONSTANT = 0.5f;
         private readonly float nRT_pressureConstant;
-
-        float gravity = 1;
 
         List<Spring> springs = new List<Spring>();
         Dictionary<long, int> existingSprings = new Dictionary<long, int>();
+        private float _maxX, _minX, _maxY, _minY, _maxZ, _minZ;
 
         float totalMass = 4;
-
+        private readonly float massPerPoint;
         private readonly float[] state;
 
-        private readonly float massPerPoint;
 
         private int  x (int id) { return id * 6 + 0; }
         private int  y (int id) { return id * 6 + 1; }
@@ -48,6 +44,13 @@ namespace Gepe3D.Physics
         private int vx (int id) { return id * 6 + 3; }
         private int vy (int id) { return id * 6 + 4; }
         private int vz (int id) { return id * 6 + 5; }
+        
+        public override float MaxX() { return _maxX; }
+        public override float MinX() { return _minX; }
+        public override float MaxY() { return _maxY; }
+        public override float MinY() { return _minY; }
+        public override float MaxZ() { return _maxZ; }
+        public override float MinZ() { return _minZ; }
 
         public SoftBody(Geometry geometry, Material material) : base(geometry, material)
         {
@@ -157,8 +160,8 @@ namespace Gepe3D.Physics
                 Vector3 velDiff = new Vector3( vx2 - vx1, vy2 - y1, vz2 - vz1 );
                 Vector3 posDiffNorm = posDiff.Normalized();
 
-                float contractionForce = (posDiff.Length - spr.initialLength)  * springConstant;
-                float dampingForce     = Vector3.Dot(velDiff, posDiffNorm) * dampingConstant;
+                float contractionForce = (posDiff.Length - spr.initialLength)  * SPRING_CONSTANT;
+                float dampingForce     = Vector3.Dot(velDiff, posDiffNorm) * DAMPING_CONSTANT;
                 float totalForce = contractionForce + dampingForce;
 
                 Vector3 m1_force = totalForce * posDiffNorm;
@@ -209,7 +212,7 @@ namespace Gepe3D.Physics
 
             for (int i = 0; i < state.Length / 6; i++)
             {
-                derivative[ vy(i) ] -= gravity;
+                derivative[ vy(i) ] -= GRAVITY;
 
                 // set the position derivative to just equal the velocity values
                 derivative[ x(i) ] = state[ vx(i) ];
@@ -220,24 +223,101 @@ namespace Gepe3D.Physics
             return derivative;
         }
 
-        public override void UpdateState(float[] change)
+        public override void UpdateState(float[] change, List<PhysicsBody> bodies)
         {
+            _maxX = float.MinValue;
+            _minX = float.MaxValue;
+            _maxY = float.MinValue;
+            _minY = float.MaxValue;
+            _maxZ = float.MinValue;
+            _minZ = float.MaxValue;
+
             for (int i = 0; i < state.Length / 6; i++)
             {
-                state[  x(i) ] += change[  x(i) ];
-                state[  y(i) ] += change[  y(i) ];
-                state[  z(i) ] += change[  z(i) ];
+                Vector3 current  = new Vector3( state [ x(i) ], state [ y(i) ], state [ z(i) ] );
+                Vector3 movement = new Vector3( change[ x(i) ], change[ y(i) ], change[ z(i) ] );
+                Vector3 velocity = new Vector3( state [vx(i) ], state [vy(i) ], state [vz(i) ] );
+
+                foreach (PhysicsBody body in bodies) // keep clipping the movement if colliding
+                {
+                    if (body == this) continue;
+                    if ( !(
+                        current.X + movement.X > body.MinX() &&
+                        current.X + movement.X < body.MaxX() &&
+                        current.Y + movement.Y > body.MinY() &&
+                        current.Y + movement.Y < body.MaxY() &&
+                        current.Z + movement.Z > body.MinZ() &&
+                        current.Z + movement.Z < body.MaxZ() )
+                    ) continue;
+
+                    Vector3 A, B, C, normal, crossProduct;
+                    foreach (Vector3i tri in body.triangles)
+                    {
+                        A = body.vertices[tri.X];
+                        B = body.vertices[tri.Y];
+                        C = body.vertices[tri.Z];
+                        crossProduct = Vector3.Cross(B - A, C - A);
+                        normal = crossProduct.Normalized();
+                        float triangleArea = crossProduct.Length / 2;
+
+                        // line-plane intersection
+                        float normalDotToPlane  = Vector3.Dot(A - current, normal);
+                        float normalDotMovement = Vector3.Dot(movement, normal);
+
+                        if (
+                            normalDotToPlane  >= 0 ||    // to plane is same direction as normal, currently behind plane
+                            normalDotMovement >= 0 ||    // movement is same direction as normal, moving away from plane
+                            // to plane must be less negative than movement, so intersection is within range
+                            normalDotToPlane < normalDotMovement
+                        ) continue;
+
+                        // P = point of intersection with plane
+                        Vector3 P = current + (normalDotToPlane / normalDotMovement) * movement;
+
+                        float areaPAB = Vector3.Cross(A - P, B - P).Length / 2;
+                        float areaPAC = Vector3.Cross(A - P, C - P).Length / 2;
+                        float areaPBC = Vector3.Cross(B - P, C - P).Length / 2;
+                        float barycentricA = areaPBC / triangleArea;
+                        float barycentricB = areaPAC / triangleArea;
+                        float barycentricC = areaPAB / triangleArea;
+                        float totalBarycentric = barycentricA + barycentricB + barycentricC;
+                        if (    // check if point of intersection is within triangle
+                            !(
+                                barycentricA > 0 && barycentricA < 1 &&
+                                barycentricB > 0 && barycentricB < 1 &&
+                                barycentricC > 0 && barycentricC < 1 &&
+                                totalBarycentric > 0.99 && totalBarycentric < 1.01
+                            )
+                        ) continue;
+
+                        P += normal * 0.01f; // small buffer distance
+                        
+                        movement = P - current;
+                        velocity -= Vector3.Dot(velocity, normal) * normal;
+                        velocity = new Vector3();
+                    }
+
+                }
+                state[  x(i) ] += movement.X;
+                state[  y(i) ] += movement.Y;
+                state[  z(i) ] += movement.Z;
+                
+                state[ vx(i) ] = velocity.X;
+                state[ vy(i) ] = velocity.Y;
+                state[ vz(i) ] = velocity.Z;
+
                 state[ vx(i) ] += change[ vx(i) ];
                 state[ vy(i) ] += change[ vy(i) ];
                 state[ vz(i) ] += change[ vz(i) ];
 
-                if (state[  y(i) ] < GROUND_Y)
-                {
-                    state[  y(i) ] = GROUND_Y;
-                    state[ vy(i) ] = Math.Max( state[ vy(i) ], 0 );
-                }
-
                 SetVertexPos( i, state[ x(i) ], state[ y(i) ], state[ z(i) ] );
+                
+                _maxX = Math.Max( _maxX, state[ x(i) ] );
+                _minX = Math.Min( _minX, state[ x(i) ] );
+                _maxY = Math.Max( _maxY, state[ y(i) ] );
+                _minY = Math.Min( _minY, state[ y(i) ] );
+                _maxZ = Math.Max( _maxZ, state[ z(i) ] );
+                _minZ = Math.Min( _minZ, state[ z(i) ] );
             }
         }
 

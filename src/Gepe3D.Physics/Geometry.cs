@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using OpenTK.Mathematics;
 
@@ -39,6 +40,17 @@ namespace Gepe3D.Physics
             for (int i = 0; i < vertices.Count; i++)
             {
                 vertices[i] += offset;
+            }
+        }
+
+        public void Rotate(Vector3 axis, float angleDegrees)
+        {
+            Matrix3 rotMat = Matrix3.CreateFromAxisAngle(axis, MathHelper.DegreesToRadians(angleDegrees));
+            rotMat.Transpose(); // OpenTK matrices are transposed by default for some reason
+
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                vertices[i] = rotMat * vertices[i];
             }
         }
     }

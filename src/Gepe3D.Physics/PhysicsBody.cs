@@ -12,8 +12,8 @@ namespace Gepe3D.Physics
         
         public readonly Material Material;
         public bool DrawWireframe = false;
-        protected readonly List<Vector3 > vertices  = new List<Vector3 >();
-        protected readonly List<Vector3i> triangles = new List<Vector3i>();
+        public readonly List<Vector3 > vertices  = new List<Vector3 >();
+        public readonly List<Vector3i> triangles = new List<Vector3i>();
 
         private readonly int floatsPerVertex = 6;
         private float[] _vertexData;
@@ -105,6 +105,13 @@ namespace Gepe3D.Physics
 
         public abstract float[] GetDerivative(float[] state);
 
-        public abstract void UpdateState(float[] change);
+        public abstract void UpdateState(float[] change, List<PhysicsBody> bodies);
+
+        public abstract float MaxX();
+        public abstract float MinX();
+        public abstract float MaxY();
+        public abstract float MinY();
+        public abstract float MaxZ();
+        public abstract float MinZ();
     }
 }

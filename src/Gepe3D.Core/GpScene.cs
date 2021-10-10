@@ -59,7 +59,7 @@ namespace Gepe3D.Core
                 // _entityShader.SetMatrix4("modelMatrix", e.TransformMatrix);
                 // _entityShader.SetMatrix3("normalMatrix", e.NormalMatrix);
 
-                PhysicsSolver.IntegrateRungeKutta4(body, Global.Delta);
+                PhysicsSolver.IntegrateRungeKutta4(body, Global.Delta, _bodies);
                 
 
                 _entityShader.SetVector3("fillColor", body.Material.color);
