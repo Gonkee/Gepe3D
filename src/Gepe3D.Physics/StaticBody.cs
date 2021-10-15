@@ -33,17 +33,17 @@ namespace Gepe3D.Physics
             }
         }
 
-        public override float[] GetState()
+        public override PhysicsData GetState()
         {
-            return new float[0];
+            return new PhysicsData(0);
         }
 
-        public override float[] GetDerivative(float[] state)
+        public override PhysicsData GetDerivative(PhysicsData state)
         {
-            return new float[0];
+            return new PhysicsData(0);
         }
 
-        public override void UpdateState(float[] change, List<PhysicsBody> bodies)
+        public override void UpdateState(PhysicsData change, List<PhysicsBody> bodies)
         {
         }
 

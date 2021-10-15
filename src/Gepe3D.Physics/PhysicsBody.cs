@@ -102,11 +102,11 @@ namespace Gepe3D.Physics
         }
 
 
-        public abstract float[] GetState();
+        public abstract PhysicsData GetState();
 
-        public abstract float[] GetDerivative(float[] state);
+        public abstract PhysicsData GetDerivative(PhysicsData state);
 
-        public abstract void UpdateState(float[] change, List<PhysicsBody> bodies);
+        public abstract void UpdateState(PhysicsData change, List<PhysicsBody> bodies);
 
         public abstract float MaxX();
         public abstract float MinX();

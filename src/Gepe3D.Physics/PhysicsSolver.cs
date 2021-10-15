@@ -8,15 +8,15 @@ namespace Gepe3D.Physics
 
         public static void IntegrateExplicitEuler(PhysicsBody body, float delta, List<PhysicsBody> bodies)
         {
-            float[] derivative = body.GetDerivative( body.GetState() );
-            float[] change = new float[derivative.Length];
-            for (int i = 0; i < change.Length; i++) change[i] = derivative[i] * delta;
+            PhysicsData derivative = body.GetDerivative( body.GetState() );
+            PhysicsData change = new PhysicsData(derivative.DataLength);
+            for (int i = 0; i < change.DataLength; i++) change.Set(i, derivative.Get(i) * delta);
             body.UpdateState(change, bodies);
         }
         
         public static void IntegrateRungeKutta4(PhysicsBody body, float delta, List<PhysicsBody> bodies)
         {
-            float[] initialState, state1, state2, state3,
+            PhysicsData initialState, state1, state2, state3,
                 dA, dB, dC, dD, change;
 
             initialState = body.GetState();
@@ -29,23 +29,22 @@ namespace Gepe3D.Physics
             state3 = SimpleUpdateState(initialState, dC, delta);
             dD = body.GetDerivative(state3);
 
-            change = new float[initialState.Length];
-            for (int i = 0; i < change.Length; i++)
+            change = new PhysicsData(initialState.DataLength);
+            for (int i = 0; i < change.DataLength; i++)
             {
-                change[i] = ( dA[i] + 2 * dB[i] + 2 * dC[i] + dD[i] ) / 6f * delta;
+                change.Set( i, ( dA.Get(i) + 2 * dB.Get(i) + 2 * dC.Get(i) + dD.Get(i) ) / 6f * delta );
             }
-
 
             body.UpdateState(change, bodies);
             
         }
 
-        private static float[] SimpleUpdateState (float[] state, float[] derivative, float delta)
+        private static PhysicsData SimpleUpdateState (PhysicsData state, PhysicsData derivative, float delta)
         {
-            float[] stateNew = new float[state.Length];
-            for (int i = 0; i < state.Length; i++)
+            PhysicsData stateNew = new PhysicsData(state.DataLength);
+            for (int i = 0; i < state.DataLength; i++)
             {
-                stateNew[i] = state[i] + derivative[i] * delta;
+                stateNew.Set( i, state.Get(i) + derivative.Get(i) * delta );
             }
             return stateNew;
         }

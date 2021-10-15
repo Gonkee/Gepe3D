@@ -6,3 +6,6 @@ todo
 
 - maybe make it like an attribute list data structure that could be universal to state, derivative and change alike
   (like SoftBodyAttribs)
+
+
+- separate out render and update function for them to happen at different frequencies
