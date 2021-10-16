@@ -25,8 +25,8 @@ namespace Gepe3D.Physics
         }
 
         private static readonly float GRAVITY = 1;
-        private static readonly float SPRING_CONSTANT = 30;
-        private static readonly float DAMPING_CONSTANT = 0.3f;
+        private static readonly float SPRING_CONSTANT = 60;
+        private static readonly float DAMPING_CONSTANT = 0.6f;
         private readonly float nRT_pressureConstant;
 
         List<Spring> springs = new List<Spring>();

@@ -5,7 +5,6 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
 
-
 namespace Gepe3D.Core
 {
     public class GpWindow
@@ -16,17 +15,25 @@ namespace Gepe3D.Core
             public int Width { get; set; } = 800;
             public int Height { get; set; } = 600;
             public string Title { get; set; } = "Gepe3D";
+            public int TickRate { get; set; } = 100;
         }
 
         private class EncapsulatedWindow : GameWindow
         {
             private readonly GpScene _scene;
 
-            public EncapsulatedWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GpScene scene)
+            private readonly float fixedTimeStep;
+
+            public EncapsulatedWindow(Config config, GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GpScene scene)
                 : base(gameWindowSettings, nativeWindowSettings)
             {
                 this._scene = scene;
+                UpdateFrequency = config.TickRate;
+                RenderFrequency = 0f;
+
+                fixedTimeStep = 1f / config.TickRate;
             }
+
 
             protected override void OnLoad()
             {
@@ -41,23 +48,26 @@ namespace Gepe3D.Core
                 CursorGrabbed = true;
                 Global.keyboardState = KeyboardState;
                 Global.mouseState = MouseState;
+
             }
 
-            protected override void OnRenderFrame(FrameEventArgs e)
+            protected override void OnUpdateFrame(FrameEventArgs e)
             {
+
                 if (Global.IsKeyDown(Keys.Escape)) { Close(); }
 
                 Global.keyboardState = KeyboardState;
                 Global.mouseState = MouseState;
-                Global.Delta = (float) e.Time;
-                Global.Elapsed += Global.Delta;
 
-                _scene.Update(Global.Delta);
+                _scene.UpdateInternal( fixedTimeStep );
+                _scene.Update( fixedTimeStep );
+            }
 
+            protected override void OnRenderFrame(FrameEventArgs e)
+            {
+                _scene.activeCam.MouseInput(MouseState.Delta);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
                 _scene.Render();
-                
                 SwapBuffers();
             }
         }
@@ -67,11 +77,12 @@ namespace Gepe3D.Core
         public GpWindow(GpWindow.Config config, GpScene scene)
         {
             _window = new EncapsulatedWindow(
+                config,
                 GameWindowSettings.Default,
                 new NativeWindowSettings()
                 {
                     Size = new Vector2i(config.Width, config.Height),
-                    Title = config.Title
+                    Title = config.Title,
                 },
                 scene
             );

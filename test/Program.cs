@@ -13,7 +13,8 @@ namespace test
             {
                 Width = 1920,
                 Height = 1080,
-                Title = "Breugh"
+                Title = "Breugh",
+                TickRate = 100
             };
             GpWindow window = new GpWindow(config, new TestScene());
         }

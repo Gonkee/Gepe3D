@@ -40,7 +40,7 @@ namespace Gepe3D.Core
             return projMatrix * viewMatrix;
         }
         
-        public void Update()
+        public void Update(float delta)
         {
             Vector3 movement = new Vector3();
             if ( Global.IsKeyDown(Keys.W)         ) { movement.X += 1; }
@@ -59,13 +59,17 @@ namespace Gepe3D.Core
             movement.Y = rotatedMovement.Y;
             movement.Z = rotatedMovement.Z;
 
-            Position += movement * MovementSpeed * Global.Delta;
-
-            yaw   += Global.MouseDelta.X * Sensitivity;
-            pitch -= Global.MouseDelta.Y * Sensitivity;
-            pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
+            Position += movement * MovementSpeed * delta;
             UpdateLocalVectors();
         }
+
+        public void MouseInput(Vector2 mouseDelta)
+        {
+            yaw   += mouseDelta.X * Sensitivity;
+            pitch -= mouseDelta.Y * Sensitivity;
+            pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
+        }
+
 
         public void LookAt(float x, float y, float z)
         {

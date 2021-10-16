@@ -10,9 +10,6 @@ namespace Gepe3D.Core
         internal static KeyboardState keyboardState;
         internal static MouseState mouseState;
 
-        public static float Delta { get; internal set; }
-        public static float Elapsed { get; internal set; }
-
 
         public static bool IsKeyDown(Keys key)
         {

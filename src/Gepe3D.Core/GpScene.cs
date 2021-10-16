@@ -2,11 +2,9 @@
 
 using System.Collections.Generic;
 using Gepe3D.Util;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 using Gepe3D.Physics;
-using System;
 
 namespace Gepe3D.Core
 {
@@ -17,7 +15,7 @@ namespace Gepe3D.Core
         private Shader _entityShader;
 
         private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
-        private Camera activeCam = new Camera( new Vector3(), 16f / 9f);
+        public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.5f, 0.5f, 0.5f);
 
@@ -39,12 +37,21 @@ namespace Gepe3D.Core
             activeCam.LookAt(0, -0.5f, 0);
         }
 
+        public void UpdateInternal(float delta)
+        {
+            activeCam.Update(delta);
+            foreach (PhysicsBody body in _bodies)
+            {
+                PhysicsSolver.IntegrateRungeKutta4(body, delta, _bodies); // fixed timestep
+            
+            }
+        }
+
         public void Render()
         {
             // activeCam.Position = new Vector3( MathF.Cos(Global.Elapsed) * 3, 2, MathF.Sin(Global.Elapsed) * 2 );
             // activeCam.LookAt(0, 0, 0);
 
-            activeCam.Update();
 
             skyBox.Draw(activeCam);
 
@@ -55,11 +62,6 @@ namespace Gepe3D.Core
 
             foreach (PhysicsBody body in _bodies)
             {
-                // e.UpdateTransform();
-                // _entityShader.SetMatrix4("modelMatrix", e.TransformMatrix);
-                // _entityShader.SetMatrix3("normalMatrix", e.NormalMatrix);
-
-                PhysicsSolver.IntegrateRungeKutta4(body, 0.01f, _bodies); // fixed timestep
                 
                 if (!body.Visible) continue;
                 _entityShader.SetVector3("fillColor", body.Material.color);
