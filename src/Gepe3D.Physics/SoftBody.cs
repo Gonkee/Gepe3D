@@ -26,7 +26,7 @@ namespace Gepe3D.Physics
 
         private static readonly float GRAVITY = 1;
         private static readonly float SPRING_CONSTANT = 60;
-        private static readonly float DAMPING_CONSTANT = 0.6f;
+        private static readonly float DAMPING_CONSTANT = 1.3f;
         private readonly float nRT_pressureConstant;
 
         List<Spring> springs = new List<Spring>();
@@ -36,6 +36,8 @@ namespace Gepe3D.Physics
         float totalMass = 4;
         private readonly float massPerPoint;
         private readonly SoftBodyData state;
+
+        private readonly Mesh mesh;
         
         public override float MaxX() { return _maxX; }
         public override float MinX() { return _minX; }
@@ -44,13 +46,15 @@ namespace Gepe3D.Physics
         public override float MaxZ() { return _maxZ; }
         public override float MinZ() { return _minZ; }
 
-        public SoftBody(Geometry geometry, Material material) : base(geometry, material)
+        public SoftBody(Geometry geometry, Material material)
         {
 
             state = new SoftBodyData(geometry.vertices.Count);
             massPerPoint = totalMass / geometry.vertices.Count;
 
-            for (int i = 0; i < vertices.Count; i++)
+            mesh = new Mesh(geometry, material);
+
+            for (int i = 0; i < geometry.vertices.Count; i++)
             {
                 state.SetPos(
                     i,
@@ -102,11 +106,11 @@ namespace Gepe3D.Physics
         private float GetVolume()
         {
             float volume = 0;
-            foreach (Vector3i tri in triangles)
+            foreach (Vector3i tri in mesh.triangles)
             {
-                Vector3 v1 = vertices[tri.X];
-                Vector3 v2 = vertices[tri.Y];
-                Vector3 v3 = vertices[tri.Z];
+                Vector3 v1 = state.GetPos(tri.X);
+                Vector3 v2 = state.GetPos(tri.Y);
+                Vector3 v3 = state.GetPos(tri.Z);
                 volume += SignedVolumeOfTriangle(v1, v2, v3);
             }
             return Math.Abs(volume);
@@ -153,7 +157,7 @@ namespace Gepe3D.Physics
             float volume = GetVolume();
             volume = Math.Max(volume, 0.01f); // avoid divide by 0
 
-            foreach (Vector3i tri in triangles)
+            foreach (Vector3i tri in mesh.triangles)
             {
                 Vector3 v1 = state.GetPos(tri.X);
                 Vector3 v2 = state.GetPos(tri.Y);
@@ -205,6 +209,9 @@ namespace Gepe3D.Physics
                 foreach (PhysicsBody body in bodies) // keep clipping the movement if colliding
                 {
                     if (body == this) continue;
+                    Mesh bodyMesh = body.GetMesh();
+                    if (bodyMesh == null) continue;
+
                     if ( !(
                         current.X + movement.X > body.MinX() &&
                         current.X + movement.X < body.MaxX() &&
@@ -215,11 +222,11 @@ namespace Gepe3D.Physics
                     ) continue;
 
                     Vector3 A, B, C, normal, crossProduct;
-                    foreach (Vector3i tri in body.triangles)
+                    foreach (Vector3i tri in bodyMesh.triangles)
                     {
-                        A = body.vertices[tri.X];
-                        B = body.vertices[tri.Y];
-                        C = body.vertices[tri.Z];
+                        A = bodyMesh.vertices[tri.X];
+                        B = bodyMesh.vertices[tri.Y];
+                        C = bodyMesh.vertices[tri.Z];
                         crossProduct = Vector3.Cross(B - A, C - A);
                         normal = crossProduct.Normalized();
                         float triangleArea = crossProduct.Length / 2;
@@ -268,7 +275,7 @@ namespace Gepe3D.Physics
                 Vector3 pos = state.GetPos(i);
                 float x = pos.X, y = pos.Y, z = pos.Z;
 
-                SetVertexPos( i, x, y, z );
+                mesh.SetVertexPos( i, x, y, z );
                 
                 _maxX = Math.Max( _maxX, x );
                 _minX = Math.Min( _minX, x );
@@ -279,5 +286,14 @@ namespace Gepe3D.Physics
             }
         }
 
+        public override Mesh GetMesh()
+        {
+            return mesh;
+        }
+        
+        public override void Draw()
+        {
+            mesh.Draw();
+        }
     }
 }

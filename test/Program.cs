@@ -63,15 +63,15 @@ namespace test
                 Geometry backPanel = GeometryGenerator.GenCube(1f, 30, 30);
                 backPanel.OffsetPosition( 1.99f, 0, 0);
 
-                StaticBody frontWall = new StaticBody(frontPanel, white);
-                StaticBody backWall = new StaticBody(backPanel, white);
-                frontWall.Visible = false;
-                backWall.Visible = false;
+                // StaticBody frontWall = new StaticBody(frontPanel, white);
+                // StaticBody backWall = new StaticBody(backPanel, white);
+                // frontWall.Visible = false;
+                // backWall.Visible = false;
 
-                AddBody(frontWall);
-                AddBody(backWall);
+                // AddBody(frontWall);
+                // AddBody(backWall);
 
-                sphere.DrawWireframe = true;
+                // sphere.DrawWireframe = true;
             }
 
             public override void Update(float delta)

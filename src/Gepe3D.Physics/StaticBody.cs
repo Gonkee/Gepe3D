@@ -12,8 +12,9 @@ namespace Gepe3D.Physics
 
         private float _maxX, _minX, _maxY, _minY, _maxZ, _minZ;
 
+        private readonly Mesh mesh;
 
-        public StaticBody(Geometry geometry, Material material) : base(geometry, material)
+        public StaticBody(Geometry geometry, Material material)
         {
             _maxX = float.MinValue;
             _minX = float.MaxValue;
@@ -21,6 +22,8 @@ namespace Gepe3D.Physics
             _minY = float.MaxValue;
             _maxZ = float.MinValue;
             _minZ = float.MaxValue;
+            
+            mesh = new Mesh(geometry, material);
 
             foreach (Vector3 v in geometry.vertices)
             {
@@ -55,5 +58,14 @@ namespace Gepe3D.Physics
         public override float MaxZ() { return _maxZ; }
         public override float MinZ() { return _minZ; }
 
+        public override Mesh GetMesh()
+        {
+            return mesh;
+        }
+
+        public override void Draw()
+        {
+            mesh.Draw();
+        }
     }
 }

@@ -62,9 +62,11 @@ namespace Gepe3D.Core
 
             foreach (PhysicsBody body in _bodies)
             {
-                
-                if (!body.Visible) continue;
-                _entityShader.SetVector3("fillColor", body.Material.color);
+                Mesh bodyMesh = body.GetMesh();
+                if (bodyMesh == null) continue;
+
+                if (!bodyMesh.Visible) continue;
+                _entityShader.SetVector3("fillColor", bodyMesh.Material.color);
                 // drawStyle
                 // 0 = fill
                 // 1 = line
@@ -74,7 +76,7 @@ namespace Gepe3D.Core
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
                 body.Draw();
 
-                if (body.DrawWireframe)
+                if (bodyMesh.DrawWireframe)
                 {
                     _entityShader.SetInt("drawStyle", 1);
                     GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);

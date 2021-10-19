@@ -6,3 +6,9 @@ todo
 
 - maybe make it like an attribute list data structure that could be universal to state, derivative and change alike
   (like SoftBodyAttribs)
+
+- allow customisation of physics body drawing process
+
+- not all physics objects will have vertices and faces (like smoke and fluids), put vertex functionality in a mesh class?
+
+- draw particles in the fluid body class
