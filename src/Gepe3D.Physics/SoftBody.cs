@@ -35,7 +35,7 @@ namespace Gepe3D.Physics
 
         float totalMass = 4;
         private readonly float massPerPoint;
-        private readonly SoftBodyData state;
+        private readonly ParticleData state;
 
         private readonly Mesh mesh;
         
@@ -49,22 +49,22 @@ namespace Gepe3D.Physics
         public SoftBody(Geometry geometry, Material material)
         {
 
-            state = new SoftBodyData(geometry.vertices.Count);
-            massPerPoint = totalMass / geometry.vertices.Count;
+            state = new ParticleData(geometry.Vertices.Count);
+            massPerPoint = totalMass / geometry.Vertices.Count;
 
             mesh = new Mesh(geometry, material);
 
-            for (int i = 0; i < geometry.vertices.Count; i++)
+            for (int i = 0; i < geometry.Vertices.Count; i++)
             {
                 state.SetPos(
                     i,
-                    geometry.vertices[i].X,
-                    geometry.vertices[i].Y,
-                    geometry.vertices[i].Z
+                    geometry.Vertices[i].X,
+                    geometry.Vertices[i].Y,
+                    geometry.Vertices[i].Z
                 );
             }
 
-            foreach (Vector3i tri in geometry.triangleIDs)
+            foreach (Vector3i tri in geometry.TriangleIDs)
             {
                 int id1 = tri.X;
                 int id2 = tri.Y;
@@ -106,7 +106,7 @@ namespace Gepe3D.Physics
         private float GetVolume()
         {
             float volume = 0;
-            foreach (Vector3i tri in mesh.triangles)
+            foreach (Vector3i tri in mesh.Geometry.TriangleIDs)
             {
                 Vector3 v1 = state.GetPos(tri.X);
                 Vector3 v2 = state.GetPos(tri.Y);
@@ -133,8 +133,8 @@ namespace Gepe3D.Physics
 
         public override PhysicsData GetDerivative(PhysicsData pstate)
         {
-            SoftBodyData state = new SoftBodyData(pstate);
-            SoftBodyData derivative = new SoftBodyData(state.VertexCount);
+            ParticleData state = new ParticleData(pstate);
+            ParticleData derivative = new ParticleData(state.ParticleCount);
 
             foreach (Spring spr in springs)
             {
@@ -157,7 +157,7 @@ namespace Gepe3D.Physics
             float volume = GetVolume();
             volume = Math.Max(volume, 0.01f); // avoid divide by 0
 
-            foreach (Vector3i tri in mesh.triangles)
+            foreach (Vector3i tri in mesh.Geometry.TriangleIDs)
             {
                 Vector3 v1 = state.GetPos(tri.X);
                 Vector3 v2 = state.GetPos(tri.Y);
@@ -180,7 +180,7 @@ namespace Gepe3D.Physics
                 derivative.AddVel( tri.Z, forceVector / massPerPoint );
             }
 
-            for (int i = 0; i < state.VertexCount; i++)
+            for (int i = 0; i < state.ParticleCount; i++)
             {
                 derivative.AddVel( i, 0, -GRAVITY, 0 );
                 derivative.SetPos( i, state.GetVel(i) );
@@ -191,7 +191,7 @@ namespace Gepe3D.Physics
 
         public override void UpdateState(PhysicsData pchange, List<PhysicsBody> bodies)
         {
-            SoftBodyData change = new SoftBodyData(pchange);
+            ParticleData change = new ParticleData(pchange);
 
             _maxX = float.MinValue;
             _minX = float.MaxValue;
@@ -200,7 +200,7 @@ namespace Gepe3D.Physics
             _maxZ = float.MinValue;
             _minZ = float.MaxValue;
 
-            for (int i = 0; i < state.VertexCount; i++)
+            for (int i = 0; i < state.ParticleCount; i++)
             {
                 Vector3 current  = state.GetPos(i);
                 Vector3 movement = change.GetPos(i);
@@ -222,11 +222,11 @@ namespace Gepe3D.Physics
                     ) continue;
 
                     Vector3 A, B, C, normal, crossProduct;
-                    foreach (Vector3i tri in bodyMesh.triangles)
+                    foreach (Vector3i tri in bodyMesh.Geometry.TriangleIDs)
                     {
-                        A = bodyMesh.vertices[tri.X];
-                        B = bodyMesh.vertices[tri.Y];
-                        C = bodyMesh.vertices[tri.Z];
+                        A = bodyMesh.Geometry.Vertices[tri.X];
+                        B = bodyMesh.Geometry.Vertices[tri.Y];
+                        C = bodyMesh.Geometry.Vertices[tri.Z];
                         crossProduct = Vector3.Cross(B - A, C - A);
                         normal = crossProduct.Normalized();
                         float triangleArea = crossProduct.Length / 2;

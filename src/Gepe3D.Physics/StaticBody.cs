@@ -25,7 +25,7 @@ namespace Gepe3D.Physics
             
             mesh = new Mesh(geometry, material);
 
-            foreach (Vector3 v in geometry.vertices)
+            foreach (Vector3 v in geometry.Vertices)
             {
                 _maxX = Math.Max( _maxX, v.X );
                 _minX = Math.Min( _minX, v.X );

@@ -37,18 +37,12 @@ namespace test
                 rPanel.Rotate( new Vector3(1, 0, 0), -45);
                 rPanel.OffsetPosition(0, 0, 3f);
 
-                lPanel.OffsetPosition(0, -3, 0);
-                StaticBody p1 = new StaticBody(lPanel, white);
-                rPanel.OffsetPosition(0, -5, 0);
-                StaticBody p2 = new StaticBody(rPanel, white);
-                lPanel.OffsetPosition(0, -4.5f, 0);
-                StaticBody p3 = new StaticBody(lPanel, white);
-                rPanel.OffsetPosition(0, -4.5f, 0);
-                StaticBody p4 = new StaticBody(rPanel, white);
-                lPanel.OffsetPosition(0, -4.5f, 0);
-                StaticBody p5 = new StaticBody(lPanel, white);
-                rPanel.OffsetPosition(0, -4.5f, 0);
-                StaticBody p6 = new StaticBody(rPanel, white);
+                StaticBody p1 = new StaticBody(lPanel.OffsetPosition(0, -3, 0), white);
+                StaticBody p2 = new StaticBody(rPanel.OffsetPosition(0, -5, 0), white);
+                StaticBody p3 = new StaticBody(lPanel.Duplicate().OffsetPosition(0, -4.5f, 0), white);
+                StaticBody p4 = new StaticBody(rPanel.Duplicate().OffsetPosition(0, -4.5f, 0), white);
+                StaticBody p5 = new StaticBody(lPanel.Duplicate().OffsetPosition(0, -4.5f, 0), white);
+                StaticBody p6 = new StaticBody(rPanel.Duplicate().OffsetPosition(0, -4.5f, 0), white);
                 
                 AddBody(p1);
                 AddBody(p2);
@@ -72,6 +66,14 @@ namespace test
                 // AddBody(backWall);
 
                 // sphere.DrawWireframe = true;
+
+                FluidBody fluid = new FluidBody(
+                    0, 0, 0,
+                    3, 1, 3,
+                    20, 20, 20
+                );
+
+                AddBody(fluid);
             }
 
             public override void Update(float delta)

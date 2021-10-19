@@ -63,6 +63,11 @@ namespace Gepe3D.Core
             foreach (PhysicsBody body in _bodies)
             {
                 Mesh bodyMesh = body.GetMesh();
+                if (body is FluidBody)
+                {
+                    body.Draw();
+                    continue;
+                }
                 if (bodyMesh == null) continue;
 
                 if (!bodyMesh.Visible) continue;

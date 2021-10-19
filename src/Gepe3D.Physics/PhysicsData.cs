@@ -11,7 +11,13 @@ namespace Gepe3D.Physics
         public PhysicsData(int dataLength)
         {
             this._data = new float[dataLength];
-            DataLength =_data.Length;
+            DataLength = dataLength;
+        }
+        
+        public PhysicsData(float[] data)
+        {
+            this._data = data;
+            DataLength = data.Length;
         }
 
         public float Get(int id)
@@ -22,6 +28,11 @@ namespace Gepe3D.Physics
         public void Set(int id, float value)
         {
             _data[id] = value;
+        }
+
+        public float[] GetData()
+        {
+            return _data;
         }
 
     }

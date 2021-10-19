@@ -4,10 +4,10 @@ using OpenTK.Mathematics;
 
 namespace Gepe3D.Physics
 {
-    public class SoftBodyData : PhysicsData
+    public class ParticleData : PhysicsData
     {
 
-        public readonly int VertexCount;
+        public readonly int ParticleCount;
 
         private int  x (int id) { return id * 6 + 0; }
         private int  y (int id) { return id * 6 + 1; }
@@ -16,15 +16,14 @@ namespace Gepe3D.Physics
         private int vy (int id) { return id * 6 + 4; }
         private int vz (int id) { return id * 6 + 5; }
 
-        public SoftBodyData(int vertexCount) : base(vertexCount * 6)
+        public ParticleData(int particleCount) : base(particleCount * 6)
         {
-            this.VertexCount = vertexCount;
+            this.ParticleCount = particleCount;
         }
 
-        public SoftBodyData(PhysicsData data) : base(data.DataLength)
+        public ParticleData(PhysicsData data) : base( data.GetData() )
         {
-            this.VertexCount = data.DataLength / 6;
-            for (int i = 0; i < data.DataLength; i++) Set(i, data.Get(i));
+            this.ParticleCount = data.DataLength / 6;
         }
 
         public Vector3 GetPos(int v_id)
