@@ -12,3 +12,5 @@ todo
 - not all physics objects will have vertices and faces (like smoke and fluids), put vertex functionality in a mesh class?
 
 - draw particles in the fluid body class
+
+- SSAO for the particles: https://www.youtube.com/watch?v=7hxrPKoELpo&ab_channel=BrianWill

@@ -68,8 +68,9 @@ namespace Gepe3D.Physics
             _instanceVBO_ID = GL.GenBuffer();
             _vaoID = GL.GenVertexArray();
             
+            float[] vertexData = particleShape.GenerateVertexData();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _meshVBO_ID);
-            GL.BufferData(BufferTarget.ArrayBuffer, particleShape.TriangleIDs.Count * 3 * particleShape.FloatsPerVertex * sizeof(float), particleShape.GenerateVertexData(), BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
 
             GL.BindVertexArray(_vaoID);
             // vertex positions
@@ -81,7 +82,7 @@ namespace Gepe3D.Physics
 
             // instance positions
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceVBO_ID);
-            GL.BufferData(BufferTarget.ArrayBuffer, particlePositions.Length, particlePositions, BufferUsageHint.StreamDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, particlePositions.Length * sizeof(float), particlePositions, BufferUsageHint.StreamDraw);
             GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.VertexAttribDivisor(2, 1);
             GL.EnableVertexAttribArray(2);
