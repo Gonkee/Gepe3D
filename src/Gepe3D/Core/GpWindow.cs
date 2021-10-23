@@ -5,7 +5,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
 
-namespace Gepe3D.Core
+namespace Gepe3D
 {
     public class GpWindow
     {

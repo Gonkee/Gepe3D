@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using OpenTK.Mathematics;
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public class Geometry
     {

@@ -1,7 +1,7 @@
 
 using System.Collections.Generic;
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public class PhysicsSolver
     {

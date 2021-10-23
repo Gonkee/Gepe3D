@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public class FluidBody : PhysicsBody
     {
@@ -62,7 +62,7 @@ namespace Gepe3D.Physics
                 }
             }
 
-            particleShape = GeometryGenerator.GenIcoSphere(0.05f, 0);
+            particleShape = GeometryGenerator.GenQuad(0.05f, 0.05f);
             
             _meshVBO_ID = GL.GenBuffer();
             _instanceVBO_ID = GL.GenBuffer();

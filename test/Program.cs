@@ -1,6 +1,5 @@
 ﻿using System;
-using Gepe3D.Core;
-using Gepe3D.Physics;
+using Gepe3D;
 using OpenTK.Mathematics;
 
 namespace test

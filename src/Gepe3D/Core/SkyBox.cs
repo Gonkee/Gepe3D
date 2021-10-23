@@ -1,8 +1,7 @@
 
-using Gepe3D.Util;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Gepe3D.Core
+namespace Gepe3D
 {
     public class SkyBox
     {
@@ -57,6 +56,8 @@ namespace Gepe3D.Core
             _skyboxShader.Use();
             _skyboxShader.SetVector3("cameraPos", camera.Position);
             _skyboxShader.SetMatrix4("cameraMatrix", camera.GetMatrix());
+            // _skyboxShader.SetMatrix4("viewMatrix", camera.GetViewMatrix());
+            // _skyboxShader.SetMatrix4("projectionMatrix", camera.GetProjectionMatrix());
             
             GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 

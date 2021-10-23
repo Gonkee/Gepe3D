@@ -1,7 +1,7 @@
 
 
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public class PhysicsData
     {

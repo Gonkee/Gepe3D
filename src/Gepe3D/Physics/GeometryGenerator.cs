@@ -2,10 +2,9 @@
 using System;
 using OpenTK.Mathematics;
 using System.Collections.Generic;
-using Gepe3D.Core;
 
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public class GeometryGenerator
     {
@@ -128,6 +127,18 @@ namespace Gepe3D.Physics
             cube.AddTriangle(4, 6, 7);
 
             return cube;
+        }
+        
+        public static Geometry GenQuad(float width, float height)
+        {
+            Geometry quad = new Geometry();
+            quad.AddVertex(-width / 2, -height / 2, 0);
+            quad.AddVertex( width / 2, -height / 2, 0);
+            quad.AddVertex( width / 2,  height / 2, 0);
+            quad.AddVertex(-width / 2,  height / 2, 0);
+            quad.AddTriangle(0, 1, 2);
+            quad.AddTriangle(0, 2, 3);
+            return quad;
         }
     }
 }

@@ -1,11 +1,10 @@
 
-using Gepe3D.Core;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
 
-namespace Gepe3D.Physics
+namespace Gepe3D
 {
     public abstract class PhysicsBody
     {

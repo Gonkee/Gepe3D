@@ -1,7 +1,7 @@
 
 using OpenTK.Mathematics;
 
-namespace Gepe3D.Core
+namespace Gepe3D
 {
     public struct Material
     {

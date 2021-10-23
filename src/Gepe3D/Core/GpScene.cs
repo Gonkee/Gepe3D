@@ -1,12 +1,10 @@
 
 
 using System.Collections.Generic;
-using Gepe3D.Util;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
-using Gepe3D.Physics;
 
-namespace Gepe3D.Core
+namespace Gepe3D
 {
     public abstract class GpScene
     {
@@ -57,6 +55,8 @@ namespace Gepe3D.Core
 
             _entityShader.Use();
             _entityShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
+            // _entityShader.SetMatrix4("viewMatrix", activeCam.GetViewMatrix());
+            // _entityShader.SetMatrix4("projectionMatrix", activeCam.GetProjectionMatrix());
             _entityShader.SetVector3("viewPos", activeCam.Position);
             _entityShader.SetVector3("ambientLight", ambientLight);
 

@@ -2,7 +2,7 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Gepe3D.Core
+namespace Gepe3D
 {
     public class Global
     {
