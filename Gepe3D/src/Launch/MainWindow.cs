@@ -12,8 +12,8 @@ namespace Gepe3D
         
         static void Main(string[] args)
         {
-            int WIDTH = 1280;
-            int HEIGHT = 720;
+            int WIDTH = 1600;
+            int HEIGHT = 900;
             string TITLE = "Gepe3D";
             
             new MainWindow(
@@ -22,6 +22,7 @@ namespace Gepe3D
                 {
                     Size = new Vector2i(WIDTH, HEIGHT),
                     Title = TITLE,
+                    // WindowBorder = WindowBorder.Hidden
                 }
             ).Run();
         }

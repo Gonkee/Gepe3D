@@ -11,8 +11,8 @@ uniform mat4 projectionMatrix;
 
 out vec3 fragNormal;
 out vec3 fragPos;
-
 out vec4 instanceAlbedo;
+out mat4 fragViewMatrix;
 
 void main()
 {
@@ -48,9 +48,11 @@ void main()
     
     gl_Position = pos;
     fragNormal = normal;
-    fragPos = normalize(vertexPosition);
+    fragPos = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
     
     if (gl_InstanceID % 3 == 0) instanceAlbedo = vec4(1, 0, 0, 1);
     if (gl_InstanceID % 3 == 1) instanceAlbedo = vec4(0, 1, 0, 1);
     if (gl_InstanceID % 3 == 2) instanceAlbedo = vec4(0, 0, 1, 1);
+    
+    fragViewMatrix = viewMatrix;
 }

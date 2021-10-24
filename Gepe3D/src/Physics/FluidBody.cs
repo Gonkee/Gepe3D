@@ -128,6 +128,7 @@ namespace Gepe3D
             // shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
             shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
             shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
+            shader.SetVector3("lightPos", renderer.LightPos);
             
             GL.BindVertexArray(_vaoID);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
