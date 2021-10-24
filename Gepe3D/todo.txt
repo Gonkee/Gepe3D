@@ -14,3 +14,5 @@ todo
 - draw particles in the fluid body class
 
 - SSAO for the particles: https://www.youtube.com/watch?v=7hxrPKoELpo&ab_channel=BrianWill
+
+- make it so vertex attributes actually have a name and are not refered to by ID

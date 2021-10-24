@@ -14,13 +14,17 @@ namespace Gepe3D
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.5f, 0.5f, 0.5f);
+        public Vector3 lightPos = new Vector3(10, 10, 10);
 
         public SkyBox skyBox;
+        
+        private readonly Renderer renderer;
 
         
         public World(MainWindow window) : base(window)
         {
             skyBox = new SkyBox();
+            renderer = new Renderer();
 
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
@@ -46,59 +50,60 @@ namespace Gepe3D
         
         public override void Render()
         {
-            // activeCam.Position = new Vector3( MathF.Cos(Global.Elapsed) * 3, 2, MathF.Sin(Global.Elapsed) * 2 );
-            // activeCam.LookAt(0, 0, 0);
+            activeCam.MouseInput(window.MouseState.Delta);
+
+            renderer.Prepare(this);
+            renderer.Render(skyBox);
+            foreach (PhysicsBody body in _bodies) renderer.Render(body);
 
 
-            skyBox.Draw(activeCam);
+            // _entityShader.Use();
+            // _entityShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
+            // // _entityShader.SetMatrix4("viewMatrix", activeCam.GetViewMatrix());
+            // // _entityShader.SetMatrix4("projectionMatrix", activeCam.GetProjectionMatrix());
+            // _entityShader.SetVector3("viewPos", activeCam.Position);
+            // _entityShader.SetVector3("ambientLight", ambientLight);
 
-            _entityShader.Use();
-            _entityShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
-            // _entityShader.SetMatrix4("viewMatrix", activeCam.GetViewMatrix());
-            // _entityShader.SetMatrix4("projectionMatrix", activeCam.GetProjectionMatrix());
-            _entityShader.SetVector3("viewPos", activeCam.Position);
-            _entityShader.SetVector3("ambientLight", ambientLight);
+            // foreach (PhysicsBody body in _bodies)
+            // {
+            //     Mesh bodyMesh = body.GetMesh();
+            //     if (body is FluidBody)
+            //     {
+            //         body.Draw();
+            //         continue;
+            //     }
+            //     if (bodyMesh == null) continue;
 
-            foreach (PhysicsBody body in _bodies)
-            {
-                Mesh bodyMesh = body.GetMesh();
-                if (body is FluidBody)
-                {
-                    body.Draw();
-                    continue;
-                }
-                if (bodyMesh == null) continue;
+            //     if (!bodyMesh.Visible) continue;
+            //     _entityShader.SetVector3("fillColor", bodyMesh.Material.color);
+            //     // drawStyle
+            //     // 0 = fill
+            //     // 1 = line
+            //     // 2 = point
 
-                if (!bodyMesh.Visible) continue;
-                _entityShader.SetVector3("fillColor", bodyMesh.Material.color);
-                // drawStyle
-                // 0 = fill
-                // 1 = line
-                // 2 = point
+            //     _entityShader.SetInt("drawStyle", 0);
+            //     GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+            //     body.Draw();
 
-                _entityShader.SetInt("drawStyle", 0);
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-                body.Draw();
-
-                if (bodyMesh.DrawWireframe)
-                {
-                    _entityShader.SetInt("drawStyle", 1);
-                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                    GL.Enable(EnableCap.PolygonOffsetLine);
-                    GL.PolygonOffset(-1, -1);
-                    GL.LineWidth(4f);
-                    body.Draw();
-                    GL.Disable(EnableCap.PolygonOffsetLine);
+            //     if (bodyMesh.DrawWireframe)
+            //     {
+            //         _entityShader.SetInt("drawStyle", 1);
+            //         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            //         GL.Enable(EnableCap.PolygonOffsetLine);
+            //         GL.PolygonOffset(-1, -1);
+            //         GL.LineWidth(4f);
+            //         body.Draw();
+            //         GL.Disable(EnableCap.PolygonOffsetLine);
                     
-                    _entityShader.SetInt("drawStyle", 2);
-                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
-                    GL.Enable(EnableCap.PolygonOffsetPoint);
-                    GL.PolygonOffset(-2, -2);
-                    GL.PointSize(10f);
-                    body.Draw();
-                    GL.Disable(EnableCap.PolygonOffsetPoint);
-                }
-            }
+            //         _entityShader.SetInt("drawStyle", 2);
+            //         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
+            //         GL.Enable(EnableCap.PolygonOffsetPoint);
+            //         GL.PolygonOffset(-2, -2);
+            //         GL.PointSize(10f);
+            //         body.Draw();
+            //         GL.Disable(EnableCap.PolygonOffsetPoint);
+            //     }
+            // }
         }
         
         public void AddBody(PhysicsBody body)
@@ -113,7 +118,7 @@ namespace Gepe3D
                 Material red = new Material() { color = new Vector3(1.0f, 0.2f, 0.2f) };
                 Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
                 SoftBody sphere = new SoftBody(ico, red);
-                // AddBody(sphere);
+                AddBody(sphere);
                 
                 Material white = new Material() { color = new Vector3(0.6f, 0.6f, 0.6f) };
 
@@ -160,8 +165,8 @@ namespace Gepe3D
 
                 FluidBody fluid = new FluidBody(
                     0, 0, 0,
-                    3, 3, 3,
-                    20, 20, 20
+                    2, 2, 2,
+                    10, 10, 10
                 );
 
                 AddBody(fluid);

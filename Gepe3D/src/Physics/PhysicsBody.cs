@@ -6,7 +6,7 @@ using System;
 
 namespace Gepe3D
 {
-    public abstract class PhysicsBody
+    public abstract class PhysicsBody : Renderable
     {
     
         public abstract PhysicsData GetState();
@@ -25,5 +25,7 @@ namespace Gepe3D
         public abstract float MinZ();
 
         public abstract Mesh GetMesh();
+        
+        public abstract void Render(Renderer renderer);
     }
 }

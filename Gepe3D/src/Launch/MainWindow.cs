@@ -40,6 +40,8 @@ namespace Gepe3D
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.Enable(EnableCap.Blend);
             
             CursorGrabbed = true;
             Global.keyboardState = KeyboardState;

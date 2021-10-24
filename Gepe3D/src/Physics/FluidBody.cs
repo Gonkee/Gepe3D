@@ -62,7 +62,7 @@ namespace Gepe3D
                 }
             }
 
-            particleShape = GeometryGenerator.GenQuad(0.05f, 0.05f);
+            particleShape = GeometryGenerator.GenQuad(0.1f, 0.1f);
             
             _meshVBO_ID = GL.GenBuffer();
             _instanceVBO_ID = GL.GenBuffer();
@@ -117,6 +117,18 @@ namespace Gepe3D
 
         public override void Draw()
         {
+        }
+        
+        public override void Render(Renderer renderer)
+        {
+            Shader shader = renderer.UseShader("point_sphere");
+            // shader.SetVector3("lightPos", renderer.LightPos);
+            // shader.SetVector3("ambientLight", renderer.AmbientLight);
+            // shader.SetVector3("viewPos", renderer.CameraPos);
+            // shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
+            shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
+            shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
+            
             GL.BindVertexArray(_vaoID);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
         }

@@ -66,5 +66,15 @@ namespace Gepe3D
         {
             mesh.Draw();
         }
+        public override void Render(Renderer renderer)
+        {
+            Shader shader = renderer.UseShader("entity");
+            shader.SetVector3("lightPos", renderer.LightPos);
+            shader.SetVector3("ambientLight", renderer.AmbientLight);
+            shader.SetVector3("viewPos", renderer.CameraPos);
+            shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
+            shader.SetVector3("fillColor", mesh.Material.color);
+            mesh.Draw();
+        }
     }
 }

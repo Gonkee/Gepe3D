@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace Gepe3D
 {
-    public class SkyBox
+    public class SkyBox : Renderable
     {
 
         private static readonly float SIDE_LENGTH = 200;
@@ -30,7 +30,6 @@ namespace Gepe3D
 
         private int _vboID, _vaoID, _eboID;
         
-        private Shader _skyboxShader;
 
         public SkyBox()
         {
@@ -48,19 +47,15 @@ namespace Gepe3D
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _eboID);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
             
-            _skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
         }
 
-        public void Draw(Camera camera)
+        
+        public void Render(Renderer renderer)
         {
-            _skyboxShader.Use();
-            _skyboxShader.SetVector3("cameraPos", camera.Position);
-            _skyboxShader.SetMatrix4("cameraMatrix", camera.GetMatrix());
-            // _skyboxShader.SetMatrix4("viewMatrix", camera.GetViewMatrix());
-            // _skyboxShader.SetMatrix4("projectionMatrix", camera.GetProjectionMatrix());
+            Shader shader = renderer.UseShader("skybox");
+            shader.SetVector3("cameraPos", renderer.CameraPos);
+            shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
             
-            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-
             GL.BindVertexArray(_vaoID);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
         }

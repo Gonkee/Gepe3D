@@ -28,19 +28,19 @@ namespace Gepe3D
             AspectRatio = aspectRatio;
         }
 
-        // public Matrix4 GetViewMatrix()
-        // {
-        //     Matrix4 viewMatrix = Matrix4.LookAt(Position, Position + _localForward, _localUp);
-        //     viewMatrix.Transpose();
-        //     return viewMatrix;
-        // }
+        public Matrix4 GetViewMatrix()
+        {
+            Matrix4 viewMatrix = Matrix4.LookAt(Position, Position + _localForward, _localUp);
+            viewMatrix.Transpose();
+            return viewMatrix;
+        }
         
-        // public Matrix4 GetProjectionMatrix()
-        // {
-        //     Matrix4 projMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(FovDegrees), AspectRatio, NearClip, FarClip );
-        //     projMatrix.Transpose();
-        //     return projMatrix;
-        // }
+        public Matrix4 GetProjectionMatrix()
+        {
+            Matrix4 projMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(FovDegrees), AspectRatio, NearClip, FarClip );
+            projMatrix.Transpose();
+            return projMatrix;
+        }
 
         public Matrix4 GetMatrix()
         {

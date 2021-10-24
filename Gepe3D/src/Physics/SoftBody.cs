@@ -6,7 +6,7 @@ using OpenTK.Mathematics;
 
 namespace Gepe3D
 {
-    public class SoftBody : PhysicsBody
+    public class SoftBody : PhysicsBody, Renderable
     {
 
         private struct Spring
@@ -23,7 +23,7 @@ namespace Gepe3D
             }
         }
 
-        private static readonly float GRAVITY = 1;
+        private static readonly float GRAVITY = 9.8f;
         private static readonly float SPRING_CONSTANT = 60;
         private static readonly float DAMPING_CONSTANT = 1.3f;
         private readonly float nRT_pressureConstant;
@@ -292,6 +292,17 @@ namespace Gepe3D
         
         public override void Draw()
         {
+            mesh.Draw();
+        }
+        
+        public override void Render(Renderer renderer)
+        {
+            Shader shader = renderer.UseShader("entity");
+            shader.SetVector3("lightPos", renderer.LightPos);
+            shader.SetVector3("ambientLight", renderer.AmbientLight);
+            shader.SetVector3("viewPos", renderer.CameraPos);
+            shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
+            shader.SetVector3("fillColor", mesh.Material.color);
             mesh.Draw();
         }
     }
