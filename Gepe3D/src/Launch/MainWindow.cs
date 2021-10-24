@@ -26,6 +26,8 @@ namespace Gepe3D
             ).Run();
         }
         
+        public Scene ActiveScene;
+        
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -33,14 +35,42 @@ namespace Gepe3D
         
         protected override void OnLoad()
         {
+            base.OnLoad();
+            GL.ClearColor(0, 0, 0, 1);
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
+            
+            CursorGrabbed = true;
+            Global.keyboardState = KeyboardState;
+            Global.mouseState = MouseState;
+            
+            this.ActiveScene = new World(this);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            if (Global.IsKeyDown(Keys.Escape)) { Close(); }
+
+            Global.keyboardState = KeyboardState;
+            Global.mouseState = MouseState;
+                
+            ActiveScene.Update();
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            
+            ActiveScene.Render();
+            
+            SwapBuffers();
         }
+        
+        public void SwitchToScene(Scene scene)
+        {
+            this.ActiveScene = scene;
+        }
+        
     }
 }
