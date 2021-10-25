@@ -32,6 +32,11 @@ namespace Gepe3D
                 new Shader("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag")
             );
             
+            shaders.Add(
+                "post1",
+                new Shader("res/Shaders/post1.vert", "res/Shaders/post1.frag")
+            );
+            
         }
         
         public void Prepare(World world)

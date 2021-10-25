@@ -10,6 +10,7 @@ namespace Gepe3D
     {
         private readonly ParticleData state;
         private readonly Geometry particleShape;
+        private readonly float PARTICLE_RADIUS = 0.1f;
 
         private readonly float x, y, z;
         private readonly float xLength, yLength, zLength;
@@ -18,6 +19,11 @@ namespace Gepe3D
         private readonly int _vaoID;
         private readonly int _meshVBO_ID;
         private readonly int _instanceVBO_ID;
+        
+        private readonly int _fboID;
+        
+        int postProcessingVAO;
+        int texColorBuffer;
 
         private readonly float[] particlePositions;
 
@@ -62,11 +68,62 @@ namespace Gepe3D
                 }
             }
 
-            particleShape = GeometryGenerator.GenQuad(0.1f, 0.1f);
+            particleShape = GeometryGenerator.GenQuad(PARTICLE_RADIUS, PARTICLE_RADIUS);
             
             _meshVBO_ID = GL.GenBuffer();
             _instanceVBO_ID = GL.GenBuffer();
             _vaoID = GL.GenVertexArray();
+            
+            _fboID = GL.GenFramebuffer();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fboID);
+            
+            texColorBuffer = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, texColorBuffer);
+            // TODO: change the 1600, 900 (resolution) to be flexible
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, 1600, 900, 0, PixelFormat.Rgb, PixelType.UnsignedByte, new IntPtr());
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int) TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int) TextureMagFilter.Linear);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, texColorBuffer, 0);
+            
+            int rbo = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
+            // TODO: change the 1600, 900 (resolution) to be flexible
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, 1600, 900);
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, rbo);
+            
+            if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
+                System.Console.WriteLine("error with frame buffer!");
+            
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            
+            // post processing quad
+            this.postProcessingVAO = GL.GenVertexArray();
+            GL.BindVertexArray(postProcessingVAO);
+            
+            float[] vd = new float[]
+            {
+                // 2d coords     // tex coords
+                -1, -1,          0, 0,
+                 1, -1,          1, 0,
+                 1,  1,          1, 1,
+                 
+                -1, -1,          0, 0,
+                 1,  1,          1, 1,
+                -1,  1,          0, 1,
+            };
+            
+            int tempVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, tempVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, vd.Length * sizeof(float), vd, BufferUsageHint.StaticDraw);
+            GL.BindVertexArray(postProcessingVAO);
+            // vertex positions
+            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
+            // vertex normals
+            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+            GL.EnableVertexAttribArray(1);
+            
             
             float[] vertexData = particleShape.GenerateVertexData();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _meshVBO_ID);
@@ -129,9 +186,22 @@ namespace Gepe3D
             shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
             shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
             shader.SetVector3("lightPos", renderer.LightPos);
+            // shader.SetFloat("sphereRadius", PARTICLE_RADIUS);
+            
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fboID);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             
             GL.BindVertexArray(_vaoID);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
+            
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            
+            renderer.UseShader("post1");
+            GL.BindVertexArray(postProcessingVAO);
+            GL.Disable(EnableCap.DepthTest);
+            GL.BindTexture(TextureTarget.Texture2D, texColorBuffer);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
+            GL.Enable(EnableCap.DepthTest);
         }
     }
 }
