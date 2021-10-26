@@ -10,7 +10,7 @@ namespace Gepe3D
     {
         private readonly ParticleData state;
         private readonly Geometry particleShape;
-        private readonly float PARTICLE_RADIUS = 0.1f;
+        private readonly float PARTICLE_RADIUS = 0.2f;
 
         private readonly float x, y, z;
         private readonly float xLength, yLength, zLength;
@@ -189,12 +189,28 @@ namespace Gepe3D
             // shader.SetFloat("sphereRadius", PARTICLE_RADIUS);
             
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fboID);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             
+            GL.Enable(EnableCap.StencilTest);
+            GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Replace);
+            GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+            GL.StencilMask(0xFF); // enable stencil writing
+            
+            // draw particles
             GL.BindVertexArray(_vaoID);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
             
+            
+            // TODO: change the 1600, 900 (resolution) to be flexible
+            // copy from FBO's stencil buffer to default buffer's stencil buffer
+            GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _fboID);
+            GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
+            GL.BlitFramebuffer(0, 0, 1600, 900, 0, 0, 1600, 900, ClearBufferMask.StencilBufferBit, BlitFramebufferFilter.Nearest);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            
+            
+            GL.StencilFunc(StencilFunction.Equal, 1, 0xFF);
+            GL.StencilMask(0x00); // disable stencil writing
             
             renderer.UseShader("post1");
             GL.BindVertexArray(postProcessingVAO);
@@ -202,6 +218,10 @@ namespace Gepe3D
             GL.BindTexture(TextureTarget.Texture2D, texColorBuffer);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
             GL.Enable(EnableCap.DepthTest);
+            
+            
+            GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+            GL.StencilMask(0xFF); // enable stencil writing
         }
     }
 }
