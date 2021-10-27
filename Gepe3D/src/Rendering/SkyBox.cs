@@ -1,5 +1,4 @@
 
-using OpenTK.Graphics.OpenGL4;
 
 namespace Gepe3D
 {
@@ -28,24 +27,15 @@ namespace Gepe3D
             3, 4, 0,    3, 7, 4,    4, 6, 5,    4, 7, 6
         };
 
-        private int _vboID, _vaoID, _eboID;
+        private int _vboID, _vaoID;
         
 
         public SkyBox()
         {
-            _vboID = GL.GenBuffer();
-            _vaoID = GL.GenVertexArray();
-            _eboID = GL.GenBuffer();
-            
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _vboID);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
-
-            GL.BindVertexArray(_vaoID);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _eboID);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
+            _vaoID = GLUtils.GenVAO();
+            _vboID = GLUtils.GenVBO(vertices);
+            GLUtils.VaoFloatAttrib(_vaoID, _vboID, 0, 3, 3, 0);
+            GLUtils.AttachEBO(_vaoID, indices);
             
         }
 
@@ -56,8 +46,7 @@ namespace Gepe3D
             shader.SetVector3("cameraPos", renderer.CameraPos);
             shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
             
-            GL.BindVertexArray(_vaoID);
-            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            GLUtils.DrawIndexedVAO(_vaoID, indices.Length);
         }
         
     }
