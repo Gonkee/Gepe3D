@@ -20,10 +20,12 @@ namespace Gepe3D
         private readonly int _meshVBO_ID;
         private readonly int _instanceVBO_ID;
         
-        private readonly int _fboID;
+        private readonly int fbo1;
+        int texColorBuffer1;
+        private readonly int fbo2;
+        int texColorBuffer2;
         
         int postProcessingVAO;
-        int texColorBuffer;
 
         private readonly float[] particlePositions;
 
@@ -70,36 +72,20 @@ namespace Gepe3D
 
             particleShape = GeometryGenerator.GenQuad(PARTICLE_RADIUS, PARTICLE_RADIUS);
             
-            _meshVBO_ID = GL.GenBuffer();
-            _instanceVBO_ID = GL.GenBuffer();
-            _vaoID = GL.GenVertexArray();
+            float[] vertexData = particleShape.GenerateVertexData();
+            _vaoID = GLUtils.GenVAO();
+            _meshVBO_ID = GLUtils.GenVBO(vertexData);
+            _instanceVBO_ID = GLUtils.GenVBO(particlePositions);
             
-            _fboID = GL.GenFramebuffer();
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fboID);
+            fbo1 = GLUtils.GenFBO();
+            texColorBuffer1 = GLUtils.FboAddTexture(fbo1, 1600, 900);
+            GLUtils.FboAddDepthStencilRBO(fbo1, 1600, 900);
             
-            texColorBuffer = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, texColorBuffer);
-            // TODO: change the 1600, 900 (resolution) to be flexible
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, 1600, 900, 0, PixelFormat.Rgb, PixelType.UnsignedByte, new IntPtr());
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int) TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int) TextureMagFilter.Linear);
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, texColorBuffer, 0);
+            fbo2 = GLUtils.GenFBO();
+            texColorBuffer2 = GLUtils.FboAddTexture(fbo2, 1600, 900);
+            GLUtils.FboAddDepthStencilRBO(fbo2, 1600, 900);
             
-            int rbo = GL.GenRenderbuffer();
-            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
-            // TODO: change the 1600, 900 (resolution) to be flexible
-            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, 1600, 900);
-            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
-            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, rbo);
-            
-            if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
-                System.Console.WriteLine("error with frame buffer!");
-            
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            
-            // post processing quad
-            this.postProcessingVAO = GL.GenVertexArray();
-            GL.BindVertexArray(postProcessingVAO);
+            GLUtils.BindFBO(0);
             
             float[] vd = new float[]
             {
@@ -113,36 +99,14 @@ namespace Gepe3D
                 -1,  1,          0, 1,
             };
             
-            int tempVBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, tempVBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, vd.Length * sizeof(float), vd, BufferUsageHint.StaticDraw);
-            GL.BindVertexArray(postProcessingVAO);
-            // vertex positions
-            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-            // vertex normals
-            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
-            GL.EnableVertexAttribArray(1);
+            int tempVBO = GLUtils.GenVBO(vd);
+            this.postProcessingVAO = GLUtils.GenVAO();
+            GLUtils.VaoFloatAttrib(postProcessingVAO, tempVBO, 0, 2, 4, 0); // vertex positions
+            GLUtils.VaoFloatAttrib(postProcessingVAO, tempVBO, 1, 2, 4, 2); // texture coordinates
             
-            
-            float[] vertexData = particleShape.GenerateVertexData();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _meshVBO_ID);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
-
-            GL.BindVertexArray(_vaoID);
-            // vertex positions
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, particleShape.FloatsPerVertex * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-            // vertex normals
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, particleShape.FloatsPerVertex * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(1);
-
-            // instance positions
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceVBO_ID);
-            GL.BufferData(BufferTarget.ArrayBuffer, particlePositions.Length * sizeof(float), particlePositions, BufferUsageHint.StreamDraw);
-            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-            GL.VertexAttribDivisor(2, 1);
-            GL.EnableVertexAttribArray(2);
+            GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 0, 3, particleShape.FloatsPerVertex, 0); // vertex positions
+            GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 1, 3, particleShape.FloatsPerVertex, 0); // vertex normals
+            GLUtils.VaoInstanceFloatAttrib(_vaoID, _instanceVBO_ID, 2, 3, 3, 0);
         }
         
         public override PhysicsData GetState()
@@ -185,43 +149,37 @@ namespace Gepe3D
             // shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
             shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
             shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
-            shader.SetVector3("lightPos", renderer.LightPos);
+            // shader.SetVector3("lightPos", renderer.LightPos);
             // shader.SetFloat("sphereRadius", PARTICLE_RADIUS);
             
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fboID);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             
-            GL.Enable(EnableCap.StencilTest);
-            GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Replace);
-            GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
-            GL.StencilMask(0xFF); // enable stencil writing
+            // GLUtils.BindFBO(fbo1);
+            // GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             
-            // draw particles
-            GL.BindVertexArray(_vaoID);
-            GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
+            // GL.Enable(EnableCap.StencilTest);
+            // GLUtils.StencilWriteMode();
+            GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
+            // GLUtils.StencilReadMode();
             
+            // GLUtils.CopyStencilBuffer(fbo1, fbo2, 1600, 900);
+            // GLUtils.CopyStencilBuffer(fbo1, 0, 1600, 900);
             
-            // TODO: change the 1600, 900 (resolution) to be flexible
-            // copy from FBO's stencil buffer to default buffer's stencil buffer
-            GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _fboID);
-            GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
-            GL.BlitFramebuffer(0, 0, 1600, 900, 0, 0, 1600, 900, ClearBufferMask.StencilBufferBit, BlitFramebufferFilter.Nearest);
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            // GLUtils.BindFBO(fbo2);
             
+            // renderer.UseShader("post1");
+            // GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
-            GL.StencilFunc(StencilFunction.Equal, 1, 0xFF);
-            GL.StencilMask(0x00); // disable stencil writing
+            // GLUtils.BindFBO(fbo1);
             
-            renderer.UseShader("post1");
-            GL.BindVertexArray(postProcessingVAO);
-            GL.Disable(EnableCap.DepthTest);
-            GL.BindTexture(TextureTarget.Texture2D, texColorBuffer);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
-            GL.Enable(EnableCap.DepthTest);
+            // renderer.UseShader("post2");
+            // GLUtils.DrawPostProcessing(texColorBuffer2, postProcessingVAO);
             
+            // GLUtils.BindFBO(0);
             
-            GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
-            GL.StencilMask(0xFF); // enable stencil writing
+            // renderer.UseShader("post3");
+            // GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
+            
+            // GLUtils.StencilWriteMode();
         }
     }
 }

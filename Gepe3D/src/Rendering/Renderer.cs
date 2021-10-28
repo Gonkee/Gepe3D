@@ -37,6 +37,16 @@ namespace Gepe3D
                 new Shader("res/Shaders/post1.vert", "res/Shaders/post1.frag")
             );
             
+            shaders.Add(
+                "post2",
+                new Shader("res/Shaders/post2.vert", "res/Shaders/post2.frag")
+            );
+            
+            shaders.Add(
+                "post3",
+                new Shader("res/Shaders/post3.vert", "res/Shaders/post3.frag")
+            );
+            
         }
         
         public void Prepare(World world)

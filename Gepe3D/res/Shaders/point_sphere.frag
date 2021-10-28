@@ -29,9 +29,11 @@ void main()
     vec3 normal = vec3(nx, ny, nz);
     
     float NdL = max( 0.0, dot(normal, lightDir) );
-    FragColor = vec4(instanceAlbedo.xyz * NdL, 1);
     
     // clip space
     vec4 cFragPos = projectionMatrix * vec4( vFragPos.xyz + normal * sphereRadius, 1 );
-    // gl_FragDepth = cFragPos.z / cFragPos.w;
+    float depth = cFragPos.x ;
+    
+    
+    FragColor = vec4(depth, depth, depth, 1);
 }
