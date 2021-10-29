@@ -153,21 +153,26 @@ namespace Gepe3D
             // shader.SetFloat("sphereRadius", PARTICLE_RADIUS);
             
             
-            // GLUtils.BindFBO(fbo1);
-            // GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            GLUtils.BindFBO(fbo1);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             
-            // GL.Enable(EnableCap.StencilTest);
-            // GLUtils.StencilWriteMode();
+            GL.Enable(EnableCap.StencilTest);
+            GLUtils.StencilWriteMode();
             GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, state.ParticleCount);
-            // GLUtils.StencilReadMode();
+            GLUtils.StencilReadMode();
             
             // GLUtils.CopyStencilBuffer(fbo1, fbo2, 1600, 900);
-            // GLUtils.CopyStencilBuffer(fbo1, 0, 1600, 900);
+            GLUtils.CopyStencilBuffer(fbo1, 0, 1600, 900);
             
-            // GLUtils.BindFBO(fbo2);
+            GLUtils.BindFBO(0);
             
-            // renderer.UseShader("post1");
-            // GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
+            Shader s = renderer.UseShader("post1");
+            
+            Matrix4 inverseProjection = Matrix4.Invert(renderer.Camera.GetProjectionMatrix());
+            
+            s.SetMatrix4("clip2viewMat", inverseProjection);
+            
+            GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
             // GLUtils.BindFBO(fbo1);
             
@@ -179,7 +184,7 @@ namespace Gepe3D
             // renderer.UseShader("post3");
             // GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
-            // GLUtils.StencilWriteMode();
+            GLUtils.StencilWriteMode();
         }
     }
 }

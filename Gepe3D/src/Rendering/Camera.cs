@@ -10,7 +10,7 @@ namespace Gepe3D
         public Vector3 Position { get; set; }
         public float AspectRatio { private get; set; }
         public float FovDegrees = 70;
-        public float NearClip = 0.01f, FarClip = 500;
+        public float NearClip = 0.01f, FarClip = 5;
         public float MovementSpeed = 1.5f;
         public float Sensitivity = 0.2f;
 

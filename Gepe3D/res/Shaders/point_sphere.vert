@@ -10,7 +10,9 @@ uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
 out vec3 fragNormal;
-out vec3 fragPos;
+out vec3 localSpacePos;
+out vec4 tempPos;
+out vec3 viewSpacePos;
 out vec4 instanceAlbedo;
 
 void main()
@@ -46,8 +48,11 @@ void main()
     // pos += vec4(vertexPosition, 0);
     
     gl_Position = pos;
+    tempPos = pos;
+    
     fragNormal = normal;
-    fragPos = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
+    localSpacePos = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
+    viewSpacePos = ( viewModelMat * vec4(vertexPosition, 1.0) ).xyz;
     
     if (gl_InstanceID % 3 == 0) instanceAlbedo = vec4(1, 0, 0, 1);
     if (gl_InstanceID % 3 == 1) instanceAlbedo = vec4(0, 1, 0, 1);
