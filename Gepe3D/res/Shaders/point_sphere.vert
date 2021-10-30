@@ -4,15 +4,11 @@ layout(location = 0) in vec3 vertexPosition;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 instancePosition;
 
-
-// uniform mat4 cameraMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
-out vec3 fragNormal;
-out vec3 localSpacePos;
-out vec4 tempPos;
-out vec3 viewSpacePos;
+out vec3 texCoords;
+out vec3 viewSpaceSphereCenter;
 out vec4 instanceAlbedo;
 
 void main()
@@ -24,35 +20,14 @@ void main()
                       instancePosition.x, instancePosition.y, instancePosition.z, 1.0); // 4. column
     
     mat4 viewModelMat = viewMatrix * model;
-    
-    // viewModelMat[3][0] += instancePosition.x;
-    // viewModelMat[3][1] += instancePosition.y;
-    // viewModelMat[3][2] += instancePosition.z;
-    
-    // Column 0:
-    viewModelMat[0][0] = 1;
-    viewModelMat[0][1] = 0;
-    viewModelMat[0][2] = 0;
+    viewModelMat[0][0] = 1;   viewModelMat[1][0] = 0;   viewModelMat[2][0] = 0;
+    viewModelMat[0][1] = 0;   viewModelMat[1][1] = 1;   viewModelMat[2][1] = 0;
+    viewModelMat[0][2] = 0;   viewModelMat[1][2] = 0;   viewModelMat[2][2] = 1;
 
-    // Column 1:
-    viewModelMat[1][0] = 0;
-    viewModelMat[1][1] = 1;
-    viewModelMat[1][2] = 0;
-
-    // Column 2:
-    viewModelMat[2][0] = 0;
-    viewModelMat[2][1] = 0;
-    viewModelMat[2][2] = 1;
+    gl_Position = projectionMatrix * viewModelMat * vec4(vertexPosition, 1.0);
     
-    vec4 pos = projectionMatrix * viewModelMat * vec4(vertexPosition, 1.0);
-    // pos += vec4(vertexPosition, 0);
-    
-    gl_Position = pos;
-    tempPos = pos;
-    
-    fragNormal = normal;
-    localSpacePos = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
-    viewSpacePos = ( viewModelMat * vec4(vertexPosition, 1.0) ).xyz;
+    texCoords = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
+    viewSpaceSphereCenter = ( viewMatrix * vec4(instancePosition, 1.0) ).xyz;
     
     if (gl_InstanceID % 3 == 0) instanceAlbedo = vec4(1, 0, 0, 1);
     if (gl_InstanceID % 3 == 1) instanceAlbedo = vec4(0, 1, 0, 1);
