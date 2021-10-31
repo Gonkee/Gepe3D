@@ -1,38 +1,58 @@
 #version 330
 
 uniform sampler2D screenTexture;
+uniform float particleRadius;
+uniform bool blurXaxis;
 
 out vec4 FragColor;
 
 in vec2 texUV;
 
-float filterRadius = 20;
+int sampleResolution = 10;
+
+
+float gaussianDistribution(float input, float standardDeviation)
+{
+    float inSquared = input * input;
+    float sdSquared = standardDeviation * standardDeviation;
+    
+    // not normalized so that max output is 1, but it doesn't matter
+    return exp( -( inSquared / sdSquared / 2 ) );
+}
+
 
 void main()
 {
     
-    float depth = texture2D(screenTexture, texUV).x;
-    float sum = 0;
-    float wsum = 0;
-    for (float x = -filterRadius; x <= filterRadius; x += 1.0) {
+    vec3 viewSpacePos = texture2D(screenTexture, texUV).xyz;
+    
+    float depth = viewSpacePos.z;
+    float filterRadius = 0.2 / depth;
+    
+    float spaceSD = filterRadius / 2.0;
+    float valueSD = particleRadius * 3.0;
+    
+    float valueSum = 0;
+    float weightSum = 0;
+    
+    for ( int i = -sampleResolution / 2 ; i <= sampleResolution / 2 ; i++ )
+    {
+        float coordOffset = filterRadius * i / sampleResolution;
         
-        float sample = texture2D( screenTexture, texUV + x * blurDir ).x;
+        float sample = blurXaxis ?
+            texture2D( screenTexture, texUV + vec2(coordOffset, 0) ).z :
+            texture2D( screenTexture, texUV + vec2(0, coordOffset) ).z;
         
-        // spatial domain
-        float r = x * blurScale;
-        float w = exp( -r * r );
+        float valueDiff = abs(sample - depth);
+        float spaceDiff = coordOffset;
         
-        // range domain
-        float r2 = (sample - depth) * blurDepthFalloff;
-        float g = exp( -r2 * r2 );
-        sum += sample * w * g;
-        wsum += w * g;
-    }
-    if (wsum > 0.0) {
-        sum /= wsum;
+        float valueWeight = gaussianDistribution(valueDiff, valueSD);
+        float spaceWeight = gaussianDistribution(spaceDiff, spaceSD);
+        
+        valueSum += sample * valueWeight * spaceWeight;
+        weightSum += valueWeight * spaceWeight;
     }
     
-    vec3 ting = vec3(sum, sum, sum);
-    
-    FragColor = vec4(ting, 1);
+    float finalDepth = valueSum / weightSum;    
+    FragColor = vec4(viewSpacePos.x, viewSpacePos.y, finalDepth, 1);
 }

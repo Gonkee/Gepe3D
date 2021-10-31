@@ -95,6 +95,12 @@ namespace Gepe3D
             GL.UseProgram(Handle);
             GL.Uniform1(_uniformLocations[name], data);
         }
+        
+        public void SetBool(string name, bool flag)
+        {
+            GL.UseProgram(Handle);
+            GL.Uniform1(_uniformLocations[name], flag ? 1 : 0 );
+        }
 
         public void SetFloat(string name, float data)
         {

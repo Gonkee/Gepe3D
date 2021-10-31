@@ -30,5 +30,5 @@ void main()
     vec3 yDiff = abs(tDiff.z) < abs(bDiff.z) ? tDiff : bDiff;
     
     vec3 normal = normalize( cross(yDiff, xDiff) );
-    FragColor = vec4( normal, 1);
+    FragColor = vec4( mix(normal, texture2D( screenTexture, texUV ).xyz, 0.01), 1);
 }

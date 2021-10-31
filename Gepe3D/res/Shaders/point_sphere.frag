@@ -1,7 +1,7 @@
 #version 330
 
 uniform vec3 lightPos;
-uniform float sphereRadius;
+uniform float particleRadius;
 
 out vec4 FragColor;
 
@@ -25,10 +25,10 @@ void main()
     
     // view space
     vec3 vLightPos = ( viewMatrix * vec4(lightPos, 1.0) ).xyz;
-    vec3 vFragPos = viewSpaceSphereCenter + normal * sphereRadius;
+    vec3 vFragPos = viewSpaceSphereCenter + normal * particleRadius;
     vec3 lightDir = normalize( vLightPos.xyz - vFragPos.xyz );
     
-    float NdL = max( 0.0, dot(normal, lightDir) );
+    float NdL = mix( max( 0.0, dot(normal, lightDir) ), 1, 0.99);
     
     vec3 col = instanceAlbedo.xyz * NdL;
     vec3 posCol = vec3(vFragPos.x, vFragPos.y, -vFragPos.z);
