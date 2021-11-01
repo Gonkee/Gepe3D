@@ -33,13 +33,13 @@ namespace Gepe3D
             );
             
             shaders.Add(
-                "post1",
-                new Shader("res/Shaders/post1.vert", "res/Shaders/post1.frag")
+                "bilateral_filter",
+                new Shader("res/Shaders/bilateral_filter.vert", "res/Shaders/bilateral_filter.frag")
             );
             
             shaders.Add(
-                "post2",
-                new Shader("res/Shaders/post2.vert", "res/Shaders/post2.frag")
+                "depth_normal",
+                new Shader("res/Shaders/depth_normal.vert", "res/Shaders/depth_normal.frag")
             );
             
             shaders.Add(

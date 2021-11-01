@@ -34,5 +34,7 @@ void main()
     vec3 posCol = vec3(vFragPos.x, vFragPos.y, -vFragPos.z);
     
     
-    FragColor = vec4( mix(col, vFragPos, 0.99) , 1);
+    vec4 pFragPos = projectionMatrix * vec4(vFragPos, 1);
+    
+    FragColor = vec4( (pFragPos.z / pFragPos.w) / 2 + 0.5, 0, 0, 1 );
 }

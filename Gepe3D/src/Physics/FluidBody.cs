@@ -143,7 +143,7 @@ namespace Gepe3D
         public override void Render(Renderer renderer)
         {
             Shader shader = renderer.UseShader("point_sphere");
-            shader.SetVector3("lightPos", renderer.LightPos);
+            // shader.SetVector3("lightPos", renderer.LightPos);
             shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
             shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
             shader.SetFloat("particleRadius", PARTICLE_RADIUS);
@@ -160,13 +160,16 @@ namespace Gepe3D
             GLUtils.CopyStencilBuffer(fbo1, fbo2, 1600, 900);
             GLUtils.CopyStencilBuffer(fbo1, 0, 1600, 900);
             
-            Shader p2 = renderer.UseShader("post2");
             
             GLUtils.BindFBO(fbo2);
+            
+            Shader p2 = renderer.UseShader("bilateral_filter");
             
             p2.SetFloat("particleRadius", PARTICLE_RADIUS);
             p2.SetBool("blurXaxis", true);
             GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
+            
+            
             
             GLUtils.BindFBO(fbo1);
             
@@ -174,21 +177,10 @@ namespace Gepe3D
             p2.SetBool("blurXaxis", false);
             GLUtils.DrawPostProcessing(texColorBuffer2, postProcessingVAO);
             
-            GLUtils.BindFBO(fbo2);
-            
-            p2.SetFloat("particleRadius", PARTICLE_RADIUS);
-            p2.SetBool("blurXaxis", true);
-            GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
-            
-            GLUtils.BindFBO(fbo1);
-            
-            p2.SetFloat("particleRadius", PARTICLE_RADIUS);
-            p2.SetBool("blurXaxis", false);
-            GLUtils.DrawPostProcessing(texColorBuffer2, postProcessingVAO);
             
             GLUtils.BindFBO(0);
             
-            renderer.UseShader("post1");
+            renderer.UseShader("depth_normal").SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
             GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
             // GLUtils.BindFBO(0);
