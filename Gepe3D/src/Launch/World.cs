@@ -166,7 +166,7 @@ namespace Gepe3D
                 FluidBody fluid = new FluidBody(
                     -1, -1, -1,
                     2, 2, 2,
-                    15, 15, 15
+                    15, 3, 15
                 );
 
                 AddBody(fluid);

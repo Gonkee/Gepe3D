@@ -4,11 +4,12 @@ uniform sampler2D screenTexture;
 uniform float particleRadius;
 uniform bool blurXaxis;
 
+uniform float screenWidth;
+uniform float screenHeight;
+
 out vec4 FragColor;
 
 in vec2 texUV;
-
-int sampleResolution = 40;
 
 float gaussianDistribution(float input, float standardDeviation)
 {
@@ -19,26 +20,41 @@ float gaussianDistribution(float input, float standardDeviation)
     return exp( -( inSquared / sdSquared / 2 ) );
 }
 
-float sampleFiltered(sampler2D screenTexture, vec2 texUV, float unfilteredValue, int channel, float filterRadius, float valueSD, float spaceSD)
+float linearizeDepth(float depth)
 {
+    float near = 0.01;
+    float far = 500;
+    
+    float zVal = (2 * near * far) / (far + near - (depth * 2 - 1) * (far - near));
+    return zVal;
+}
+
+void main()
+{
+    float depth = texture2D(screenTexture, texUV).x;
+    float offsetSize = blurXaxis ? 1.0 / screenWidth : 1.0 / screenHeight;
+    float filterRadius = 0.2 / depth;
+    filterRadius = clamp(filterRadius, 0, 50 * offsetSize);
+    int samplesEachSide = int( filterRadius / offsetSize / 2 );
+    
+    float spaceSD = filterRadius / 2.0;
+    float valueSD = particleRadius * 0.1;
+    // valueSD = mix(valueSD, 0.01, 0.999);
+    
     float valueSum = 0;
     float weightSum = 0;
     
-    for ( int i = -sampleResolution / 2 ; i <= sampleResolution / 2 ; i++ )
+    for ( int i = -samplesEachSide; i <= samplesEachSide ; i++ )
     {
-        float coordOffset = filterRadius * i / sampleResolution;
+        float coordOffset = i * offsetSize;
         
-        vec4 sampleVec = blurXaxis ?
-            texture2D( screenTexture, texUV + vec2(coordOffset, 0) ) :
-            texture2D( screenTexture, texUV + vec2(0, coordOffset) );
+        float sample = blurXaxis ?
+            texture2D( screenTexture, texUV + vec2(coordOffset, 0) ).x :
+            texture2D( screenTexture, texUV + vec2(0, coordOffset) ).x;
         
-        float sample;
-        if (channel == 0) sample = sampleVec.x;
-        if (channel == 1) sample = sampleVec.y;
-        if (channel == 2) sample = sampleVec.z;
-        if (channel == 3) sample = sampleVec.w;
+        if (sample == 0) continue;
         
-        float valueDiff = abs(sample - unfilteredValue);
+        float valueDiff = abs(sample - depth);
         float spaceDiff = coordOffset;
         
         float valueWeight = gaussianDistribution(valueDiff, valueSD);
@@ -48,28 +64,7 @@ float sampleFiltered(sampler2D screenTexture, vec2 texUV, float unfilteredValue,
         weightSum += valueWeight * spaceWeight;
     }
     
-    float finalValue = weightSum > 0 ? valueSum / weightSum : valueSum;
-    return finalValue;
-}
-
-
-void main()
-{
-    vec3 unfilteredSample = texture2D(screenTexture, texUV).xyz;
+    float finalDepth = weightSum > 0 ? valueSum / weightSum : depth;
     
-    float depth = unfilteredSample.x;
-    float filterRadius = 0.2 / depth;
-    filterRadius = 0.050625;
-    // filterRadius = 0;
-    
-    float spaceSD = filterRadius / 2.0;
-    float valueSD = particleRadius * 3.0;
-    
-    vec3 col = vec3(
-        sampleFiltered(screenTexture, texUV, unfilteredSample.x, 0, filterRadius, valueSD, spaceSD),
-        sampleFiltered(screenTexture, texUV, unfilteredSample.y, 1, filterRadius, valueSD, spaceSD),
-        sampleFiltered(screenTexture, texUV, unfilteredSample.z, 2, filterRadius, valueSD, spaceSD)
-    );
-    
-    FragColor = vec4( col, 1 );
+    FragColor = vec4( finalDepth, 0, 0, 1 );
 }

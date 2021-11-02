@@ -36,5 +36,11 @@ void main()
     
     vec4 pFragPos = projectionMatrix * vec4(vFragPos, 1);
     
-    FragColor = vec4( (pFragPos.z / pFragPos.w) / 2 + 0.5, 0, 0, 1 );
+    float depth = pFragPos.z / pFragPos.w;
+    float near = 0.01;
+    float far = 500;
+    
+    float zVal = (2 * near * far) / (far + near - (depth * 2 - 1) * (far - near));
+    
+    FragColor = vec4( (pFragPos.z / pFragPos.w), 0, 0, 1 );
 }

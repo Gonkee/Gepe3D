@@ -162,9 +162,12 @@ namespace Gepe3D
             
             
             GLUtils.BindFBO(fbo2);
+            GL.Clear(ClearBufferMask.ColorBufferBit);
             
             Shader p2 = renderer.UseShader("bilateral_filter");
             
+            p2.SetFloat("screenWidth", 1600);
+            p2.SetFloat("screenHeight", 900);
             p2.SetFloat("particleRadius", PARTICLE_RADIUS);
             p2.SetBool("blurXaxis", true);
             GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
