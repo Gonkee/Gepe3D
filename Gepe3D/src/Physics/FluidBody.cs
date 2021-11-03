@@ -111,16 +111,41 @@ namespace Gepe3D
         
         public override PhysicsData GetState()
         {
-            return new PhysicsData(0);
+            return state;
         }
 
         public override PhysicsData GetDerivative(PhysicsData state)
         {
-            return new PhysicsData(0);
+            ParticleData pstate = new ParticleData(state);
+            ParticleData derivative = new ParticleData(pstate.ParticleCount);
+            
+            for (int i = 0; i < pstate.ParticleCount; i++)
+            {
+                float x = pstate.GetPos(i).Z;
+                float dy = MathF.Sin(x + Global.Elapsed * 2) * 0.5f;
+                
+                derivative.SetPos(i, 0, dy, 0);
+            }
+            
+            return derivative;
         }
 
         public override void UpdateState(PhysicsData change, List<PhysicsBody> bodies)
         {
+            for (int i = 0; i < state.DataLength; i++)
+            {
+                state.Set(i, state.Get(i) + change.Get(i));
+            }
+            
+            for (int i = 0; i < state.ParticleCount; i++)
+            {
+                Vector3 pos = state.GetPos(i);
+                particlePositions[i * 3 + 0] = pos.X;
+                particlePositions[i * 3 + 1] = pos.Y;
+                particlePositions[i * 3 + 2] = pos.Z;
+            }
+            
+            GLUtils.ReplaceBufferData(_instanceVBO_ID, particlePositions);
         }
 
         

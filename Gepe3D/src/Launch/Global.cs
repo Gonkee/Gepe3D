@@ -9,6 +9,7 @@ namespace Gepe3D
 
         internal static KeyboardState keyboardState;
         internal static MouseState mouseState;
+        internal static float Elapsed = 0;
 
 
         public static bool IsKeyDown(Keys key)

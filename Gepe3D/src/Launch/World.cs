@@ -39,6 +39,7 @@ namespace Gepe3D
         public override void Update()
         {
             float delta = 0.01f;
+            Global.Elapsed += delta;
             
             activeCam.Update(delta);
             foreach (PhysicsBody body in _bodies)
