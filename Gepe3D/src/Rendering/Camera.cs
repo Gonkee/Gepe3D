@@ -53,7 +53,15 @@ namespace Gepe3D
             // transformations go from right to left
             return projMatrix * viewMatrix;
         }
+
+        private float smoothCamYaw;
+        private float smoothCamPitch;
+        private float smoothCamFilterX;
+        private float smoothCamFilterY;
+        private float smoothCamPartialTicks;
         
+        private int smoothnessGrade = 3;
+
         public void Update(float delta)
         {
             Vector3 movement = new Vector3();
@@ -74,12 +82,112 @@ namespace Gepe3D
             movement.Z = rotatedMovement.Z;
 
             Position += movement * MovementSpeed * delta;
+
+            if (Global.IsKeyDown(Keys.C))
+            {
+
+                float f = Sensitivity / smoothnessGrade * 0.6F + 0.2F;
+                float f1 = f * f * f * 8.0F;
+                this.smoothCamFilterX = smoothX(this.smoothCamYaw * 2, 0.05F * f1);
+                this.smoothCamFilterY = smoothY(this.smoothCamPitch * 2, 0.05F * f1);
+                this.smoothCamPartialTicks = 0.0F;
+                this.smoothCamYaw = 0.0F;
+                this.smoothCamPitch = 0.0F;
+
+            }
+            else
+            {
+                resetX();
+                resetY();
+            }
+
             UpdateLocalVectors();
+
+        }
+
+        private float targetValueX;
+        private float remainingValueX;
+        private float lastAmountX;
+
+        private float targetValueY;
+        private float remainingValueY;
+        private float lastAmountY;
+
+        /**
+         * Smooths mouse input
+         */
+        public float smoothX(float f1, float f2)
+        {
+            this.targetValueX += f1;
+            f1 = (this.targetValueX - this.remainingValueX) * f2;
+            this.lastAmountX += (f1 - this.lastAmountX) * 0.5F;
+
+            if (f1 > 0.0F && f1 > this.lastAmountX || f1 < 0.0F && f1 < this.lastAmountX)
+            {
+                f1 = this.lastAmountX;
+            }
+
+            this.remainingValueX += f1;
+            return f1;
+        }
+
+        public void resetX()
+        {
+            this.targetValueX = 0.0F;
+            this.remainingValueX = 0.0F;
+            this.lastAmountX = 0.0F;
+        }
+
+        /**
+        * Smooths mouse input
+        */
+        public float smoothY(float f1, float f2)
+        {
+            this.targetValueY += f1;
+            f1 = (this.targetValueY - this.remainingValueY) * f2;
+            this.lastAmountY += (f1 - this.lastAmountY) * 0.5F;
+
+            if (f1 > 0.0F && f1 > this.lastAmountY || f1 < 0.0F && f1 < this.lastAmountY)
+            {
+                f1 = this.lastAmountY;
+            }
+
+            this.remainingValueY += f1;
+            return f1;
+        }
+
+        public void resetY()
+        {
+            this.targetValueY = 0.0F;
+            this.remainingValueY = 0.0F;
+            this.lastAmountY = 0.0F;
         }
 
         public void MouseInput(Vector2 mouseDelta)
         {
-            yaw   += mouseDelta.X * Sensitivity;
+
+            if (Global.IsKeyDown(Keys.C))
+            {
+                float f = Sensitivity / smoothnessGrade * 0.6F + 0.2F;
+                float f1 = f * f * f * 8.0F;
+                float f2 = mouseDelta.X * f1;
+                float f3 = mouseDelta.Y * f1;
+                int i = 1;
+
+                this.smoothCamYaw += f2;
+                this.smoothCamPitch += f3;
+                float f4 = this.smoothCamPartialTicks - 0.1f;
+                this.smoothCamPartialTicks = f4;
+                f2 = this.smoothCamFilterX * f4;
+                f3 = this.smoothCamFilterY * f4;
+
+                yaw -= f2;
+                pitch += f3 * (float)i;
+
+                return;
+            }
+
+            yaw += mouseDelta.X * Sensitivity;
             pitch -= mouseDelta.Y * Sensitivity;
             pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
         }
