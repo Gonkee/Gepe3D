@@ -43,8 +43,8 @@ namespace Gepe3D
             );
             
             shaders.Add(
-                "post3",
-                new Shader("res/Shaders/post3.vert", "res/Shaders/post3.frag")
+                "fluid_shading",
+                new Shader("res/Shaders/fluid_shading.vert", "res/Shaders/fluid_shading.frag")
             );
             
         }

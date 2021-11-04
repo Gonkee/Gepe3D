@@ -2,7 +2,7 @@
 
 uniform sampler2D screenTexture;
 
-uniform mat4 projectionMatrix;
+uniform mat4 projectionMatrix; // TODO: calculate inverse in CPU code
 
 out vec4 FragColor;
 
@@ -26,7 +26,7 @@ vec3 sampleViewSpaceCoords(sampler2D screenTexture, vec2 texCoord)
 
 void main()
 {
-    // FBO pixel internal format must NOT clamp between [0, 1], i.e. RGB16F or RGB32F etc
+    // FBO pixel internal format must NOT clamp between [0, 1], i.e. RGBA16F or RGBA32F etc
     // sample the position at the pixel and the positions around it to figure out the normal at that position
     vec3 pos  = sampleViewSpaceCoords( screenTexture, texUV );
     vec3 rPos = sampleViewSpaceCoords( screenTexture, texUV + vec2(  normalSampleOffset, 0 ) );
@@ -47,5 +47,5 @@ void main()
     
     vec3 normal = normalize( cross(yDiff, xDiff) );
     
-    FragColor = vec4( mix(normal, texture2D( screenTexture, texUV ).xyz, 0.01), 1);
+    FragColor = vec4(normal, texture2D(screenTexture, texUV).x); // depth value stored in the w component
 }

@@ -10,7 +10,7 @@ namespace Gepe3D
     {
         private readonly ParticleData state;
         private readonly Geometry particleShape;
-        private readonly float PARTICLE_RADIUS = 0.2f;
+        private readonly float PARTICLE_RADIUS;
 
         private readonly float x, y, z;
         private readonly float xLength, yLength, zLength;
@@ -32,8 +32,11 @@ namespace Gepe3D
         public FluidBody(
             float x, float y, float z,
             float xLength, float yLength, float zLength,
-            int xResolution, int yResolution, int zResolution)
+            int xResolution, int yResolution, int zResolution,
+            float particleRadius)
         {
+            this.PARTICLE_RADIUS = particleRadius;
+            
             this.x = x;
             this.y = y;
             this.z = z;
@@ -193,7 +196,7 @@ namespace Gepe3D
             
             p2.SetFloat("screenWidth", 1600);
             p2.SetFloat("screenHeight", 900);
-            p2.SetFloat("particleRadius", PARTICLE_RADIUS);
+            // p2.SetFloat("particleRadius", PARTICLE_RADIUS);
             p2.SetBool("blurXaxis", true);
             GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
@@ -201,20 +204,25 @@ namespace Gepe3D
             
             GLUtils.BindFBO(fbo1);
             
-            p2.SetFloat("particleRadius", PARTICLE_RADIUS);
+            // p2.SetFloat("particleRadius", PARTICLE_RADIUS);
             p2.SetBool("blurXaxis", false);
             GLUtils.DrawPostProcessing(texColorBuffer2, postProcessingVAO);
             
             
-            GLUtils.BindFBO(0);
+            GLUtils.BindFBO(fbo2);
             
             renderer.UseShader("depth_normal").SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
             GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
             
-            // GLUtils.BindFBO(0);
+            GLUtils.BindFBO(0);
             
-            // renderer.UseShader("post3");
-            // GLUtils.DrawPostProcessing(texColorBuffer1, postProcessingVAO);
+            Shader fluidShader = renderer.UseShader("fluid_shading");
+            fluidShader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
+            fluidShader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
+            fluidShader.SetVector3("lightPos", renderer.LightPos);
+            fluidShader.SetVector3("ambientLight", renderer.AmbientLight);
+            fluidShader.SetVector3("fillColor", new Vector3(1, 0.8f, 0));
+            GLUtils.DrawPostProcessing(texColorBuffer2, postProcessingVAO);
             
             GLUtils.StencilWriteMode();
         }

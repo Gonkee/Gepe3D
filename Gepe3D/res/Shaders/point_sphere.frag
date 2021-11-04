@@ -28,7 +28,7 @@ void main()
     vec3 vFragPos = viewSpaceSphereCenter + normal * particleRadius;
     vec3 lightDir = normalize( vLightPos.xyz - vFragPos.xyz );
     
-    float NdL = mix( max( 0.0, dot(normal, lightDir) ), 1, 0.99);
+    float NdL = max( 0.0, dot(normal, lightDir) );
     
     vec3 col = instanceAlbedo.xyz * NdL;
     vec3 posCol = vec3(vFragPos.x, vFragPos.y, -vFragPos.z);
@@ -36,11 +36,11 @@ void main()
     
     vec4 pFragPos = projectionMatrix * vec4(vFragPos, 1);
     
-    float depth = pFragPos.z / pFragPos.w;
-    float near = 0.01;
-    float far = 500;
+    // float depth = pFragPos.z / pFragPos.w;
+    // float near = 0.01;
+    // float far = 500;
     
-    float zVal = (2 * near * far) / (far + near - (depth * 2 - 1) * (far - near));
+    // float zVal = (2 * near * far) / (far + near - (depth * 2 - 1) * (far - near));
     
-    FragColor = vec4( (pFragPos.z / pFragPos.w), 0, 0, 1 );
+    FragColor = vec4(    vec3(pFragPos.z / pFragPos.w, 0, 0)   , 1 );
 }
