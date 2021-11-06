@@ -14,7 +14,7 @@ namespace Gepe3D
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
-        public Vector3 lightPos = new Vector3(10, 10, 10);
+        public Vector3 lightPos = new Vector3(4f, 4f, 4f);
 
         public SkyBox skyBox;
         
@@ -30,7 +30,7 @@ namespace Gepe3D
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", lightPos);
 
-            activeCam.Position = new Vector3( 3, 0, 0 );
+            activeCam.Position = new Vector3( 1.7f, 1.7f, 1.7f );
             activeCam.LookAt(0, -0.5f, 0);
             
             Init();
@@ -44,7 +44,7 @@ namespace Gepe3D
             activeCam.Update(delta);
             foreach (PhysicsBody body in _bodies)
             {
-                PhysicsSolver.IntegrateRungeKutta4(body, delta, _bodies); // fixed timestep
+                PhysicsSolver.IntegrateExplicitEuler(body, delta, _bodies); // fixed timestep
             
             }
         }
@@ -164,9 +164,9 @@ namespace Gepe3D
 
                 // sphere.DrawWireframe = true;
 
-                float xL = 2, yL = 1, zL = 4;
+                float xL = 1, yL = 1f, zL = 1;
                 float radius = 0.2f;
-                float density = 1.2f;
+                float density = 1f;
 
                 FluidBody fluid = new FluidBody(
                     -xL/2, -yL/2, -zL/2,

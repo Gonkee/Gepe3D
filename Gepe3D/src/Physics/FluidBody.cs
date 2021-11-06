@@ -11,6 +11,11 @@ namespace Gepe3D
         private readonly ParticleData state;
         private readonly Geometry particleShape;
         private readonly float PARTICLE_RADIUS;
+        
+        // particle data
+        private readonly float particleMass;
+        private readonly float[] pDensities;
+        private readonly float[] pPressures;
 
         private readonly float x, y, z;
         private readonly float xLength, yLength, zLength;
@@ -29,12 +34,22 @@ namespace Gepe3D
 
         private readonly float[] particlePositions;
 
+
+        float maxEffectDistance;
+        float poly6coeff;
+        float spikyCoeff;
+
         public FluidBody(
             float x, float y, float z,
             float xLength, float yLength, float zLength,
             int xResolution, int yResolution, int zResolution,
             float particleRadius)
         {
+            
+            maxEffectDistance = 0.5f;
+            poly6coeff = 315 / (64 * MathF.PI * MathF.Pow(maxEffectDistance, 9) );
+            spikyCoeff = 15 / (MathF.PI * MathF.Pow(maxEffectDistance, 6) );
+            
             this.PARTICLE_RADIUS = particleRadius;
             
             this.x = x;
@@ -51,6 +66,10 @@ namespace Gepe3D
 
             state = new ParticleData(xResolution * yResolution * zResolution);
             particlePositions = new float[xResolution * yResolution * zResolution * 3];
+            
+            particleMass = 0.1f;
+            pDensities = new float[xResolution * yResolution * zResolution];
+            pPressures = new float[xResolution * yResolution * zResolution];
 
             int pointer = 0;
             float tx, ty, tz;
@@ -112,6 +131,30 @@ namespace Gepe3D
             GLUtils.VaoInstanceFloatAttrib(_vaoID, _instanceVBO_ID, 2, 3, 3, 0);
         }
         
+        
+        
+        private float WeightPoly6(float dist)
+        {
+            float diff = (maxEffectDistance * maxEffectDistance - dist * dist);
+            
+            if (diff < 0) return 0;
+            
+            return poly6coeff * diff * diff * diff;
+        }
+        
+        private float WeightSpiky(float dist)
+        {
+            
+            // jank af clean up later
+            
+            float diff = (maxEffectDistance - dist);
+            
+            if (diff < 0) return 0;
+            
+            return spikyCoeff * diff * diff * diff;
+        }
+        
+        
         public override PhysicsData GetState()
         {
             return state;
@@ -122,31 +165,169 @@ namespace Gepe3D
             ParticleData pstate = new ParticleData(state);
             ParticleData derivative = new ParticleData(pstate.ParticleCount);
             
+            
+            // update fluid density and pressure
             for (int i = 0; i < pstate.ParticleCount; i++)
             {
-                float x = pstate.GetPos(i).Z;
-                float dy = MathF.Sin(x + Global.Elapsed * 2) * 0.5f;
+                Vector3 p1 = pstate.GetPos(i);
+                float density = 0;
                 
-                derivative.SetPos(i, 0, dy, 0);
+                for (int j = 0; j < pstate.ParticleCount; j++)
+                {
+                    if (j == i) continue;
+                    
+                    Vector3 p2 = pstate.GetPos(j);
+                    
+                    float dist = (p2 - p1).Length;
+                    
+                    if (dist > maxEffectDistance) continue;
+                    
+                    float weight = WeightPoly6(dist);
+                    
+                    density += particleMass * weight;
+                    
+                    if ( float.IsNaN(dist) ) System.Console.WriteLine("NaN!");
+                    
+                }
+                
+                
+                
+                // pressure = k * (p - p0) where k is gas constant and p0 is environmental pressure
+                // trial and error values i guess
+                float pressure = 20 * (density - 20);
+                pressure = MathF.Max(pressure, 0.1f);
+                
+                pDensities[i] = density;
+                pPressures[i] = pressure;
+                
+                
             }
+            
+            
+            
+            
+            
+            
+            // update fluid acceleration
+            for (int i = 0; i < pstate.ParticleCount; i++)
+            {
+                Vector3 p1 = pstate.GetPos(i);
+                
+                Vector3 acceleration = new Vector3();
+                
+                for (int j = 0; j < pstate.ParticleCount; j++)
+                {
+                    if (j == i) continue;
+                    
+                    
+                    Vector3 p2 = pstate.GetPos(j);
+                    
+                    Vector3 diff = p1 - p2;
+                    float dist = diff.Length;
+                    Vector3 dir = diff.Normalized();
+                    
+                    if (dist == 0) continue;
+                    
+                    
+                    // supposed to multiply by a mass ratio that is m2/m1, but all masses are the same
+                    float weight = WeightSpiky(dist);
+                    
+                    float pressureTerm = ( pPressures[i] + pPressures[j] ) / ( 2 * pDensities[i] * pDensities[j] );
+                    
+                    
+                    acceleration -= dir * weight * pressureTerm;
+                    
+                }
+                
+                derivative.SetVel(i, acceleration);
+                derivative.SetPos(i, pstate.GetVel(i));
+                
+                
+                
+            }
+            
+            
+            
+            
+            
             
             return derivative;
         }
 
-        public override void UpdateState(PhysicsData change, List<PhysicsBody> bodies)
+        public override void UpdateState(PhysicsData pchange, List<PhysicsBody> bodies)
         {
+            
+            ParticleData change = new ParticleData(pchange);
+            
             for (int i = 0; i < state.DataLength; i++)
             {
                 state.Set(i, state.Get(i) + change.Get(i));
             }
             
+            float BOUNDING_RADIUS = 1;
+            
             for (int i = 0; i < state.ParticleCount; i++)
             {
                 Vector3 pos = state.GetPos(i);
+                Vector3 vel = state.GetVel(i);
+                
+                // basic bounding box constraint collision
+                
+                if (pos.X < -BOUNDING_RADIUS)
+                {
+                    pos.X = -BOUNDING_RADIUS;
+                    vel.X = MathF.Max(0, vel.X);
+                }
+                if (pos.X > BOUNDING_RADIUS)
+                {
+                    pos.X = BOUNDING_RADIUS;
+                    vel.X = MathF.Min(0, vel.X);
+                }
+                
+                
+                if (pos.Y < -BOUNDING_RADIUS)
+                {
+                    pos.Y = -BOUNDING_RADIUS;
+                    vel.Y = MathF.Max(0, vel.Y);
+                }
+                if (pos.Y > BOUNDING_RADIUS)
+                {
+                    pos.Y = BOUNDING_RADIUS;
+                    vel.Y = MathF.Min(0, vel.Y);
+                }
+                
+                
+                if (pos.Z < -BOUNDING_RADIUS)
+                {
+                    pos.Z = -BOUNDING_RADIUS;
+                    vel.Z = MathF.Max(0, vel.Z);
+                }
+                if (pos.Z > BOUNDING_RADIUS)
+                {
+                    pos.Z = BOUNDING_RADIUS;
+                    vel.Z = MathF.Min(0, vel.Z);
+                }
+                
+                state.SetPos(i, pos);
+                // System.Console.WriteLine(pos);
+                state.SetVel(i, vel);
+                
+                
                 particlePositions[i * 3 + 0] = pos.X;
                 particlePositions[i * 3 + 1] = pos.Y;
                 particlePositions[i * 3 + 2] = pos.Z;
             }
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             
             GLUtils.ReplaceBufferData(_instanceVBO_ID, particlePositions);
         }

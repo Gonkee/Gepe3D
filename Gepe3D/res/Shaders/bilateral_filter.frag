@@ -38,7 +38,7 @@ void main()
     int samplesEachSide = int( filterRadius / offsetSize / 2 );
     
     float spaceSD = filterRadius / 2.0;
-    float valueSD = 0.0003;
+    float valueSD = 0.001;
     // valueSD = mix(valueSD, 0.01, 0.999);
     
     float valueSum = 0;
