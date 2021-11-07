@@ -164,7 +164,7 @@ namespace Gepe3D
 
                 // sphere.DrawWireframe = true;
 
-                float xL = 1, yL = 1f, zL = 1;
+                float xL = 1.5f, yL = 1.5f, zL = 1.5f;
                 float radius = 0.2f;
                 float density = 1f;
 

@@ -37,7 +37,10 @@ namespace Gepe3D
 
         float maxEffectDistance;
         float poly6coeff;
-        float spikyCoeff;
+        float spikyGradCoeff;
+        float viscosityLaplacianCoeff;
+        float viscosityConstant;
+        float maxAccel;
 
         public FluidBody(
             float x, float y, float z,
@@ -48,7 +51,11 @@ namespace Gepe3D
             
             maxEffectDistance = 0.5f;
             poly6coeff = 315 / (64 * MathF.PI * MathF.Pow(maxEffectDistance, 9) );
-            spikyCoeff = 15 / (MathF.PI * MathF.Pow(maxEffectDistance, 6) );
+            spikyGradCoeff =         -45 / (MathF.PI * MathF.Pow(maxEffectDistance, 6) );
+            viscosityLaplacianCoeff = 15 / (2 * MathF.PI * MathF.Pow(maxEffectDistance, 3) );
+            viscosityConstant = 30.0f;
+            maxAccel = 10f;
+            particleMass = 0.3f;
             
             this.PARTICLE_RADIUS = particleRadius;
             
@@ -67,7 +74,6 @@ namespace Gepe3D
             state = new ParticleData(xResolution * yResolution * zResolution);
             particlePositions = new float[xResolution * yResolution * zResolution * 3];
             
-            particleMass = 0.1f;
             pDensities = new float[xResolution * yResolution * zResolution];
             pPressures = new float[xResolution * yResolution * zResolution];
 
@@ -79,7 +85,7 @@ namespace Gepe3D
                 {
                     for (int pz = 0; pz < zResolution; pz++)
                     {
-                        tx = MathHelper.Lerp(x, x + xLength, px / (xResolution - 1f) );
+                        tx = MathHelper.Lerp(x, x + xLength, px / (xResolution - 1f) ) + py * 0.1f;
                         ty = MathHelper.Lerp(y, y + yLength, py / (yResolution - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zResolution - 1f) );
 
@@ -135,23 +141,32 @@ namespace Gepe3D
         
         private float WeightPoly6(float dist)
         {
+            
+            dist = MathHelper.Clamp(dist, 0, maxEffectDistance);
+            
             float diff = (maxEffectDistance * maxEffectDistance - dist * dist);
-            
-            if (diff < 0) return 0;
-            
             return poly6coeff * diff * diff * diff;
         }
         
-        private float WeightSpiky(float dist)
+        private float WeightSpikyGrad(float dist)
         {
+            dist = MathHelper.Clamp(dist, 0, maxEffectDistance);
             
             // jank af clean up later
-            
             float diff = (maxEffectDistance - dist);
+            return spikyGradCoeff * diff * diff;
+        }
+        
+        private float WeightViscosity(float dist)
+        {
             
-            if (diff < 0) return 0;
+            dist = MathHelper.Clamp(dist, 0, maxEffectDistance);
             
-            return spikyCoeff * diff * diff * diff;
+            float t1 = (- dist * dist * dist) / (2 * maxEffectDistance * maxEffectDistance * maxEffectDistance);
+            float t2 = (dist * dist) / (maxEffectDistance * maxEffectDistance);
+            float t3 = maxEffectDistance / (2 * dist);
+            
+            return viscosityLaplacianCoeff * (t1 + t2 + t3 - 1);
         }
         
         
@@ -159,6 +174,8 @@ namespace Gepe3D
         {
             return state;
         }
+
+        int count = 0;
 
         public override PhysicsData GetDerivative(PhysicsData state)
         {
@@ -174,7 +191,6 @@ namespace Gepe3D
                 
                 for (int j = 0; j < pstate.ParticleCount; j++)
                 {
-                    if (j == i) continue;
                     
                     Vector3 p2 = pstate.GetPos(j);
                     
@@ -186,7 +202,6 @@ namespace Gepe3D
                     
                     density += particleMass * weight;
                     
-                    if ( float.IsNaN(dist) ) System.Console.WriteLine("NaN!");
                     
                 }
                 
@@ -194,11 +209,15 @@ namespace Gepe3D
                 
                 // pressure = k * (p - p0) where k is gas constant and p0 is environmental pressure
                 // trial and error values i guess
-                float pressure = 20 * (density - 20);
-                pressure = MathF.Max(pressure, 0.1f);
+                float pressure = 10f * (density - 5) ;
+                pressure = MathF.Max(pressure, 0);
                 
                 pDensities[i] = density;
                 pPressures[i] = pressure;
+                
+                // count++;
+                // if (count % 30 == 0)
+                // System.Console.WriteLine(density + ", " + pressure);
                 
                 
             }
@@ -217,7 +236,6 @@ namespace Gepe3D
                 
                 for (int j = 0; j < pstate.ParticleCount; j++)
                 {
-                    if (j == i) continue;
                     
                     
                     Vector3 p2 = pstate.GetPos(j);
@@ -226,18 +244,46 @@ namespace Gepe3D
                     float dist = diff.Length;
                     Vector3 dir = diff.Normalized();
                     
+                    if (dist > maxEffectDistance) continue;
+                    
                     if (dist == 0) continue;
                     
                     
+                    
+                    
                     // supposed to multiply by a mass ratio that is m2/m1, but all masses are the same
-                    float weight = WeightSpiky(dist);
-                    
+                    float weight = WeightSpikyGrad(dist);
                     float pressureTerm = ( pPressures[i] + pPressures[j] ) / ( 2 * pDensities[i] * pDensities[j] );
-                    
-                    
                     acceleration -= dir * weight * pressureTerm;
                     
+                    
+                    // viscosity
+                    // supposed to multiply by a mass ratio that is m2/m1, but all masses are the same
+                    dist = MathHelper.Clamp(dist, 0, maxEffectDistance);
+                    
+                    // dunno which one to use
+                    float lap = MathF.Max(viscosityLaplacianCoeff * (maxEffectDistance - dist), 0 );
+                    lap = MathF.Max( WeightViscosity(dist), 0 );
+                    
+                    Vector3 vDiff = pstate.GetVel(j) - pstate.GetVel(i);
+                    acceleration += ( viscosityConstant / pDensities[j] ) * lap * vDiff;
+                    
+                    
                 }
+                
+                acceleration += new Vector3(0, -9.8f, 0);
+                
+                
+                // damping
+                Vector3 damp = pstate.GetVel(i) * 0.1f;
+                if (damp.Length < acceleration.Length) acceleration -= damp;
+                else acceleration = new Vector3();
+                
+                
+                if (acceleration.Length > maxAccel) {
+                    acceleration = acceleration.Normalized() * maxAccel;
+                }
+                
                 
                 derivative.SetVel(i, acceleration);
                 derivative.SetPos(i, pstate.GetVel(i));
@@ -264,7 +310,7 @@ namespace Gepe3D
                 state.Set(i, state.Get(i) + change.Get(i));
             }
             
-            float BOUNDING_RADIUS = 1;
+            float BOUNDING_RADIUS = 1.2f;
             
             for (int i = 0; i < state.ParticleCount; i++)
             {
