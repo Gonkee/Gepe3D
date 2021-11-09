@@ -49,7 +49,7 @@ namespace Gepe3D
             float particleRadius)
         {
             
-            maxEffectDistance = 0.5f;
+            maxEffectDistance = 0.7f;
             poly6coeff = 315 / (64 * MathF.PI * MathF.Pow(maxEffectDistance, 9) );
             spikyGradCoeff =         -45 / (MathF.PI * MathF.Pow(maxEffectDistance, 6) );
             viscosityLaplacianCoeff = 15 / (2 * MathF.PI * MathF.Pow(maxEffectDistance, 3) );
@@ -87,7 +87,7 @@ namespace Gepe3D
                     {
                         tx = MathHelper.Lerp(x, x + xLength, px / (xResolution - 1f) ) + py * 0.1f;
                         ty = MathHelper.Lerp(y, y + yLength, py / (yResolution - 1f) );
-                        tz = MathHelper.Lerp(z, z + zLength, pz / (zResolution - 1f) );
+                        tz = MathHelper.Lerp(z, z + zLength, pz / (zResolution - 1f) ) + 1f;
 
                         particlePositions[pointer * 3 + 0] = tx;
                         particlePositions[pointer * 3 + 1] = ty;
@@ -310,7 +310,7 @@ namespace Gepe3D
                 state.Set(i, state.Get(i) + change.Get(i));
             }
             
-            float BOUNDING_RADIUS = 1.2f;
+            float BOUNDING_RADIUS = 1.5f;
             
             for (int i = 0; i < state.ParticleCount; i++)
             {

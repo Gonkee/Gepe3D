@@ -30,7 +30,7 @@ namespace Gepe3D
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", lightPos);
 
-            activeCam.Position = new Vector3( 1.7f, 1.7f, 1.7f );
+            activeCam.Position = new Vector3( 1.7f, 0, 1.7f );
             activeCam.LookAt(0, -0.5f, 0);
             
             Init();
@@ -164,9 +164,9 @@ namespace Gepe3D
 
                 // sphere.DrawWireframe = true;
 
-                float xL = 1.5f, yL = 1.5f, zL = 1.5f;
+                float xL = 1f, yL = 1f, zL = 0.5f;
                 float radius = 0.2f;
-                float density = 1f;
+                float density = 2f;
 
                 FluidBody fluid = new FluidBody(
                     -xL/2, -yL/2, -zL/2,
