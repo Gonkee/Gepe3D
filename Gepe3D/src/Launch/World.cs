@@ -1,7 +1,6 @@
 
 using System.Collections.Generic;
 using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
 
 namespace Gepe3D
 {
@@ -19,6 +18,8 @@ namespace Gepe3D
         public SkyBox skyBox;
         
         private readonly Renderer renderer;
+        
+        public PBD pbd;
 
         
         public World(MainWindow window) : base(window)
@@ -47,6 +48,8 @@ namespace Gepe3D
                 PhysicsSolver.IntegrateExplicitEuler(body, delta, _bodies); // fixed timestep
             
             }
+            
+            pbd.Update();
         }
         
         public override void Render()
@@ -105,6 +108,7 @@ namespace Gepe3D
             //         GL.Disable(EnableCap.PolygonOffsetPoint);
             //     }
             // }
+            pbd.Render(renderer);
         }
         
         public void AddBody(PhysicsBody body)
@@ -164,18 +168,21 @@ namespace Gepe3D
 
                 // sphere.DrawWireframe = true;
 
-                float xL = 1f, yL = 1f, zL = 0.5f;
-                float radius = 0.2f;
-                float density = 2f;
+                // float xL = 1f, yL = 1f, zL = 0.5f;
+                // float radius = 0.2f;
+                // float density = 2f;
 
-                FluidBody fluid = new FluidBody(
-                    -xL/2, -yL/2, -zL/2,
-                    xL, yL, zL,
-                    (int) (xL / radius * density), (int) (yL / radius * density), (int) (zL / radius * density),
-                    radius
-                );
+                // FluidBody fluid = new FluidBody(
+                //     -xL/2, -yL/2, -zL/2,
+                //     xL, yL, zL,
+                //     (int) (xL / radius * density), (int) (yL / radius * density), (int) (zL / radius * density),
+                //     radius
+                // );
 
-                AddBody(fluid);
+                // AddBody(fluid);
+                
+            pbd = new PBD();
+                
         }
         
     }

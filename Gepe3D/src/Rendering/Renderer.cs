@@ -33,6 +33,11 @@ namespace Gepe3D
             );
             
             shaders.Add(
+                "point_sphere_basic",
+                new Shader("res/Shaders/point_sphere_basic.vert", "res/Shaders/point_sphere_basic.frag")
+            );
+            
+            shaders.Add(
                 "bilateral_filter",
                 new Shader("res/Shaders/bilateral_filter.vert", "res/Shaders/bilateral_filter.frag")
             );
