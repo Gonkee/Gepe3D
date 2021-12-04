@@ -15,7 +15,8 @@ namespace Gepe3D
         private readonly int _vaoID;
         private readonly int _meshVBO_ID;
         private readonly int _instanceVBO_ID;
-        private readonly float[] particlePositions;
+        
+        private readonly PBD_data data;
         
         public PBD()
         {
@@ -29,7 +30,7 @@ namespace Gepe3D
             int yResolution = 6;
             int zResolution = 6;
             
-            particlePositions = new float[xResolution * yResolution * zResolution * 3];
+            data = new PBD_data(xResolution * yResolution * zResolution);
             
             int pointer = 0;
             float tx, ty, tz;
@@ -43,12 +44,7 @@ namespace Gepe3D
                         ty = MathHelper.Lerp(y, y + yLength, py / (yResolution - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zResolution - 1f) );
 
-                        particlePositions[pointer * 3 + 0] = tx;
-                        particlePositions[pointer * 3 + 1] = ty;
-                        particlePositions[pointer * 3 + 2] = tz;
-                        
-                        pointer++;
-
+                        data.SetPos(pointer++, tx, ty, tz);
                     }
                 }
             }
@@ -59,7 +55,7 @@ namespace Gepe3D
             float[] vertexData = particleShape.GenerateVertexData();
             _vaoID = GLUtils.GenVAO();
             _meshVBO_ID = GLUtils.GenVBO(vertexData);
-            _instanceVBO_ID = GLUtils.GenVBO(particlePositions);
+            _instanceVBO_ID = GLUtils.GenVBO( data.GetPositionBuffer() );
 
             
             
@@ -71,7 +67,7 @@ namespace Gepe3D
         public void Render(Renderer renderer)
         {
             
-            GLUtils.ReplaceBufferData(_instanceVBO_ID, particlePositions);
+            GLUtils.ReplaceBufferData(_instanceVBO_ID, data.GetPositionBuffer());
             
             
             Shader shader = renderer.UseShader("point_sphere_basic");
@@ -80,14 +76,20 @@ namespace Gepe3D
             shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
             shader.SetFloat("particleRadius", PARTICLE_RADIUS);
             
-            GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, particlePositions.Length / 3);
+            GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, data.ParticleCount);
             
             
         }
         
-        public void Update()
+        float elapsed = 0;
+        
+        public void Update(float delta)
         {
-            
+            elapsed += delta;
+            for (int i = 0; i < data.ParticleCount; i++)
+            {
+                data.AddPos(i, MathF.Sin(elapsed) * delta, 0, 0);
+            }
         }
         
     }

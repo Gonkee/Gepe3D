@@ -13,7 +13,7 @@ namespace Gepe3D
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
-        public Vector3 lightPos = new Vector3(4f, 4f, 4f);
+        public Vector3 lightPos = new Vector3(1f, 0f, 0f);
 
         public SkyBox skyBox;
         
@@ -49,7 +49,7 @@ namespace Gepe3D
             
             }
             
-            pbd.Update();
+            pbd.Update(delta);
         }
         
         public override void Render()

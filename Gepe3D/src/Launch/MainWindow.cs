@@ -16,8 +16,11 @@ namespace Gepe3D
             int HEIGHT = 900;
             string TITLE = "Gepe3D";
             
+            GameWindowSettings settings = GameWindowSettings.Default;
+            settings.UpdateFrequency = 100;
+            
             new MainWindow(
-                GameWindowSettings.Default,
+                settings,
                 new NativeWindowSettings()
                 {
                     Size = new Vector2i(WIDTH, HEIGHT),
