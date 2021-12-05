@@ -44,7 +44,7 @@ namespace Gepe3D
                         ty = MathHelper.Lerp(y, y + yLength, py / (yResolution - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zResolution - 1f) );
 
-                        data.SetPos(pointer++, tx, ty, tz);
+                        data.particles[pointer++].pos = new Vector3(tx, ty, tz);
                     }
                 }
             }
@@ -55,7 +55,7 @@ namespace Gepe3D
             float[] vertexData = particleShape.GenerateVertexData();
             _vaoID = GLUtils.GenVAO();
             _meshVBO_ID = GLUtils.GenVBO(vertexData);
-            _instanceVBO_ID = GLUtils.GenVBO( data.GetPositionBuffer() );
+            _instanceVBO_ID = GLUtils.GenVBO( data.PosData );
 
             
             
@@ -67,7 +67,7 @@ namespace Gepe3D
         public void Render(Renderer renderer)
         {
             
-            GLUtils.ReplaceBufferData(_instanceVBO_ID, data.GetPositionBuffer());
+            GLUtils.ReplaceBufferData(_instanceVBO_ID, data.PosData );
             
             
             Shader shader = renderer.UseShader("point_sphere_basic");
@@ -81,15 +81,14 @@ namespace Gepe3D
             
         }
         
-        float elapsed = 0;
+        
+        
+        
+        
         
         public void Update(float delta)
         {
-            elapsed += delta;
-            for (int i = 0; i < data.ParticleCount; i++)
-            {
-                data.AddPos(i, MathF.Sin(elapsed) * delta, 0, 0);
-            }
+            data.Update(delta);
         }
         
     }
