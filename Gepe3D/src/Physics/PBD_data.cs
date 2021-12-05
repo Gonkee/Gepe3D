@@ -14,7 +14,10 @@ namespace Gepe3D
             public Vector3 posEstimate;
             public float inverseMass;
             public int phase;
+            public int constraintCount;
         }
+        
+        private readonly float PARTICLE_RADIUS = 0.05f;
         
         public readonly Particle[] particles;
         public readonly int ParticleCount;
@@ -33,6 +36,7 @@ namespace Gepe3D
                 particles[i].posEstimate = new Vector3();
                 particles[i].inverseMass = 1;
                 particles[i].phase = 0;
+                particles[i].constraintCount = 0;
             }
             UpdatePosData();
         }
@@ -72,8 +76,48 @@ namespace Gepe3D
         
         public void Update(float delta)
         {
-            // 1) euler integrate velocity
-            foreach (Particle p in particles) p.vel.Y += -1 * delta;
+            // 1) for all particles
+            foreach (Particle p in particles)
+            {
+                // 2) apply forces
+                p.vel.Y += -1 * delta;
+                
+                // 3) predict position, reset constraint count
+                p.posEstimate = p.pos + p.vel * delta;
+                p.constraintCount = 0;
+                
+                // 4) apply mass scaling
+                // needed for stacked rigid bodies, won't implement yet
+            }
+            // 5) end for
+            
+            
+            // 6) for all particles
+            for (int i = 0; i < particles.Length; i++)
+            {
+                Particle p1 = particles[i];
+                
+                // 7) find neighbouring particles
+                for (int j = i + 1; j < particles.Length; j++)
+                {
+                    Particle p2 = particles[j];
+                    
+                    // Skip collision between two immovables
+                    if (p1.inverseMass == 0 && p2.inverseMass == 0) continue;
+                    
+                    float dist = (p2.posEstimate - p1.posEstimate).Length;
+                    
+                    if (dist < PARTICLE_RADIUS * 2)
+                    {
+                        // add a contact constraint
+                    }
+                    
+                }
+                
+                // 8) find solid boundary contacts
+                
+            }
+            // 9) end for
             
             // 2) damp velocities
             
