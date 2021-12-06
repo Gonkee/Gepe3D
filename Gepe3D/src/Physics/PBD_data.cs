@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 namespace Gepe3D
@@ -17,11 +18,28 @@ namespace Gepe3D
             public int constraintCount;
         }
         
+        public abstract class Constraint
+        {
+            public abstract void Project();
+            
+            public abstract float Evaluate();
+        }
+        
+        // constraint types
+        private static readonly int STABILIZE             = 0;
+        private static readonly int CONTACT               = 1;
+        private static readonly int STANDARD              = 2;
+        private static readonly int SHAPE                 = 3;
+        private static readonly int NUM_CONSTRAINT_TYPES  = 4;
+        
+        private List<Constraint>[] constraintGroups = new List<Constraint>[ NUM_CONSTRAINT_TYPES ];
+        
         private readonly float PARTICLE_RADIUS = 0.05f;
         
         public readonly Particle[] particles;
         public readonly int ParticleCount;
         public readonly float[] PosData;
+        
 
         public PBD_data(int particleCount)
         {
@@ -38,6 +56,10 @@ namespace Gepe3D
                 particles[i].phase = 0;
                 particles[i].constraintCount = 0;
             }
+            
+            for (int i = 0; i < constraintGroups.Length; i++)
+                constraintGroups[i] = new List<Constraint>();
+            
             UpdatePosData();
         }
         
@@ -76,47 +98,11 @@ namespace Gepe3D
         
         public void Update(float delta)
         {
-            // 1) for all particles
-            foreach (Particle p in particles)
-            {
-                // 2) apply forces
-                p.vel.Y += -1 * delta;
-                
-                // 3) predict position, reset constraint count
-                p.posEstimate = p.pos + p.vel * delta;
-                p.constraintCount = 0;
-                
-                // 4) apply mass scaling
-                // needed for stacked rigid bodies, won't implement yet
-            }
-            // 5) end for
+            ClearConstraints();
+            EstimatePositions(delta);
+            FindCollisionConstraints();
             
             
-            // 6) for all particles
-            for (int i = 0; i < particles.Length; i++)
-            {
-                Particle p1 = particles[i];
-                
-                // 7) find neighbouring particles
-                for (int j = i + 1; j < particles.Length; j++)
-                {
-                    Particle p2 = particles[j];
-                    
-                    // Skip collision between two immovables
-                    if (p1.inverseMass == 0 && p2.inverseMass == 0) continue;
-                    
-                    float dist = (p2.posEstimate - p1.posEstimate).Length;
-                    
-                    if (dist < PARTICLE_RADIUS * 2)
-                    {
-                        // add a contact constraint
-                    }
-                    
-                }
-                
-                // 8) find solid boundary contacts
-                
-            }
             // 9) end for
             
             // 2) damp velocities
@@ -142,83 +128,50 @@ namespace Gepe3D
             UpdatePosData();
         }
         
-        // public float[] GetPositionBuffer()
-        // {
-        //     return _positions;
-        // }
-
-        // public Vector3 GetPos(int id)
-        // {
-        //     return new Vector3(
-        //         _positions[id * 3 + 0],
-        //         _positions[id * 3 + 1],
-        //         _positions[id * 3 + 2]
-        //     );
-        // }
-
-        // public void SetPos(int id, float x, float y, float z)
-        // {
-        //     _positions[id * 3 + 0] = x;
-        //     _positions[id * 3 + 1] = y;
-        //     _positions[id * 3 + 2] = z;
-        // }
+        private void ClearConstraints()
+        {
+            for (int i = 0; i < constraintGroups.Length; i++)
+                constraintGroups[i].Clear();
+        }
         
-        // public void SetPos(int id, Vector3 pos)
-        // {
-        //     _positions[id * 3 + 0] = pos.X;
-        //     _positions[id * 3 + 1] = pos.Y;
-        //     _positions[id * 3 + 2] = pos.Z;
-        // }
-
-        // public void AddPos(int id, float x, float y, float z)
-        // {
-        //     _positions[id * 3 + 0] += x;
-        //     _positions[id * 3 + 1] += y;
-        //     _positions[id * 3 + 2] += z;
-        // }
+        private void EstimatePositions(float delta)
+        {
+            foreach (Particle p in particles)
+            {
+                p.vel.Y += -1 * delta; // apply external force
+                p.posEstimate = p.pos + p.vel * delta; // predict position
+                p.constraintCount = 0; // clear constraint count
+                
+                // 4) apply mass scaling
+                // needed for stacked rigid bodies, won't implement yet
+            }
+        }
         
-        // public void AddPos(int id, Vector3 pos)
-        // {
-        //     _positions[id * 3 + 0] += pos.X;
-        //     _positions[id * 3 + 1] += pos.Y;
-        //     _positions[id * 3 + 2] += pos.Z;
-        // }
-        
-        // public Vector3 GetVel(int id)
-        // {
-        //     return new Vector3(
-        //         _velocities[id * 3 + 0],
-        //         _velocities[id * 3 + 1],
-        //         _velocities[id * 3 + 2]
-        //     );
-        // }
-
-        // public void SetVel(int id, float x, float y, float z)
-        // {
-        //     _velocities[id * 3 + 0] = x;
-        //     _velocities[id * 3 + 1] = y;
-        //     _velocities[id * 3 + 2] = z;
-        // }
-        
-        // public void SetVel(int id, Vector3 vel)
-        // {
-        //     _velocities[id * 3 + 0] = vel.X;
-        //     _velocities[id * 3 + 1] = vel.Y;
-        //     _velocities[id * 3 + 2] = vel.Z;
-        // }
-
-        // public void AddVel(int id, float x, float y, float z)
-        // {
-        //     _velocities[id * 3 + 0] += x;
-        //     _velocities[id * 3 + 1] += y;
-        //     _velocities[id * 3 + 2] += z;
-        // }
-        
-        // public void AddVel(int id, Vector3 vel)
-        // {
-        //     _velocities[id * 3 + 0] += vel.X;
-        //     _velocities[id * 3 + 1] += vel.Y;
-        //     _velocities[id * 3 + 2] += vel.Z;
-        // }
+        private void FindCollisionConstraints()
+        {
+            for (int i = 0; i < particles.Length; i++)
+            {
+                Particle p1 = particles[i];
+                
+                for (int j = i + 1; j < particles.Length; j++)
+                {
+                    Particle p2 = particles[j];
+                    
+                    // Skip collision between two immovables
+                    if (p1.inverseMass == 0 && p2.inverseMass == 0) continue;
+                    
+                    float dist = (p2.posEstimate - p1.posEstimate).Length;
+                    
+                    if (dist < PARTICLE_RADIUS * 2)
+                    {
+                        // add a contact constraint
+                    }
+                    
+                }
+                
+                // 8) find solid boundary contacts
+                
+            }
+        }
     }
 }
