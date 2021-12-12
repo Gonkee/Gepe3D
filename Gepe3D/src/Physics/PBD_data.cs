@@ -164,7 +164,7 @@ namespace Gepe3D
                     
                     if (dist < PARTICLE_RADIUS * 2)
                     {
-                        // add a contact constraint
+                        constraintGroups[CONTACT].Add( new ContactConstraint(i, j) );
                     }
                     
                 }

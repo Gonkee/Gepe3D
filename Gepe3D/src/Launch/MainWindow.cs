@@ -12,14 +12,14 @@ namespace Gepe3D
         
         static void Main(string[] args)
         {
-            int WIDTH = 1600;
-            int HEIGHT = 900;
+            int WIDTH = 1920;
+            int HEIGHT = 1080;
             string TITLE = "Gepe3D";
             
             GameWindowSettings settings = GameWindowSettings.Default;
             settings.UpdateFrequency = 100;
             
-            new MainWindow(
+            MainWindow game = new MainWindow(
                 settings,
                 new NativeWindowSettings()
                 {
@@ -27,10 +27,14 @@ namespace Gepe3D
                     Title = TITLE,
                     // WindowBorder = WindowBorder.Hidden
                 }
-            ).Run();
+            );
+            
+            game.CenterWindow();
+            game.Run();
         }
         
         public Scene ActiveScene;
+        
         
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -40,7 +44,7 @@ namespace Gepe3D
         protected override void OnLoad()
         {
             base.OnLoad();
-            GL.ClearColor(0, 0, 0, 1);
+            GL.ClearColor(1, 0, 1, 1);
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
@@ -54,9 +58,14 @@ namespace Gepe3D
             this.ActiveScene = new World(this);
         }
 
+        private bool started = false; // delay the start a bit so OBS has time to show the window
+        
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             if (Global.IsKeyDown(Keys.Escape)) { Close(); }
+
+            if (Global.IsKeyDown(Keys.Enter)) { started = true; }
+            if (!started) return;
 
             Global.keyboardState = KeyboardState;
             Global.mouseState = MouseState;
@@ -68,8 +77,10 @@ namespace Gepe3D
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             
-            ActiveScene.Render();
-            
+            if (started)
+            {
+                ActiveScene.Render();
+            }
             SwapBuffers();
         }
         
