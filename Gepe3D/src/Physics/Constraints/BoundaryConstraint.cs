@@ -8,7 +8,7 @@ namespace Gepe3D
         
         // public BoundaryConstraint(int id, )
         
-        public override void Project()
+        public override void Project(bool stabilize)
         {
             throw new System.NotImplementedException();
         }

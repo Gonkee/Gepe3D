@@ -20,7 +20,7 @@ namespace Gepe3D
         
         public abstract class Constraint
         {
-            public abstract void Project();
+            public abstract void Project(bool stabilize);
             
             public abstract float Evaluate();
         }
@@ -34,7 +34,7 @@ namespace Gepe3D
         
         private List<Constraint>[] constraintGroups = new List<Constraint>[ NUM_CONSTRAINT_TYPES ];
         
-        private readonly float PARTICLE_RADIUS = 0.05f;
+        public static readonly float PARTICLE_RADIUS = 0.05f;
         
         public readonly Particle[] particles;
         public readonly int ParticleCount;
@@ -103,12 +103,45 @@ namespace Gepe3D
             FindCollisionConstraints();
             
             
+            
+            
+            int STABILIZE_ITERATIONS = 2;
+            // (16) For solver iterations
+            for (int i = 0; i < STABILIZE_ITERATIONS; i++) {
+
+                for (int k = 0; k < constraintGroups[CONTACT].Count; k++) {
+                    constraintGroups[CONTACT][k].Project(true);
+                }
+            }
+            
+            
+            int SOLVER_ITERATIONS = 3;
+            // (16) For solver iterations
+            for (int i = 0; i < SOLVER_ITERATIONS; i++) {
+
+                // (17) For constraint group
+                for (int j = 0; j < (int) NUM_CONSTRAINT_TYPES; j++) {
+                    
+                    if (j == STABILIZE) continue; // skip stabilisation
+
+                    //  (18, 19, 20) Solve constraints in g and update ep
+                    for (int k = 0; k < constraintGroups[j].Count; k++) {
+                        constraintGroups[j][k].Project(false);
+                    }
+                }
+            }
+            
+            
+            
+            
+            
+            
             // 9) end for
             
             // 2) damp velocities
             
             // 3) euler integrate position
-            foreach (Particle p in particles) p.posEstimate = p.pos + p.vel * delta;
+            // foreach (Particle p in particles) p.posEstimate = p.pos + p.vel * delta;
             
             // 4) generate collision constraints
             
@@ -164,7 +197,7 @@ namespace Gepe3D
                     
                     if (dist < PARTICLE_RADIUS * 2)
                     {
-                        constraintGroups[CONTACT].Add( new ContactConstraint(i, j) );
+                        constraintGroups[CONTACT].Add( new ContactConstraint(p1, p2) );
                     }
                     
                 }
