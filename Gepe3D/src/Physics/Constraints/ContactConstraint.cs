@@ -26,6 +26,8 @@ namespace Gepe3D
             float centreDist = posDiff.Length;
             float edgeDist = centreDist - 2 * PBD_data.PARTICLE_RADIUS;
             
+            if (p1.id == 13) System.Console.WriteLine("stabilize:" + stabilize + ", edge distance = " + edgeDist);
+            
             // previous iterations have moved particles out of collision
             if (edgeDist > 0) return;
             

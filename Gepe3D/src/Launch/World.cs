@@ -9,7 +9,7 @@ namespace Gepe3D
         
         private Shader _entityShader;
 
-        private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
+        // private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
@@ -43,11 +43,11 @@ namespace Gepe3D
             Global.Elapsed += delta;
             
             activeCam.Update(delta);
-            foreach (PhysicsBody body in _bodies)
-            {
-                PhysicsSolver.IntegrateExplicitEuler(body, delta, _bodies); // fixed timestep
+            // foreach (PhysicsBody body in _bodies)
+            // {
+            //     PhysicsSolver.IntegrateExplicitEuler(body, delta, _bodies); // fixed timestep
             
-            }
+            // }
             
             pbd.Update(delta);
         }
@@ -58,7 +58,7 @@ namespace Gepe3D
 
             renderer.Prepare(this);
             renderer.Render(skyBox);
-            foreach (PhysicsBody body in _bodies) renderer.Render(body);
+            // foreach (PhysicsBody body in _bodies) renderer.Render(body);
 
 
             // _entityShader.Use();
@@ -111,11 +111,11 @@ namespace Gepe3D
             pbd.Render(renderer);
         }
         
-        public void AddBody(PhysicsBody body)
-        {
-            if ( !_bodies.Contains(body) )
-            _bodies.Add(body);
-        }
+        // public void AddBody(PhysicsBody body)
+        // {
+        //     if ( !_bodies.Contains(body) )
+        //     _bodies.Add(body);
+        // }
         
         private void Init()
         {

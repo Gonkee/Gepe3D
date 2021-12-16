@@ -49,6 +49,8 @@ namespace Gepe3D
                 }
             }
             
+            data.SetUpDistanceConstraints();
+            
             
             particleShape = GeometryGenerator.GenQuad(PARTICLE_RADIUS, PARTICLE_RADIUS);
             
