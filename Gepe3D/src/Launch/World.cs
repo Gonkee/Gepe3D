@@ -19,13 +19,25 @@ namespace Gepe3D
         
         private readonly Renderer renderer;
         
-        public PBD pbd;
+        // public PBD pbd;
+        
+        public ParticleRenderer prenderer;
+        public ParticleSimulator simulator;
 
         
         public World(MainWindow window) : base(window)
         {
             skyBox = new SkyBox();
             renderer = new Renderer();
+            
+            simulator = new ParticleSimulator(20000);
+            prenderer = new ParticleRenderer(20000, simulator);
+            CubeGenerator.AddCube(
+                simulator,
+                -0.5f, -0.5f, -0.5f,
+                1, 1, 1,
+                6, 6, 6
+            );
 
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
@@ -49,7 +61,9 @@ namespace Gepe3D
             
             // }
             
-            pbd.Update(delta);
+            simulator.Update(delta);
+            
+            // pbd.Update(delta);
         }
         
         public override void Render()
@@ -108,7 +122,10 @@ namespace Gepe3D
             //         GL.Disable(EnableCap.PolygonOffsetPoint);
             //     }
             // }
-            pbd.Render(renderer);
+            
+            prenderer.Render(renderer);
+            
+            // pbd.Render(renderer);
         }
         
         // public void AddBody(PhysicsBody body)
@@ -181,7 +198,7 @@ namespace Gepe3D
 
                 // AddBody(fluid);
                 
-            pbd = new PBD();
+            // pbd = new PBD();
                 
         }
         
