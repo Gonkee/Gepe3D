@@ -16,6 +16,7 @@ namespace Gepe3D
         public int phase = 0;
         public int constraintCount = 0;
         public bool active = false;
+        public bool immovable = false;
         
         public Particle(int id)
         {

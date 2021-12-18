@@ -29,6 +29,7 @@ void main()
     vec3 lightDir = normalize( vLightPos.xyz - vFragPos.xyz );
     
     float NdL = max( 0.0, dot(normal, lightDir) );
+    NdL = NdL * 0.8 + 0.2;
     
     vec3 col = instanceAlbedo.xyz * NdL;
     FragColor = vec4( col, 1 );
