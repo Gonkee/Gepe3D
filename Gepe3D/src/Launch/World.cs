@@ -30,8 +30,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            simulator = new ParticleSimulator(36);
-            prenderer = new ParticleRenderer(36, simulator);
+            simulator = new ParticleSimulator(216);
+            prenderer = new ParticleRenderer(216, simulator);
             
             // CubeGenerator.AddCube(
             //     simulator,
@@ -40,13 +40,20 @@ namespace Gepe3D
             //     6, 6, 6
             // );
             
-            
-            ClothGenerator.AddCloth(
+            CubeLiquidGenerator.AddCube(
                 simulator,
-                -0.5f, 0.5f, -0.5f,
-                1, 1,
-                6, 6
+                -0.5f, -0.5f, -0.5f,
+                1, 1, 1,
+                6, 6, 6
             );
+            
+            
+            // ClothGenerator.AddCloth(
+            //     simulator,
+            //     -0.5f, 0.5f, -0.5f,
+            //     1, 1,
+            //     6, 6
+            // );
 
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();

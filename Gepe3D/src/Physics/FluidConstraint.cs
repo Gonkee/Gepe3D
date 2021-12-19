@@ -8,22 +8,31 @@ namespace Gepe3D
     public class FluidConstraint
     {
         
-        Particle[] fluidParticles;
-        float[] lambdas;
         float restDensity;
+        Particle[] fluidParticles;
         List<Particle>[] neighbours;
+        Vector3[] corrections;
+        Dictionary<Particle, float> lambdas;
+        
         
         // kernel values
         float h, poly6coeff, spikyGradCoeff;
         
+        // Epsilon in gamma correction denominator
         float RELAXATION = 0.01f;
+        
+        // Pressure terms
+        float K_P  = 0.1f;
+        float E_P  = 4.0f;
+        float DQ_P = 0.2f;
         
         
         public FluidConstraint(Particle[] fluidParticles, float restDensity, float particleEffectRadius)
         {
             this.fluidParticles = fluidParticles;
             this.restDensity = restDensity;
-            this.lambdas = new float[fluidParticles.Length];
+            this.lambdas = new Dictionary<Particle, float>();
+            this.corrections = new Vector3[fluidParticles.Length];
             this.neighbours = new List<Particle>[fluidParticles.Length];
             for (int i = 0; i < fluidParticles.Length; i++)
                 neighbours[i] = new List<Particle>();
@@ -88,8 +97,40 @@ namespace Gepe3D
                 grad /= restDensity;
                 denominator += Vector3.Dot(grad, grad); // add dist squared
                 
-                lambdas[i] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
+                lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
             }
+            
+            
+            for (int i = 0; i < fluidParticles.Length; i++)
+            {
+                Particle p1 = fluidParticles[i];
+                Vector3 correction = new Vector3();
+                
+                foreach (Particle p2 in neighbours[i])
+                {
+                    if (p1 == p2) continue;
+                    
+                    Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    
+                    Vector3 grad = Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
+                    
+                    float lambdaCorr = -K_P * MathF.Pow( Kernel_Poly6(diff.Length) / Kernel_Poly6(DQ_P * h), E_P );
+                    
+                    float neighbourLambda = lambdas.ContainsKey(p2) ? lambdas[p2] : 0;
+                    
+                    correction += (lambdas[p1] + neighbourLambda + lambdaCorr) * grad;
+                    
+                }
+                
+                corrections[i] = correction / restDensity;
+            }
+            
+            for (int i = 0; i < fluidParticles.Length; i++)
+            {
+                Particle p1 = fluidParticles[i];
+                p1.posEstimate += corrections[i] / (float) (neighbours[i].Count + p1.constraintCount);
+            }
+            
         }
         
         

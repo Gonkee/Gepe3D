@@ -19,6 +19,8 @@ namespace Gepe3D
         // private List<(Particle, Particle, float)> distanceConstraints;
         private List<DistanceConstraint> distanceConstraints;
         
+        public List<FluidConstraint> fluidConstraints;
+        
 
 
         public ParticleSimulator(int particleCount)
@@ -31,6 +33,7 @@ namespace Gepe3D
                 particlePool[i] = new Particle(i);
             
             distanceConstraints = new List<DistanceConstraint>();
+            fluidConstraints = new List<FluidConstraint>();
             
             UpdatePosData();
         }
@@ -111,6 +114,9 @@ namespace Gepe3D
             {
                 
                 foreach (DistanceConstraint constraint in distanceConstraints) constraint.Project();
+                
+                // currently also passes inactive particles, must fix
+                foreach (FluidConstraint constraint in fluidConstraints) constraint.Project(particlePool);
                 
                 
                 // fluid stuff
