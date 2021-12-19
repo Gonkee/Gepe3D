@@ -1,6 +1,4 @@
 
-using System;
-using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 namespace Gepe3D
@@ -16,12 +14,6 @@ namespace Gepe3D
             ( new Vector2i(1, 0), new Vector2i(0, 1) ) ,
         };
         
-        
-        private static readonly (Vector2i, Vector2i, Vector2i, Vector2i)[] bends = 
-        {
-            ( new Vector2i(0, 0), new Vector2i(1, 0), new Vector2i(0, -1), new Vector2i(1, 1) ) ,
-            ( new Vector2i(0, 0), new Vector2i(0, 1), new Vector2i(-1, 1), new Vector2i(1, 0) ) ,
-        };
         
         private static int coord2id(Vector2i coord, int xRes, int yRes)
         {
@@ -83,31 +75,6 @@ namespace Gepe3D
                     }
                 }
                 
-                
-                // foreach ( (Vector2i, Vector2i, Vector2i, Vector2i) bend in bends)
-                // {
-                //     Vector2i c1 = coord + bend.Item1;
-                //     Vector2i c2 = coord + bend.Item2;
-                //     Vector2i c3 = coord + bend.Item3;
-                //     Vector2i c4 = coord + bend.Item4;
-                    
-                //     if (
-                //         c1.X < xRes && c2.X < xRes && c3.X < xRes && c4.X < xRes &&
-                //         c1.Y < zRes && c2.Y < zRes && c3.Y < zRes && c4.Y < zRes &&
-                //         c1.X >= 0 && c2.X >= 0 && c3.X >= 0 && c4.X >= 0 &&
-                //         c1.Y >= 0 && c2.Y >= 0 && c3.Y >= 0 && c4.Y >= 0
-                //     ) {
-                //         Particle p1 = particles[ coord2id(c1, xRes, zRes) ];
-                //         Particle p2 = particles[ coord2id(c2, xRes, zRes) ];
-                //         Particle p3 = particles[ coord2id(c3, xRes, zRes) ];
-                //         Particle p4 = particles[ coord2id(c4, xRes, zRes) ];
-                //         simulator.AddBendConstraint(p1, p2, p3, p4);
-                //         p1.constraintCount++;
-                //         p2.constraintCount++;
-                //         p3.constraintCount++;
-                //         p4.constraintCount++;
-                //     }
-                // }
                 
                 
             }
