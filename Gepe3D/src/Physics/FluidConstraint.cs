@@ -66,21 +66,18 @@ namespace Gepe3D
                     
                     if (dist < h)
                     {
+                        neighbours[i].Add(p2); // it will add itself as well
+
                         // the added bit should be multiplied by an extra scalar if its a solid
                         density += (1f / p2.inverseMass) * Kernel_Poly6(dist);
                         
-                        if (p1 != p2)
-                        {
-                            neighbours[i].Add(p2);
-                            // if p1 == p2, spiky gradient will be zero - hence this is only done for neighbours
-                            float constraintGradient = Kernel_SpikyGrad(dist) / restDensity;
-                            denominator += constraintGradient * constraintGradient;
-                        }
-                        
+                        // if p1 == p2, spiky gradient will be zero and will require a different calculation below
+                        float constraintGradient = Kernel_SpikyGrad(dist) / restDensity;
+                        denominator += constraintGradient * constraintGradient;
                     }
                 }
                 
-                // add spiky grad of same particle onto denominator
+                // add spiky grad when p1 == p2 onto denominator
                 Vector3 grad = new Vector3();
                 foreach (Particle p2 in neighbours[i])
                 {
