@@ -33,7 +33,7 @@ namespace Gepe3D
                 }
             }
             
-            simulator.fluidConstraints.Add( new FluidConstraint(particles, 2f, 0.2f) );
+            simulator.fluidConstraints.Add( new FluidConstraint(particles, 60f, 0.6f) );
             
         }
         

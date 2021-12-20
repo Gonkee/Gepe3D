@@ -14,7 +14,7 @@ namespace Gepe3D
         public readonly Particle[] particlePool;
         private int poolIndex = 0;
         
-        private int NUM_ITERATIONS = 2;
+        private int NUM_ITERATIONS = 1;
         
         // private List<(Particle, Particle, float)> distanceConstraints;
         private List<DistanceConstraint> distanceConstraints;
@@ -137,7 +137,7 @@ namespace Gepe3D
                 p.vel = (p.posEstimate - p.pos) / delta;
                 p.pos = p.posEstimate;
                 
-                (p.pos, p.vel) = BoundCollision(1.5f, p.pos, p.vel);
+                (p.pos, p.vel) = BoundCollision(1.7f, p.pos, p.vel);
                 
             }
             

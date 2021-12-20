@@ -30,8 +30,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            simulator = new ParticleSimulator(216);
-            prenderer = new ParticleRenderer(216, simulator);
+            simulator = new ParticleSimulator(1000);
+            prenderer = new ParticleRenderer(1000, simulator);
             
             // CubeGenerator.AddCube(
             //     simulator,
@@ -44,8 +44,9 @@ namespace Gepe3D
                 simulator,
                 -0.5f, -0.5f, -0.5f,
                 1, 1, 1,
-                6, 6, 6
+                10, 10, 10
             );
+            
             
             
             // ClothGenerator.AddCloth(
@@ -59,7 +60,7 @@ namespace Gepe3D
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", lightPos);
 
-            activeCam.Position = new Vector3( 1.7f, 0, 1.7f );
+            activeCam.Position = new Vector3( 2.3f, 1f, 2.3f );
             activeCam.LookAt(0, -0.5f, 0);
             
             Init();

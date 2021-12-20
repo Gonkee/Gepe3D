@@ -83,6 +83,7 @@ namespace Gepe3D
                         // if p1 == p2, spiky gradient will be zero and will require a different calculation below
                         float constraintGradient = Kernel_SpikyGrad(dist) / restDensity;
                         denominator += constraintGradient * constraintGradient;
+                        
                     }
                 }
                 
@@ -90,6 +91,7 @@ namespace Gepe3D
                 Vector3 grad = new Vector3();
                 foreach (Particle p2 in neighbours[i])
                 {
+                    if (p1 == p2) continue;
                     Vector3 diff = p1.posEstimate - p2.posEstimate;
                     // the added bit should be multiplied by an extra scalar if its a solid
                     grad += Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
@@ -98,6 +100,8 @@ namespace Gepe3D
                 denominator += Vector3.Dot(grad, grad); // add dist squared
                 
                 lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
+                
+                // if (i == 30) System.Console.WriteLine(density);
             }
             
             
