@@ -32,23 +32,23 @@ namespace Gepe3D
             
             simulator = new ParticleSimulator(1000);
             prenderer = new ParticleRenderer(1000, simulator);
-            
-            // CubeGenerator.AddCube(
-            //     simulator,
-            //     -0.5f, -0.5f, -0.5f,
-            //     1, 1, 1,
-            //     6, 6, 6
-            // );
-            
+
+            //CubeGenerator.AddCube(
+            //    simulator,
+            //    -0.5f, -0.5f, -0.5f,
+            //    1, 1, 1,
+            //    10, 10, 10
+            //);
+
             CubeLiquidGenerator.AddCube(
                 simulator,
                 -0.5f, -0.5f, -0.5f,
                 1, 1, 1,
                 10, 10, 10
             );
-            
-            
-            
+
+
+
             // ClothGenerator.AddCloth(
             //     simulator,
             //     -0.5f, 0.5f, -0.5f,

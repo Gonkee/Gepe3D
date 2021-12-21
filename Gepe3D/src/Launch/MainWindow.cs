@@ -12,8 +12,8 @@ namespace Gepe3D
         
         static void Main(string[] args)
         {
-            int WIDTH = 1920;
-            int HEIGHT = 1080;
+            int WIDTH = 1280;
+            int HEIGHT = 720;
             string TITLE = "Gepe3D";
             
             GameWindowSettings settings = GameWindowSettings.Default;
