@@ -71,15 +71,16 @@ namespace Gepe3D
                 {
                     if (p2.inverseMass == 0) continue;
 
-                    float dist = (p1.posEstimate - p2.posEstimate).Length;
+                    //float dist = (p1.posEstimate - p2.posEstimate).Length;
 
                     //Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
                     //float dist = diff.Length;
 
-                    //float dx = p1.posEstimate.X - p2.posEstimate.X;
-                    //float dy = p1.posEstimate.Y - p2.posEstimate.Y;
-                    //float dz = p1.posEstimate.Z - p2.posEstimate.Z;
-                    //float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                    float dx = p1.posEstimate.X - p2.posEstimate.X;
+                    float dy = p1.posEstimate.Y - p2.posEstimate.Y;
+                    float dz = p1.posEstimate.Z - p2.posEstimate.Z;
+                    float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                    // float dist = MathF.Max( MathF.Max( MathF.Abs(dx), MathF.Abs(dy) ), MathF.Abs(dz) );
 
                     if (dist < h)
                     {
@@ -109,7 +110,7 @@ namespace Gepe3D
                 
                 lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
                 
-                if (i == 30) System.Console.WriteLine(neighbours[i].Count);
+                //if (i == 30) System.Console.WriteLine(neighbours[i].Count);
             }
             
             

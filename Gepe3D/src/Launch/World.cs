@@ -1,6 +1,7 @@
 
 using System.Collections.Generic;
 using OpenTK.Mathematics;
+using System.Diagnostics;
 
 namespace Gepe3D
 {
@@ -9,7 +10,6 @@ namespace Gepe3D
         
         private Shader _entityShader;
 
-        // private readonly List<PhysicsBody> _bodies = new List<PhysicsBody>();
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
@@ -19,20 +19,26 @@ namespace Gepe3D
         
         private readonly Renderer renderer;
         
-        // public PBD pbd;
         
         public ParticleRenderer prenderer;
         public ParticleSimulator simulator;
-
+        
+        int tickCount = 0;
+        long cumulativeFrameTime = 0;
+        readonly int AVG_FRAME_COUNT = 20;
+        Stopwatch stopwatch;
         
         public World(MainWindow window) : base(window)
         {
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            simulator = new ParticleSimulator(1000);
-            prenderer = new ParticleRenderer(1000, simulator);
+            simulator = new ParticleSimulator(2000);
+            prenderer = new ParticleRenderer(2000, simulator);
 
+            stopwatch = new Stopwatch();
+            stopwatch.Start();
+            
             //CubeGenerator.AddCube(
             //    simulator,
             //    -0.5f, -0.5f, -0.5f,
@@ -42,19 +48,21 @@ namespace Gepe3D
 
             CubeLiquidGenerator.AddCube(
                 simulator,
-                -0.5f, -0.5f, -0.5f,
-                1, 1, 1,
-                10, 10, 10
+                -1f, -0.5f, -0.5f,
+                2, 1, 1,
+                20, 10, 10
             );
 
 
 
-            // ClothGenerator.AddCloth(
-            //     simulator,
-            //     -0.5f, 0.5f, -0.5f,
-            //     1, 1,
-            //     6, 6
-            // );
+
+
+            //ClothGenerator.AddCloth(
+            //    simulator,
+            //    -0.5f, 0.5f, -0.5f,
+            //    1, 1,
+            //    6, 6
+            //);
 
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
@@ -66,6 +74,7 @@ namespace Gepe3D
             Init();
         }
         
+
         public override void Update()
         {
             float delta = 0.01f;
@@ -78,7 +87,21 @@ namespace Gepe3D
             
             // }
             
+
+
+            long time = stopwatch.ElapsedMilliseconds;
+
             simulator.Update(delta);
+
+            cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
+            tickCount++;
+            if (tickCount >= AVG_FRAME_COUNT)
+            { 
+                System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
+                    ((float) cumulativeFrameTime / tickCount) + " ms");
+                tickCount = 0;
+                cumulativeFrameTime = 0;
+            }
             
             // pbd.Update(delta);
         }
@@ -142,80 +165,11 @@ namespace Gepe3D
             
             prenderer.Render(renderer);
             
-            // pbd.Render(renderer);
         }
-        
-        // public void AddBody(PhysicsBody body)
-        // {
-        //     if ( !_bodies.Contains(body) )
-        //     _bodies.Add(body);
-        // }
         
         private void Init()
         {
             
-                // Material red = new Material() { color = new Vector3(1.0f, 0.2f, 0.2f) };
-                // Geometry ico = GeometryGenerator.GenIcoSphere(0.5f, 2);
-                // SoftBody sphere = new SoftBody(ico, red);
-                // AddBody(sphere);
-                
-                // Material white = new Material() { color = new Vector3(0.6f, 0.6f, 0.6f) };
-
-                // Geometry l1, l2, l3, r1, r2, r3;
-                // l1 = GeometryGenerator.GenCube(3, 0.5f, 5);
-                // r1 = GeometryGenerator.GenCube(3, 0.5f, 5);
-                // l1.Rotate( new Vector3(1, 0, 0),  45);
-                // r1.Rotate( new Vector3(1, 0, 0), -45);
-                // l1.OffsetPosition(0, -3, -1f);
-                // r1.OffsetPosition(0, -5,  3f);
-                // l2 = l1.Duplicate().OffsetPosition(0, -4.5f, 0);
-                // r2 = r1.Duplicate().OffsetPosition(0, -4.5f, 0);
-                // l3 = l2.Duplicate().OffsetPosition(0, -4.5f, 0);
-                // r3 = r2.Duplicate().OffsetPosition(0, -4.5f, 0);
-
-                // StaticBody p1 = new StaticBody(l1, white);
-                // StaticBody p2 = new StaticBody(r1, white);
-                // StaticBody p3 = new StaticBody(l2, white);
-                // StaticBody p4 = new StaticBody(r2, white);
-                // StaticBody p5 = new StaticBody(l3, white);
-                // StaticBody p6 = new StaticBody(r3, white);
-                
-                // AddBody(p1);
-                // AddBody(p2);
-                // AddBody(p3);
-                // AddBody(p4);
-                // AddBody(p5);
-                // AddBody(p6);
-                
-                // Geometry frontPanel = GeometryGenerator.GenCube(1f, 30, 30);
-                // frontPanel.OffsetPosition(-1.99f, 0, 0);
-                // Geometry backPanel = GeometryGenerator.GenCube(1f, 30, 30);
-                // backPanel.OffsetPosition( 1.99f, 0, 0);
-
-                // StaticBody frontWall = new StaticBody(frontPanel, white);
-                // StaticBody backWall = new StaticBody(backPanel, white);
-                // frontWall.Visible = false;
-                // backWall.Visible = false;
-
-                // AddBody(frontWall);
-                // AddBody(backWall);
-
-                // sphere.DrawWireframe = true;
-
-                // float xL = 1f, yL = 1f, zL = 0.5f;
-                // float radius = 0.2f;
-                // float density = 2f;
-
-                // FluidBody fluid = new FluidBody(
-                //     -xL/2, -yL/2, -zL/2,
-                //     xL, yL, zL,
-                //     (int) (xL / radius * density), (int) (yL / radius * density), (int) (zL / radius * density),
-                //     radius
-                // );
-
-                // AddBody(fluid);
-                
-            // pbd = new PBD();
                 
         }
         
