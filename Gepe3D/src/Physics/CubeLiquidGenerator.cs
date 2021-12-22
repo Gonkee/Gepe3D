@@ -14,7 +14,7 @@ namespace Gepe3D
             int xRes, int yRes, int zRes
         ) {
             
-            Particle[] particles = new Particle[xRes * yRes * zRes];
+            int[] particleIDs = new int[xRes * yRes * zRes];
             
             int pointer = 0;
             float tx, ty, tz;
@@ -28,12 +28,12 @@ namespace Gepe3D
                         ty = MathHelper.Lerp(y, y + yLength, py / (yRes - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zRes - 1f) );
 
-                        particles[pointer++] = simulator.AddParticle(tx, ty, tz);
+                        particleIDs[pointer++] = simulator.AddParticle(tx, ty, tz);
                     }
                 }
             }
             
-            simulator.fluidConstraints.Add( new FluidConstraint(particles, 60f, 0.6f) );
+            simulator.fluidConstraints.Add( new FluidConstraint(particleIDs, 60f, ParticleSimulator.GRID_CELL_WIDTH) );
             
         }
         

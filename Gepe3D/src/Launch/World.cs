@@ -13,7 +13,7 @@ namespace Gepe3D
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
-        public Vector3 lightPos = new Vector3(1f, 0f, 0f);
+        public Vector3 lightPos = new Vector3(0f, 10f, 0f);
 
         public SkyBox skyBox;
         
@@ -48,12 +48,17 @@ namespace Gepe3D
 
             CubeLiquidGenerator.AddCube(
                 simulator,
-                -1f, -0.5f, -0.5f,
+                0, 0, 0,
                 2, 1, 1,
                 20, 10, 10
             );
 
 
+            long x = (11 << 32);
+            long y = (13 << 16);
+            long z = (-6 <<  0);
+            long cellID = (x << 32) + (y << 16) + (z);
+            System.Console.WriteLine(cellID);
 
 
 
@@ -68,8 +73,8 @@ namespace Gepe3D
             _entityShader.Use();
             _entityShader.SetVector3("lightPos", lightPos);
 
-            activeCam.Position = new Vector3( 2.3f, 1f, 2.3f );
-            activeCam.LookAt(0, -0.5f, 0);
+            activeCam.Position = new Vector3( -2, 2f, 0 );
+            activeCam.LookAt(1, 1, 1);
             
             Init();
         }

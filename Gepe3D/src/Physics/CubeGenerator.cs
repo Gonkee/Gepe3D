@@ -71,7 +71,7 @@ namespace Gepe3D
                         ty = MathHelper.Lerp(y, y + yLength, py / (yRes - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zRes - 1f) );
 
-                        particles[pointer++] = simulator.AddParticle(tx, ty, tz);
+                        // particles[pointer++] = simulator.AddParticle(tx, ty, tz);
                     }
                 }
             }

@@ -47,7 +47,7 @@ namespace Gepe3D
                     tz = MathHelper.Lerp(z, z + zLength, pz / (zRes - 1f) );
 
                     int currentP = pointer++;
-                    particles[currentP] = simulator.AddParticle(tx, y, tz);
+                    // particles[currentP] = simulator.AddParticle(tx, y, tz);
                     // if (px == 0) particles[currentP].inverseMass = 0;
                     if (px == 0) particles[currentP].immovable = true;
                 }

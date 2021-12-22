@@ -18,6 +18,8 @@ namespace Gepe3D
         public bool active = false;
         public bool immovable = false;
         
+        public int gridX, gridY, gridZ;
+        
         public Particle(int id)
         {
             this.id = id;

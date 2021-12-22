@@ -14,6 +14,20 @@ namespace Gepe3D
         public readonly Particle[] particlePool;
         private int poolIndex = 0;
         
+        public List<int>[][][] grid;
+        
+        public static float GRID_CELL_WIDTH = 0.6f; // used for the fluid effect radius
+        
+        public static int
+            GridRowsX = 8,
+            GridRowsY = 8,
+            GridRowsZ = 8;
+            
+        public static float
+            MAX_X = GRID_CELL_WIDTH * GridRowsX,
+            MAX_Y = GRID_CELL_WIDTH * GridRowsY,
+            MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
+        
         private int NUM_ITERATIONS = 1;
         
         // private List<(Particle, Particle, float)> distanceConstraints;
@@ -35,18 +49,30 @@ namespace Gepe3D
             distanceConstraints = new List<DistanceConstraint>();
             fluidConstraints = new List<FluidConstraint>();
             
+            grid = new List<int>[GridRowsX][][];
+            for (int i = 0; i < GridRowsX; i++) {
+                grid[i] = new List<int>[GridRowsY][];
+                for (int j = 0; j < GridRowsY; j++) {
+                    grid[i][j] = new List<int>[GridRowsZ];
+                    for(int k = 0; k < GridRowsZ; k++) {
+                        grid[i][j][k] = new List<int>();
+                    }
+                }
+                
+            }
+            
             UpdatePosData();
         }
         
-        public Particle AddParticle(float x, float y, float z)
+        public int AddParticle(float x, float y, float z)
         {
             if (poolIndex >= particlePool.Length){
                 System.Console.WriteLine("Max particle count reached!");
-                return null;
+                return -1;
             }
             particlePool[poolIndex].pos = new Vector3(x, y, z);
             particlePool[poolIndex].active = true;
-            return particlePool[poolIndex++];
+            return poolIndex++;
         }
         
         public void AddDistanceConstraint(Particle p1, Particle p2, float distance)
@@ -65,39 +91,62 @@ namespace Gepe3D
             }
         }
         
-        private (Vector3, Vector3) BoundCollision(float BOUNDING_RADIUS, Vector3 pos, Vector3 vel)
+        private (Vector3, Vector3) BoundCollision(Vector3 pos, Vector3 vel)
         {
-            if (pos.X < -BOUNDING_RADIUS) {
-                pos.X = -BOUNDING_RADIUS;
-                vel.X = MathF.Max(0, vel.X); }
-            if (pos.X > BOUNDING_RADIUS) {
-                pos.X = BOUNDING_RADIUS;
-                vel.X = MathF.Min(0, vel.X); }
-            if (pos.Y < -BOUNDING_RADIUS) {
-                pos.Y = -BOUNDING_RADIUS;
-                vel.Y = MathF.Max(0, vel.Y); }
-            if (pos.Y > BOUNDING_RADIUS) {
-                pos.Y = BOUNDING_RADIUS;
-                vel.Y = MathF.Min(0, vel.Y); }
-            if (pos.Z < -BOUNDING_RADIUS) {
-                pos.Z = -BOUNDING_RADIUS;
-                vel.Z = MathF.Max(0, vel.Z); }
-            if (pos.Z > BOUNDING_RADIUS) {
-                pos.Z = BOUNDING_RADIUS;
-                vel.Z = MathF.Min(0, vel.Z); }
+            if      (pos.X <     0) {  pos.X =     0;  vel.X = MathF.Max(0, vel.X);  }
+            else if (pos.X > MAX_X) {  pos.X = MAX_X;  vel.X = MathF.Min(0, vel.X);  }
+            
+            if      (pos.Y <     0) {  pos.Y =     0;  vel.Y = MathF.Max(0, vel.Y);  }
+            else if (pos.Y > MAX_Y) {  pos.Y = MAX_Y;  vel.Y = MathF.Min(0, vel.Y);  }
+            
+            if      (pos.Z <     0) {  pos.Z =     0;  vel.Z = MathF.Max(0, vel.Z);  }
+            else if (pos.Z > MAX_Z) {  pos.Z = MAX_Z;  vel.Z = MathF.Min(0, vel.Z);  }
+            
             return (pos, vel);
         }
         
+        
+        
+        private void GenerateNeighbours()
+        {
+            foreach (List<int>[][] i in grid) {
+                foreach (List<int>[] j in i) {
+                    foreach (List<int> k in j) {
+                        k.Clear();
+                    }
+                }
+            }
+            
+            for (int i = 0; i < particlePool.Length; i++)
+            {
+                Particle p = particlePool[i];
+                
+                int x = Math.Clamp( (int) (p.posEstimate.X / GRID_CELL_WIDTH), 0, GridRowsX - 1);
+                int y = Math.Clamp( (int) (p.posEstimate.Y / GRID_CELL_WIDTH), 0, GridRowsY - 1);
+                int z = Math.Clamp( (int) (p.posEstimate.Z / GRID_CELL_WIDTH), 0, GridRowsZ - 1);
+                
+                grid[x][y][z].Add(i);
+                
+                p.gridX = x;
+                p.gridY = y;
+                p.gridZ = z;
+                
+                // long x = (long) (p.posEstimate.X / GRID_CELL_WIDTH);
+                // long y = (long) (p.posEstimate.Y / GRID_CELL_WIDTH);
+                // long z = (long) (p.posEstimate.Z / GRID_CELL_WIDTH);
+                
+                // long cellID = (x << 32) + (y << 16) + (z);
+                
+                // generate id for the particle's position
+                // store that id in the particle, and store the particle's id in a sorted array according to position ids
+                // grid width >= 2 * sample radius, each sample kernal can only cover 8 cells instead of 27
+            }
+        }
+        
+        
         public void Update(float delta)
         {
-            
-            
-            // distanceConstraints.Clear();
-            
-            
-            // ClearConstraints();
-            // EstimatePositions(delta);
-            // FindCollisionConstraints();
+            GenerateNeighbours();
             
             foreach (Particle p in particlePool)
             {
@@ -108,22 +157,13 @@ namespace Gepe3D
             }
             
             
-            
-            // 2 iterations constraint projection
             for (int i = 0; i < NUM_ITERATIONS; i++)
             {
                 
                 foreach (DistanceConstraint constraint in distanceConstraints) constraint.Project();
                 
                 // currently also passes inactive particles, must fix
-                foreach (FluidConstraint constraint in fluidConstraints) constraint.Project(particlePool);
-                
-                
-                // fluid stuff
-                
-                
-                
-                
+                foreach (FluidConstraint constraint in fluidConstraints) constraint.Project(particlePool, grid);
                 
             }
             
@@ -137,7 +177,7 @@ namespace Gepe3D
                 p.vel = (p.posEstimate - p.pos) / delta;
                 p.pos = p.posEstimate;
                 
-                (p.pos, p.vel) = BoundCollision(1.7f, p.pos, p.vel);
+                (p.pos, p.vel) = BoundCollision(p.pos, p.vel);
                 
             }
             

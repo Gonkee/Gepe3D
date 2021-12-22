@@ -9,7 +9,8 @@ namespace Gepe3D
     {
         
         float restDensity;
-        Particle[] fluidParticles;
+        int[] particleIDs;
+        // Particle[] fluidParticles;
         List<Particle>[] neighbours;
         Vector3[] corrections;
         Dictionary<Particle, float> lambdas;
@@ -27,14 +28,14 @@ namespace Gepe3D
         float DQ_P = 0.2f;
         
         
-        public FluidConstraint(Particle[] fluidParticles, float restDensity, float particleEffectRadius)
+        public FluidConstraint(int[] particleIDs, float restDensity, float particleEffectRadius)
         {
-            this.fluidParticles = fluidParticles;
+            this.particleIDs = particleIDs;
             this.restDensity = restDensity;
             this.lambdas = new Dictionary<Particle, float>();
-            this.corrections = new Vector3[fluidParticles.Length];
-            this.neighbours = new List<Particle>[fluidParticles.Length];
-            for (int i = 0; i < fluidParticles.Length; i++)
+            this.corrections = new Vector3[particleIDs.Length];
+            this.neighbours = new List<Particle>[particleIDs.Length];
+            for (int i = 0; i < particleIDs.Length; i++)
                 neighbours[i] = new List<Particle>();
             
             // kernel values
@@ -58,28 +59,47 @@ namespace Gepe3D
             return spikyGradCoeff * (h - dist) * (h - dist);
         }
         
-        public void Project(Particle[] allParticles)
+        public void Project(Particle[] allParticles, List<int>[][][] grid)
         {
-            for (int i = 0; i < fluidParticles.Length; i++)
+            
+            int startX, startY, startZ, endX, endY, endZ;
+            
+            for (int i = 0; i < particleIDs.Length; i++)
             {
-                Particle p1 = fluidParticles[i];
+                Particle p1 = allParticles[ particleIDs[i] ];
                 neighbours[i].Clear();
                 float density = 0;
                 float denominator = 0;
                 
-                foreach (Particle p2 in allParticles)
-                {
+                
+                startX = Math.Max(0, p1.gridX - 1);
+                startY = Math.Max(0, p1.gridY - 1);
+                startZ = Math.Max(0, p1.gridZ - 1);
+                endX = Math.Min(ParticleSimulator.GridRowsX - 1, p1.gridX + 1);
+                endY = Math.Min(ParticleSimulator.GridRowsY - 1, p1.gridY + 1);
+                endZ = Math.Min(ParticleSimulator.GridRowsZ - 1, p1.gridZ + 1);
+                
+                for (int gx = startX; gx <= endX; gx++) {
+                    for (int gy = startY; gy <= endY; gy++) {
+                        for (int gz = startZ; gz <= endZ; gz++) {
+                            
+                            foreach (int j in grid[gx][gy][gz]) {
+                                Particle p2 = allParticles[j];
+                
+                
+                // foreach (Particle p2 in allParticles)
+                // {
                     if (p2.inverseMass == 0) continue;
 
                     //float dist = (p1.posEstimate - p2.posEstimate).Length;
 
-                    //Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
-                    //float dist = diff.Length;
+                    Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
+                    float dist = diff.Length;
 
-                    float dx = p1.posEstimate.X - p2.posEstimate.X;
-                    float dy = p1.posEstimate.Y - p2.posEstimate.Y;
-                    float dz = p1.posEstimate.Z - p2.posEstimate.Z;
-                    float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                    // float dx = p1.posEstimate.X - p2.posEstimate.X;
+                    // float dy = p1.posEstimate.Y - p2.posEstimate.Y;
+                    // float dz = p1.posEstimate.Z - p2.posEstimate.Z;
+                    // float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
                     // float dist = MathF.Max( MathF.Max( MathF.Abs(dx), MathF.Abs(dy) ), MathF.Abs(dz) );
 
                     if (dist < h)
@@ -95,13 +115,18 @@ namespace Gepe3D
                         
                     }
                 }
+                        }
+                    }
+                }
                 
                 // add spiky grad when p1 == p2 onto denominator
                 Vector3 grad = new Vector3();
                 foreach (Particle p2 in neighbours[i])
                 {
                     if (p1 == p2) continue;
-                    Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    // Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
+                    
                     // the added bit should be multiplied by an extra scalar if its a solid
                     grad += Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
                 }
@@ -110,20 +135,22 @@ namespace Gepe3D
                 
                 lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
                 
-                //if (i == 30) System.Console.WriteLine(neighbours[i].Count);
+                // if (i == 27) System.Console.WriteLine(neighbours[i].Count);
             }
             
             
-            for (int i = 0; i < fluidParticles.Length; i++)
+            for (int i = 0; i < particleIDs.Length; i++)
             {
-                Particle p1 = fluidParticles[i];
+                Particle p1 = allParticles[ particleIDs[i] ];
                 Vector3 correction = new Vector3();
                 
                 foreach (Particle p2 in neighbours[i])
                 {
                     if (p1 == p2) continue;
                     
-                    Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    // Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
+                    
                     
                     Vector3 grad = Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
                     
@@ -138,9 +165,9 @@ namespace Gepe3D
                 corrections[i] = correction / restDensity;
             }
             
-            for (int i = 0; i < fluidParticles.Length; i++)
+            for (int i = 0; i < particleIDs.Length; i++)
             {
-                Particle p1 = fluidParticles[i];
+                Particle p1 = allParticles[ particleIDs[i] ];
                 p1.posEstimate += corrections[i] / (float) (neighbours[i].Count + p1.constraintCount);
             }
             
