@@ -33,8 +33,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            simulator = new ParticleSimulator(2000);
-            prenderer = new ParticleRenderer(2000, simulator);
+            simulator = new ParticleSimulator(1000);
+            prenderer = new ParticleRenderer(1000, simulator);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -49,8 +49,8 @@ namespace Gepe3D
             CubeLiquidGenerator.AddCube(
                 simulator,
                 0, 0, 0,
-                2, 1, 1,
-                20, 10, 10
+                1, 1, 1,
+                10, 10, 10
             );
 
 

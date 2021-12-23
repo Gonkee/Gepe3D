@@ -59,6 +59,15 @@ namespace Gepe3D
             return spikyGradCoeff * (h - dist) * (h - dist);
         }
         
+        
+        private float GetDist2(Vector3 v1, Vector3 v2)
+        {
+            return
+                (v1.X - v2.X) * (v1.X - v2.X) +
+                (v1.Y - v2.Y) * (v1.Y - v2.Y) +
+                (v1.Z - v2.Z) * (v1.Z - v2.Z);
+        }
+        
         public void Project(Particle[] allParticles, List<int>[][][] grid)
         {
             
@@ -94,7 +103,9 @@ namespace Gepe3D
                     //float dist = (p1.posEstimate - p2.posEstimate).Length;
 
                     Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
-                    float dist = diff.Length;
+                    float dist2 = diff.LengthSquared;
+                    
+                    // float dist2 = GetDist2(p1.posEstimate, p2.posEstimate);
 
                     // float dx = p1.posEstimate.X - p2.posEstimate.X;
                     // float dy = p1.posEstimate.Y - p2.posEstimate.Y;
@@ -102,8 +113,10 @@ namespace Gepe3D
                     // float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
                     // float dist = MathF.Max( MathF.Max( MathF.Abs(dx), MathF.Abs(dy) ), MathF.Abs(dz) );
 
-                    if (dist < h)
+                    if (dist2 < h * h)
                     {
+                        float dist = MathF.Sqrt(dist2);
+                        
                         neighbours[i].Add(p2); // it will add itself as well
 
                         // the added bit should be multiplied by an extra scalar if its a solid
@@ -128,7 +141,10 @@ namespace Gepe3D
                     Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
                     
                     // the added bit should be multiplied by an extra scalar if its a solid
-                    grad += Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
+                    
+                    float tgrad = Kernel_SpikyGrad( diff.Length );
+                    
+                    grad += tgrad * diff.Normalized();
                 }
                 grad /= restDensity;
                 denominator += Vector3.Dot(grad, grad); // add dist squared

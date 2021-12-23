@@ -28,7 +28,7 @@ namespace Gepe3D
             MAX_Y = GRID_CELL_WIDTH * GridRowsY,
             MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
         
-        private int NUM_ITERATIONS = 1;
+        private int NUM_ITERATIONS = 2;
         
         // private List<(Particle, Particle, float)> distanceConstraints;
         private List<DistanceConstraint> distanceConstraints;
