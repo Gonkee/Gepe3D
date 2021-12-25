@@ -100,13 +100,13 @@ namespace Gepe3D
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
             tickCount++;
-            // if (tickCount >= AVG_FRAME_COUNT)
-            // { 
-            //     System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
-            //         ((float) cumulativeFrameTime / tickCount) + " ms");
-            //     tickCount = 0;
-            //     cumulativeFrameTime = 0;
-            // }
+            if (tickCount >= AVG_FRAME_COUNT)
+            { 
+                System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
+                    ((float) cumulativeFrameTime / tickCount) + " ms");
+                tickCount = 0;
+                cumulativeFrameTime = 0;
+            }
         }
         
         public override void Render()
