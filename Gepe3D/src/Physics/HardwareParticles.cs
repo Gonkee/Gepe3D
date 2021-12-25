@@ -159,6 +159,8 @@ namespace Gepe3D
             CLEvent @event = new CLEvent();
             CL.EnqueueWriteBuffer<float>(queue, instanceBufferCL, false, new UIntPtr(), posData, null, out @event);
             
+            
+            
             workDimensions = new UIntPtr[] { new UIntPtr( (uint) maxParticles) };
             
             
