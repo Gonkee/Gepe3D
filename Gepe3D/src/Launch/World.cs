@@ -20,8 +20,10 @@ namespace Gepe3D
         private readonly Renderer renderer;
         
         
-        public ParticleRenderer prenderer;
-        public ParticleSimulator simulator;
+        private HardwareParticles hparticles;
+        
+        // public ParticleRenderer prenderer;
+        // public ParticleSimulator simulator;
         
         int tickCount = 0;
         long cumulativeFrameTime = 0;
@@ -33,8 +35,10 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            simulator = new ParticleSimulator(1000);
-            prenderer = new ParticleRenderer(1000, simulator);
+            // simulator = new ParticleSimulator(1000);
+            // prenderer = new ParticleRenderer(1000, simulator);
+            
+            hparticles = new HardwareParticles(7, 7, 7);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -46,19 +50,19 @@ namespace Gepe3D
             //    10, 10, 10
             //);
 
-            CubeLiquidGenerator.AddCube(
-                simulator,
-                0, 0, 0,
-                1, 1, 1,
-                10, 10, 10
-            );
+            // CubeLiquidGenerator.AddCube(
+            //     simulator,
+            //     0, 0, 0,
+            //     1, 1, 1,
+            //     10, 10, 10
+            // );
 
 
-            long x = (11 << 32);
-            long y = (13 << 16);
-            long z = (-6 <<  0);
-            long cellID = (x << 32) + (y << 16) + (z);
-            System.Console.WriteLine(cellID);
+            // long x = (11 << 32);
+            // long y = (13 << 16);
+            // long z = (-6 <<  0);
+            // long cellID = (x << 32) + (y << 16) + (z);
+            // System.Console.WriteLine(cellID);
 
 
 
@@ -86,29 +90,23 @@ namespace Gepe3D
             Global.Elapsed += delta;
             
             activeCam.Update(delta);
-            // foreach (PhysicsBody body in _bodies)
-            // {
-            //     PhysicsSolver.IntegrateExplicitEuler(body, delta, _bodies); // fixed timestep
-            
-            // }
             
 
 
             long time = stopwatch.ElapsedMilliseconds;
 
-            simulator.Update(delta);
+            // simulator.Update(delta);
+            hparticles.Update(delta);
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
             tickCount++;
-            if (tickCount >= AVG_FRAME_COUNT)
-            { 
-                System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
-                    ((float) cumulativeFrameTime / tickCount) + " ms");
-                tickCount = 0;
-                cumulativeFrameTime = 0;
-            }
-            
-            // pbd.Update(delta);
+            // if (tickCount >= AVG_FRAME_COUNT)
+            // { 
+            //     System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
+            //         ((float) cumulativeFrameTime / tickCount) + " ms");
+            //     tickCount = 0;
+            //     cumulativeFrameTime = 0;
+            // }
         }
         
         public override void Render()
@@ -117,65 +115,14 @@ namespace Gepe3D
 
             renderer.Prepare(this);
             renderer.Render(skyBox);
-            // foreach (PhysicsBody body in _bodies) renderer.Render(body);
-
-
-            // _entityShader.Use();
-            // _entityShader.SetMatrix4("cameraMatrix", activeCam.GetMatrix());
-            // // _entityShader.SetMatrix4("viewMatrix", activeCam.GetViewMatrix());
-            // // _entityShader.SetMatrix4("projectionMatrix", activeCam.GetProjectionMatrix());
-            // _entityShader.SetVector3("viewPos", activeCam.Position);
-            // _entityShader.SetVector3("ambientLight", ambientLight);
-
-            // foreach (PhysicsBody body in _bodies)
-            // {
-            //     Mesh bodyMesh = body.GetMesh();
-            //     if (body is FluidBody)
-            //     {
-            //         body.Draw();
-            //         continue;
-            //     }
-            //     if (bodyMesh == null) continue;
-
-            //     if (!bodyMesh.Visible) continue;
-            //     _entityShader.SetVector3("fillColor", bodyMesh.Material.color);
-            //     // drawStyle
-            //     // 0 = fill
-            //     // 1 = line
-            //     // 2 = point
-
-            //     _entityShader.SetInt("drawStyle", 0);
-            //     GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            //     body.Draw();
-
-            //     if (bodyMesh.DrawWireframe)
-            //     {
-            //         _entityShader.SetInt("drawStyle", 1);
-            //         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-            //         GL.Enable(EnableCap.PolygonOffsetLine);
-            //         GL.PolygonOffset(-1, -1);
-            //         GL.LineWidth(4f);
-            //         body.Draw();
-            //         GL.Disable(EnableCap.PolygonOffsetLine);
-                    
-            //         _entityShader.SetInt("drawStyle", 2);
-            //         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
-            //         GL.Enable(EnableCap.PolygonOffsetPoint);
-            //         GL.PolygonOffset(-2, -2);
-            //         GL.PointSize(10f);
-            //         body.Draw();
-            //         GL.Disable(EnableCap.PolygonOffsetPoint);
-            //     }
-            // }
             
-            prenderer.Render(renderer);
+            // prenderer.Render(renderer);
+            hparticles.Render(renderer);
             
         }
         
         private void Init()
         {
-            
-                
         }
         
     }
