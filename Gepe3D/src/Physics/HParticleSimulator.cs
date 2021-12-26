@@ -11,15 +11,13 @@ namespace Gepe3D
     {
         
         CLCommandQueue queue;
-        CLKernel kernel;
         UIntPtr[] workDimensions;
+        
+        CLEvent @event = new CLEvent();
         
         public readonly int ParticleCount;
         public readonly float[] PosData;
-        public readonly Particle[] particlePool;
-        private int poolIndex = 0;
         
-        public List<int>[][][] grid;
         
         public static float GRID_CELL_WIDTH = 0.6f; // used for the fluid effect radius
         
@@ -44,7 +42,8 @@ namespace Gepe3D
             kDistanceProject,   // project distance constraints (for soft bodies etc)
             kCalcDensities,     // FLUID - calculate density at each particle
             kCalcLambdas,       // FLUID - calculate lambda at each particle (scalar for position adjustment)
-            kAddLambdas;        // FLUID - adjust position estimates using lambda values
+            kAddLambdas,        // FLUID - adjust position estimates using lambda values
+            kUpdateVel;         // update final position and velocity with bounds collision
         
         private readonly CLBuffer
             pos,        // positions
@@ -55,26 +54,12 @@ namespace Gepe3D
         public HParticleSimulator(int particleCount)
         {
             this.ParticleCount = particleCount;
-            particlePool = new Particle[particleCount];
             PosData = new float[particleCount * 3];
             
-            for (int i = 0; i < particleCount; i++)
-                particlePool[i] = new Particle(i);
             
             distanceConstraints = new List<DistanceConstraint>();
             fluidConstraints = new List<FluidConstraint>();
             
-            grid = new List<int>[GridRowsX][][];
-            for (int i = 0; i < GridRowsX; i++) {
-                grid[i] = new List<int>[GridRowsY][];
-                for (int j = 0; j < GridRowsY; j++) {
-                    grid[i][j] = new List<int>[GridRowsZ];
-                    for(int k = 0; k < GridRowsZ; k++) {
-                        grid[i][j][k] = new List<int>();
-                    }
-                }
-                
-            }
             
             ///////////////////
             // Set up OpenCL //
@@ -92,7 +77,10 @@ namespace Gepe3D
             
             // load kernels
             CLProgram program = BuildClProgram(context, devices, "res/Kernels/kernel.cl");
-            this.kernel = CL.CreateKernel(program, "move_particles", out result);
+            
+            this.kPredictPos = CL.CreateKernel(program, "predict_positions", out result);
+            this.kUpdateVel = CL.CreateKernel(program, "update_velocity", out result);
+            System.Console.WriteLine(result);
             
             // create buffers
             UIntPtr bufferSize3 = new UIntPtr( (uint) particleCount * 3 * sizeof(float) );
@@ -102,10 +90,14 @@ namespace Gepe3D
             this.epos  = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             this.imass = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
             
+            Random rand = new Random();
+            float[] rands = new float[particleCount * 3];
+            for (int i = 0; i < rands.Length; i++)
+                rands[i] = (float) rand.NextDouble() * 2.5f;
+            
             // fill buffers with zeroes
-            CLEvent @event = new CLEvent();
             float[] emptyFloat = new float[] {0};
-            CL.EnqueueFillBuffer<float>(queue, pos  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
+            CL.EnqueueWriteBuffer<float>(queue, pos, false, new UIntPtr(), rands, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, vel  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, epos , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, imass, emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
@@ -114,12 +106,6 @@ namespace Gepe3D
             CL.Flush(queue);
             CL.Finish(queue);
             
-            
-            
-            
-            
-            
-            UpdatePosData();
         }
         
         
@@ -143,141 +129,31 @@ namespace Gepe3D
         
         
         
-        public int AddParticle(float x, float y, float z)
-        {
-            if (poolIndex >= particlePool.Length){
-                System.Console.WriteLine("Max particle count reached!");
-                return -1;
-            }
-            particlePool[poolIndex].pos = new Vector3(x, y, z);
-            particlePool[poolIndex].active = true;
-            return poolIndex++;
-        }
-        
-        public void AddDistanceConstraint(Particle p1, Particle p2, float distance)
-        {
-            distanceConstraints.Add ( new DistanceConstraint(p1, p2, distance, 0.1f, NUM_ITERATIONS) );
-        }
-        
-        
-        private void UpdatePosData()
-        {
-            for (int i = 0; i < ParticleCount; i++)
-            {
-                PosData[i * 3 + 0] = particlePool[i].pos.X;
-                PosData[i * 3 + 1] = particlePool[i].pos.Y;
-                PosData[i * 3 + 2] = particlePool[i].pos.Z;
-            }
-        }
-        
-        private (Vector3, Vector3) BoundCollision(Vector3 pos, Vector3 vel)
-        {
-            if      (pos.X <     0) {  pos.X =     0;  vel.X = MathF.Max(0, vel.X);  }
-            else if (pos.X > MAX_X) {  pos.X = MAX_X;  vel.X = MathF.Min(0, vel.X);  }
-            
-            if      (pos.Y <     0) {  pos.Y =     0;  vel.Y = MathF.Max(0, vel.Y);  }
-            else if (pos.Y > MAX_Y) {  pos.Y = MAX_Y;  vel.Y = MathF.Min(0, vel.Y);  }
-            
-            if      (pos.Z <     0) {  pos.Z =     0;  vel.Z = MathF.Max(0, vel.Z);  }
-            else if (pos.Z > MAX_Z) {  pos.Z = MAX_Z;  vel.Z = MathF.Min(0, vel.Z);  }
-            
-            return (pos, vel);
-        }
-        
-        
-        
-        private void GenerateNeighbours()
-        {
-            foreach (List<int>[][] i in grid) {
-                foreach (List<int>[] j in i) {
-                    foreach (List<int> k in j) {
-                        k.Clear();
-                    }
-                }
-            }
-            
-            for (int i = 0; i < particlePool.Length; i++)
-            {
-                Particle p = particlePool[i];
-                
-                int x = Math.Clamp( (int) (p.posEstimate.X / GRID_CELL_WIDTH), 0, GridRowsX - 1);
-                int y = Math.Clamp( (int) (p.posEstimate.Y / GRID_CELL_WIDTH), 0, GridRowsY - 1);
-                int z = Math.Clamp( (int) (p.posEstimate.Z / GRID_CELL_WIDTH), 0, GridRowsZ - 1);
-                
-                grid[x][y][z].Add(i);
-                
-                p.gridX = x;
-                p.gridY = y;
-                p.gridZ = z;
-                
-                // long x = (long) (p.posEstimate.X / GRID_CELL_WIDTH);
-                // long y = (long) (p.posEstimate.Y / GRID_CELL_WIDTH);
-                // long z = (long) (p.posEstimate.Z / GRID_CELL_WIDTH);
-                
-                // long cellID = (x << 32) + (y << 16) + (z);
-                
-                // generate id for the particle's position
-                // store that id in the particle, and store the particle's id in a sorted array according to position ids
-                // grid width >= 2 * sample radius, each sample kernal can only cover 8 cells instead of 27
-            }
-        }
-        
-        
         public void Update(float delta)
         {
-            GenerateNeighbours();
             
-            foreach (Particle p in particlePool)
-            {
-                if (!p.active) continue;
-                
-                p.vel.Y += -1 * delta; // apply external force
-                p.posEstimate = p.pos + p.vel * delta; // predict position
-            }
+            CL.SetKernelArg<float>(kPredictPos, 0, delta);
+            CL.SetKernelArg<CLBuffer>(kPredictPos, 1, pos);
+            CL.SetKernelArg<CLBuffer>(kPredictPos, 2, vel);
+            CL.SetKernelArg<CLBuffer>(kPredictPos, 3, epos);
+            CL.EnqueueNDRangeKernel(queue, kPredictPos, 1, null, workDimensions, null, 0, null, out @event);
             
             
-            for (int i = 0; i < NUM_ITERATIONS; i++)
-            {
-                
-                foreach (DistanceConstraint constraint in distanceConstraints) constraint.Project();
-                
-                // currently also passes inactive particles, must fix
-                foreach (FluidConstraint constraint in fluidConstraints) constraint.Project(particlePool, grid);
-                
-            }
+            CL.SetKernelArg<float>(kUpdateVel, 0, delta);
+            CL.SetKernelArg<CLBuffer>(kUpdateVel, 1, pos);
+            CL.SetKernelArg<CLBuffer>(kUpdateVel, 2, vel);
+            CL.SetKernelArg<CLBuffer>(kUpdateVel, 3, epos);
+            CL.SetKernelArg<float>(kUpdateVel, 4, MAX_X);
+            CL.SetKernelArg<float>(kUpdateVel, 5, MAX_Y);
+            CL.SetKernelArg<float>(kUpdateVel, 6, MAX_Z);
+            CL.EnqueueNDRangeKernel(queue, kUpdateVel, 1, null, workDimensions, null, 0, null, out @event);
             
+            CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
             
-            foreach (Particle p in particlePool)
-            {
-                if (!p.active) continue;
-                
-                if (p.immovable) p.posEstimate = p.pos;
-                
-                p.vel = (p.posEstimate - p.pos) / delta;
-                p.pos = p.posEstimate;
-                
-                (p.pos, p.vel) = BoundCollision(p.pos, p.vel);
-                
-            }
-            
-            
-            UpdatePosData();
+            CL.Flush(queue);
+            CL.Finish(queue);
         }
         
         
-        private void EstimatePositions(float delta)
-        {
-            foreach (Particle p in particlePool)
-            {
-                if (!p.active) continue;
-                
-                p.vel.Y += -1 * delta; // apply external force
-                p.posEstimate = p.pos + p.vel * delta; // predict position
-                // p.constraintCount = 0; // clear constraint count
-                
-                // 4) apply mass scaling
-                // needed for stacked rigid bodies, won't implement yet
-            }
-        }
     }
 }

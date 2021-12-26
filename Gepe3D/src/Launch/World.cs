@@ -20,10 +20,11 @@ namespace Gepe3D
         private readonly Renderer renderer;
         
         
-        private HardwareParticles hparticles;
+        // private HardwareParticles hparticles;
         
-        // public ParticleRenderer prenderer;
+        public ParticleRenderer prenderer;
         // public ParticleSimulator simulator;
+        public HParticleSimulator hsimulator;
         
         int tickCount = 0;
         long cumulativeFrameTime = 0;
@@ -35,10 +36,10 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            // simulator = new ParticleSimulator(1000);
-            // prenderer = new ParticleRenderer(1000, simulator);
+            hsimulator = new HParticleSimulator(1000);
+            prenderer = new ParticleRenderer(1000, hsimulator);
             
-            hparticles = new HardwareParticles(7, 7, 7);
+            // hparticles = new HardwareParticles(7, 7, 7);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -95,8 +96,8 @@ namespace Gepe3D
 
             long time = stopwatch.ElapsedMilliseconds;
 
-            // simulator.Update(delta);
-            hparticles.Update(delta);
+            hsimulator.Update(delta);
+            // hparticles.Update(delta);
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
             tickCount++;
@@ -116,8 +117,8 @@ namespace Gepe3D
             renderer.Prepare(this);
             renderer.Render(skyBox);
             
-            // prenderer.Render(renderer);
-            hparticles.Render(renderer);
+            prenderer.Render(renderer);
+            // hparticles.Render(renderer);
             
         }
         
