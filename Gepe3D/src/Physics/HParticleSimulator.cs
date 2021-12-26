@@ -49,7 +49,9 @@ namespace Gepe3D
             pos,        // positions
             vel,        // velocities
             epos,       // estimated positions
-            imass;      // inverse masses
+            imass,      // inverse masses
+            densities,  // density of each particle
+            lambdas;    // scalar for position adjustment
         
         public HParticleSimulator(int particleCount)
         {
@@ -76,19 +78,26 @@ namespace Gepe3D
             this.workDimensions = new UIntPtr[] { new UIntPtr( (uint) particleCount) };
             
             // load kernels
-            CLProgram program = BuildClProgram(context, devices, "res/Kernels/kernel.cl");
             
-            this.kPredictPos = CL.CreateKernel(program, "predict_positions", out result);
-            this.kUpdateVel = CL.CreateKernel(program, "update_velocity", out result);
-            System.Console.WriteLine(result);
+            string commonFuncSource   = LoadSource("res/Kernels/common_funcs.cl"); // combine with other source strings to add common functions
+            string pbdCommonSource    = LoadSource("res/Kernels/pbd_common.cl");
+            string fluidProjectSource = LoadSource("res/Kernels/fluid_project.cl");
+            CLProgram pbdProgram   = BuildClProgram(context, devices, commonFuncSource + pbdCommonSource);
+            CLProgram fluidProgram = BuildClProgram(context, devices, commonFuncSource + fluidProjectSource);
+            
+            this.kPredictPos = CL.CreateKernel(pbdProgram, "predict_positions", out result);
+            this.kUpdateVel = CL.CreateKernel(pbdProgram, "update_velocity", out result);
+            this.kCalcDensities = CL.CreateKernel(fluidProgram, "calculate_densities", out result);
             
             // create buffers
             UIntPtr bufferSize3 = new UIntPtr( (uint) particleCount * 3 * sizeof(float) );
             UIntPtr bufferSize1 = new UIntPtr( (uint) particleCount * 1 * sizeof(float) );
-            this.pos   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.vel   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.epos  = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.imass = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
+            this.pos       = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
+            this.vel       = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
+            this.epos      = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
+            this.imass     = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
+            this.densities = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
+            this.lambdas   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
             
             Random rand = new Random();
             float[] rands = new float[particleCount * 3];
@@ -98,9 +107,11 @@ namespace Gepe3D
             // fill buffers with zeroes
             float[] emptyFloat = new float[] {0};
             CL.EnqueueWriteBuffer<float>(queue, pos, false, new UIntPtr(), rands, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, vel  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, epos , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, imass, emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, vel      , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, epos     , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, imass    , new float[] {1}, new UIntPtr(), bufferSize1, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, densities, emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, lambdas  , emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
             
             // ensure fills are completed
             CL.Flush(queue);
@@ -109,12 +120,16 @@ namespace Gepe3D
         }
         
         
-        private CLProgram BuildClProgram(CLContext context, CLDevice[] devices, string path)
+        private string LoadSource(string filePath)
+        {
+            filePath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), filePath);
+            return File.ReadAllText(filePath);
+        }
+        
+        private CLProgram BuildClProgram(CLContext context, CLDevice[] devices, string source)
         {
             CLResultCode result;
-            path = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), path);
-            string kernelSource = File.ReadAllText(path);
-            CLProgram program = CL.CreateProgramWithSource(context, kernelSource, out result);
+            CLProgram program = CL.CreateProgramWithSource(context, source, out result);
             result = CL.BuildProgram(program, 1, devices, null, new IntPtr(), new IntPtr());
             
             if (result != CLResultCode.Success) {
@@ -147,6 +162,14 @@ namespace Gepe3D
             CL.SetKernelArg<float>(kUpdateVel, 5, MAX_Y);
             CL.SetKernelArg<float>(kUpdateVel, 6, MAX_Z);
             CL.EnqueueNDRangeKernel(queue, kUpdateVel, 1, null, workDimensions, null, 0, null, out @event);
+            
+            
+            CL.SetKernelArg<CLBuffer>(kCalcDensities, 0, epos);
+            CL.SetKernelArg<CLBuffer>(kCalcDensities, 1, imass);
+            CL.SetKernelArg<CLBuffer>(kCalcDensities, 2, densities);
+            CL.SetKernelArg<float>(kCalcDensities, 3, GRID_CELL_WIDTH);
+            CL.EnqueueNDRangeKernel(queue, kCalcDensities, 1, null, workDimensions, null, 0, null, out @event);
+            
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
             
