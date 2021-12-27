@@ -135,7 +135,7 @@ namespace Gepe3D
                 
                 lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
                 
-                // if (i == 27) System.Console.WriteLine(neighbours[i].Count);
+                if (i == 27) System.Console.WriteLine(density);
             }
             
             
@@ -155,6 +155,7 @@ namespace Gepe3D
                     Vector3 grad = Kernel_SpikyGrad( diff.Length ) * diff.Normalized();
                     
                     float lambdaCorr = -K_P * MathF.Pow( Kernel_Poly6(diff.Length) / Kernel_Poly6(DQ_P * h), E_P );
+                    // lambdaCorr = 0;
                     
                     float neighbourLambda = lambdas.ContainsKey(p2) ? lambdas[p2] : 0;
                     

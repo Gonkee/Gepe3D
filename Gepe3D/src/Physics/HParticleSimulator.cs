@@ -40,9 +40,9 @@ namespace Gepe3D
             kPredictPos,        // add external forces then predict positions with euler integration
             kGenNeighbours,     // add particles to bins corresponding to coordinates for easy proximity search
             kDistanceProject,   // project distance constraints (for soft bodies etc)
-            kCalcDensities,     // FLUID - calculate density at each particle
-            kCalcLambdas,       // FLUID - calculate lambda at each particle (scalar for position adjustment)
+            kCalcLambdas,     // FLUID - calculate lambda at each particle (scalar for position adjustment)
             kAddLambdas,        // FLUID - adjust position estimates using lambda values
+            kCorrectFluid,
             kUpdateVel;         // update final position and velocity with bounds collision
         
         private readonly CLBuffer
@@ -50,7 +50,8 @@ namespace Gepe3D
             vel,        // velocities
             epos,       // estimated positions
             imass,      // inverse masses
-            lambdas;    // scalar for position adjustment
+            lambdas,    // scalar for position adjustment
+            corrections;
         
         public HParticleSimulator(int particleCount)
         {
@@ -86,7 +87,9 @@ namespace Gepe3D
             
             this.kPredictPos = CL.CreateKernel(pbdProgram, "predict_positions", out result);
             this.kUpdateVel = CL.CreateKernel(pbdProgram, "update_velocity", out result);
-            this.kCalcDensities = CL.CreateKernel(fluidProgram, "calculate_densities", out result);
+            this.kCalcLambdas = CL.CreateKernel(fluidProgram, "calculate_lambdas", out result);
+            this.kAddLambdas = CL.CreateKernel(fluidProgram, "add_lambdas", out result);
+            this.kCorrectFluid = CL.CreateKernel(fluidProgram, "correct_fluid_positions", out result);
             
             // create buffers
             UIntPtr bufferSize3 = new UIntPtr( (uint) particleCount * 3 * sizeof(float) );
@@ -96,6 +99,7 @@ namespace Gepe3D
             this.epos      = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             this.imass     = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
             this.lambdas   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
+            this.corrections= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             
             Random rand = new Random();
             float[] rands = new float[particleCount * 3];
@@ -109,6 +113,7 @@ namespace Gepe3D
             CL.EnqueueFillBuffer<float>(queue, epos     , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, imass    , new float[] {1}, new UIntPtr(), bufferSize1, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, lambdas  , emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
+            CL.EnqueueFillBuffer<float>(queue, corrections  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             
             // ensure fills are completed
             CL.Flush(queue);
@@ -151,6 +156,28 @@ namespace Gepe3D
             CL.EnqueueNDRangeKernel(queue, kPredictPos, 1, null, workDimensions, null, 0, null, out @event);
             
             
+            
+            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 0, epos);
+            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 1, imass);
+            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 2, lambdas);
+            CL.SetKernelArg<float>(kCalcLambdas, 3, GRID_CELL_WIDTH);
+            CL.SetKernelArg<float>(kCalcLambdas, 4, 60f);
+            CL.EnqueueNDRangeKernel(queue, kCalcLambdas, 1, null, workDimensions, null, 0, null, out @event);
+            
+            
+            CL.SetKernelArg<CLBuffer>(kAddLambdas, 0, epos);
+            CL.SetKernelArg<CLBuffer>(kAddLambdas, 1, imass);
+            CL.SetKernelArg<CLBuffer>(kAddLambdas, 2, lambdas);
+            CL.SetKernelArg<float>(kAddLambdas, 3, GRID_CELL_WIDTH);
+            CL.SetKernelArg<float>(kAddLambdas, 4, 60f);
+            CL.SetKernelArg<CLBuffer>(kAddLambdas, 5, corrections);
+            CL.EnqueueNDRangeKernel(queue, kAddLambdas, 1, null, workDimensions, null, 0, null, out @event);
+            
+            CL.SetKernelArg<CLBuffer>(kCorrectFluid, 0, epos);
+            CL.SetKernelArg<CLBuffer>(kCorrectFluid, 1, corrections);
+            CL.EnqueueNDRangeKernel(queue, kCorrectFluid, 1, null, workDimensions, null, 0, null, out @event);
+            
+            
             CL.SetKernelArg<float>(kUpdateVel, 0, delta);
             CL.SetKernelArg<CLBuffer>(kUpdateVel, 1, pos);
             CL.SetKernelArg<CLBuffer>(kUpdateVel, 2, vel);
@@ -159,14 +186,6 @@ namespace Gepe3D
             CL.SetKernelArg<float>(kUpdateVel, 5, MAX_Y);
             CL.SetKernelArg<float>(kUpdateVel, 6, MAX_Z);
             CL.EnqueueNDRangeKernel(queue, kUpdateVel, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kCalcDensities, 0, epos);
-            CL.SetKernelArg<CLBuffer>(kCalcDensities, 1, imass);
-            CL.SetKernelArg<CLBuffer>(kCalcDensities, 2, lambdas);
-            CL.SetKernelArg<float>(kCalcDensities, 3, GRID_CELL_WIDTH);
-            CL.EnqueueNDRangeKernel(queue, kCalcDensities, 1, null, workDimensions, null, 0, null, out @event);
-            
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
             

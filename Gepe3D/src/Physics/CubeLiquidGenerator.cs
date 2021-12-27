@@ -33,7 +33,7 @@ namespace Gepe3D
                 }
             }
             
-            simulator.fluidConstraints.Add( new FluidConstraint(particleIDs, 600f, ParticleSimulator.GRID_CELL_WIDTH) );
+            simulator.fluidConstraints.Add( new FluidConstraint(particleIDs, 30f, ParticleSimulator.GRID_CELL_WIDTH) );
             
         }
         

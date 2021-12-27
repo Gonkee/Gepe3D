@@ -23,7 +23,7 @@ namespace Gepe3D
         // private HardwareParticles hparticles;
         
         public ParticleRenderer prenderer;
-        public ParticleSimulator hsimulator;
+        public HParticleSimulator hsimulator;
         // public HParticleSimulator hsimulator;
         
         int tickCount = 0;
@@ -36,8 +36,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            hsimulator = new ParticleSimulator(1000);
-            prenderer = new ParticleRenderer(1000, hsimulator);
+            hsimulator = new HParticleSimulator(3000);
+            prenderer = new ParticleRenderer(3000, hsimulator);
             
             // hparticles = new HardwareParticles(7, 7, 7);
 
@@ -51,12 +51,12 @@ namespace Gepe3D
             //    10, 10, 10
             //);
 
-            CubeLiquidGenerator.AddCube(
-                hsimulator,
-                0, 0, 0,
-                1, 1, 1,
-                10, 10, 10
-            );
+            // CubeLiquidGenerator.AddCube(
+            //     hsimulator,
+            //     0, 0, 0,
+            //     1, 1, 1,
+            //     10, 10, 10
+            // );
 
 
             // long x = (11 << 32);

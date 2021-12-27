@@ -16,7 +16,7 @@ float w_poly6(float dist, float h) {
 }
 
 
-float3 w_spikygrad(float dist, float h) {
+float w_spikygrad(float dist, float h) {
     dist = clamp(dist, (float) 0, (float) h);
     if (dist < FLT_EPSILON) return 0; // too close = same particle = can't use this scalar kernel
     return ( -45 / (PI * pow(h, 6)) ) * (h - dist) * (h - dist);
@@ -68,12 +68,15 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
                         global float *imasses,      // 1
                         global float *lambdas,      // 2
                         float kernelSize,           // 3
-                        float restDensity           // 4
+                        float restDensity,          // 4
+                        global float *corrections   //5
 ) {
     int i = get_global_id(0);
     float3 epos1 = getVec(eposBuffer, i);
     
     float3 correction = (float3) (0, 0, 0);
+    
+    int numNeighbours = 1; // start at 1 to prevent divide by zero
     
     for (int j = 0; j < get_global_size(0); j++) {
         
@@ -83,14 +86,28 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
         float3 diff = epos1 - epos2;
         float dist = length(diff);
         
+        if (dist > kernelSize) continue;
+        numNeighbours++;
+        
         float3 grad = w_spikygrad(dist, kernelSize) * normalize(diff);
         
         float artificialPressure = -K_P * pow( w_poly6(dist, kernelSize) / w_poly6(DQ_P * kernelSize, kernelSize), E_P );
         
-        correction += (lambdas[i] + lambdas[i] + artificialPressure) * grad;
+        correction += (lambdas[i] + lambdas[j] + artificialPressure) * grad;
     }
     
     correction /= restDensity;
+    correction /= numNeighbours;
     
+    setVec(corrections, i, correction);
     
+}
+
+kernel void correct_fluid_positions(global float *eposBuffer, global float *corrections) {
+    
+    int i = get_global_id(0);
+    float3 epos = getVec(eposBuffer, i);
+    float3 correction = getVec(corrections, i);
+    epos += correction;
+    setVec(eposBuffer, i, epos);
 }
