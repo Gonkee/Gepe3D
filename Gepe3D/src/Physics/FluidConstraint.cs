@@ -79,6 +79,7 @@ namespace Gepe3D
                 neighbours[i].Clear();
                 float density = 0;
                 float denominator = 0;
+                Vector3 denom2 = new Vector3();
                 
                 
                 startX = Math.Max(0, p1.gridX - 1);
@@ -100,54 +101,37 @@ namespace Gepe3D
                 // {
                     if (p2.inverseMass == 0) continue;
 
-                    //float dist = (p1.posEstimate - p2.posEstimate).Length;
-
-                    Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
-                    float dist2 = diff.LengthSquared;
+                    Vector3 diff = p1.posEstimate - p2.posEstimate;
+                    float dist = diff.Length;
                     
-                    // float dist2 = GetDist2(p1.posEstimate, p2.posEstimate);
 
-                    // float dx = p1.posEstimate.X - p2.posEstimate.X;
-                    // float dy = p1.posEstimate.Y - p2.posEstimate.Y;
-                    // float dz = p1.posEstimate.Z - p2.posEstimate.Z;
-                    // float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
-                    // float dist = MathF.Max( MathF.Max( MathF.Abs(dx), MathF.Abs(dy) ), MathF.Abs(dz) );
-
-                    if (dist2 < h * h)
+                    if (dist < h)
                     {
-                        float dist = MathF.Sqrt(dist2);
                         
                         neighbours[i].Add(p2); // it will add itself as well
 
                         // the added bit should be multiplied by an extra scalar if its a solid
                         density += (1f / p2.inverseMass) * Kernel_Poly6(dist);
-                        
-                        // if p1 == p2, spiky gradient will be zero and will require a different calculation below
-                        float constraintGradient = Kernel_SpikyGrad(dist) / restDensity;
-                        denominator += constraintGradient * constraintGradient;
+                        if (p1 != p2) {
+                            
+                            float kernelVal = Kernel_SpikyGrad(dist);
+                            
+                            // gradient of neighbours
+                            float constraintGradient = kernelVal / restDensity;
+                            denominator += constraintGradient * constraintGradient;
+                            
+                            // gradient of self
+                            denom2 += kernelVal * diff.Normalized();
+                            
+                        }
                         
                     }
                 }
                         }
                     }
                 }
-                
-                // add spiky grad when p1 == p2 onto denominator
-                Vector3 grad = new Vector3();
-                foreach (Particle p2 in neighbours[i])
-                {
-                    if (p1 == p2) continue;
-                    // Vector3 diff = p1.posEstimate - p2.posEstimate;
-                    Vector3 diff = new Vector3(p1.posEstimate.X - p2.posEstimate.X, p1.posEstimate.Y - p2.posEstimate.Y, p1.posEstimate.Z - p2.posEstimate.Z);
-                    
-                    // the added bit should be multiplied by an extra scalar if its a solid
-                    
-                    float tgrad = Kernel_SpikyGrad( diff.Length );
-                    
-                    grad += tgrad * diff.Normalized();
-                }
-                grad /= restDensity;
-                denominator += Vector3.Dot(grad, grad); // add dist squared
+                denom2 /= restDensity;
+                denominator += Vector3.Dot(denom2, denom2); // add dist squared
                 
                 lambdas[p1] = -( density / restDensity - 1 ) / (denominator + RELAXATION);
                 
@@ -181,6 +165,7 @@ namespace Gepe3D
                 corrections[i] = correction / restDensity;
             }
             
+            // must wait till all posEstimate are done
             for (int i = 0; i < particleIDs.Length; i++)
             {
                 Particle p1 = allParticles[ particleIDs[i] ];

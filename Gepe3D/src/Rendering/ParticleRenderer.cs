@@ -15,9 +15,9 @@ namespace Gepe3D
         private readonly int maxParticles;
         // private readonly float[] particlePositions;
         
-        private readonly HParticleSimulator simulator;
+        private readonly ParticleSimulator simulator;
         
-        public ParticleRenderer(int maxParticles, HParticleSimulator simulator)
+        public ParticleRenderer(int maxParticles, ParticleSimulator simulator)
         {
             this.maxParticles = maxParticles;
             // particlePositions = new float[maxParticles * 3];

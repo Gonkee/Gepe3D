@@ -50,7 +50,6 @@ namespace Gepe3D
             vel,        // velocities
             epos,       // estimated positions
             imass,      // inverse masses
-            densities,  // density of each particle
             lambdas;    // scalar for position adjustment
         
         public HParticleSimulator(int particleCount)
@@ -96,7 +95,6 @@ namespace Gepe3D
             this.vel       = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             this.epos      = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             this.imass     = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
-            this.densities = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
             this.lambdas   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
             
             Random rand = new Random();
@@ -110,7 +108,6 @@ namespace Gepe3D
             CL.EnqueueFillBuffer<float>(queue, vel      , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, epos     , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, imass    , new float[] {1}, new UIntPtr(), bufferSize1, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, densities, emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, lambdas  , emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
             
             // ensure fills are completed
@@ -166,7 +163,7 @@ namespace Gepe3D
             
             CL.SetKernelArg<CLBuffer>(kCalcDensities, 0, epos);
             CL.SetKernelArg<CLBuffer>(kCalcDensities, 1, imass);
-            CL.SetKernelArg<CLBuffer>(kCalcDensities, 2, densities);
+            CL.SetKernelArg<CLBuffer>(kCalcDensities, 2, lambdas);
             CL.SetKernelArg<float>(kCalcDensities, 3, GRID_CELL_WIDTH);
             CL.EnqueueNDRangeKernel(queue, kCalcDensities, 1, null, workDimensions, null, 0, null, out @event);
             
