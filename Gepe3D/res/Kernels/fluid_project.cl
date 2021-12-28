@@ -9,12 +9,17 @@
 #define E_P  4.0f
 #define DQ_P 0.2f
 
+#define VISCOSITY_COEFF 0.001f
+
 float w_poly6(float dist, float h) {
     dist = clamp(dist, (float) 0, (float) h);
     float tmp = h * h - dist * dist;
     return ( 315.0f / (64.0f * PI * pow(h, 9)) ) * tmp * tmp * tmp;
 }
 
+
+// TODO: neighbour finding so it only loops through ~50 particles instead of 3000
+// TODO: make spiky grad func return a float3 instead (more convenient)
 
 float w_spikygrad(float dist, float h) {
     dist = clamp(dist, (float) 0, (float) h);
@@ -110,4 +115,70 @@ kernel void correct_fluid_positions(global float *eposBuffer, global float *corr
     float3 correction = getVec(corrections, i);
     epos += correction;
     setVec(eposBuffer, i, epos);
+}
+
+kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities, float kernelSize) {
+    
+    int i = get_global_id(0);
+    float3 pos = getVec(posBuffer, i);
+    float3 vel = getVec(velBuffer, i);
+    
+    float3 vorticity = (float3) (0, 0, 0);
+        
+    for (int j = 0; j < get_global_size(0); j++) {
+        
+        float3 velDiff = getVec(velBuffer, j) - vel;
+        float3 posDiff = pos - getVec(posBuffer, j);
+        float3 grad = w_spikygrad( length(posDiff), kernelSize ) * normalize(posDiff);
+        
+        vorticity += cross(velDiff, grad);
+    }
+    
+    setVec(vorticities, i, vorticity);
+}
+
+
+kernel void apply_vorticity_viscosity (global float *posBuffer, global float *velBuffer, global float *vorticities, global float *velCorrect, global float *imasses,
+                                        float kernelSize, float restDensity, float delta) {
+    
+    int i = get_global_id(0);
+    float3 pos = getVec(posBuffer, i);
+    float3 vel = getVec(velBuffer, i);
+    float3 vort_i = getVec(vorticities, i);
+    
+    // gradient direction of the magnitude of vorticities around this point (scalar field)
+    // gradient of a function is calculated by summing function values multiplied by spikygrad
+    float3 vortMagGrad = (float3) (0, 0, 0);
+    
+    float3 avgNeighbourVelDiff = (float3) (0, 0, 0);
+    
+    for (int j = 0; j < get_global_size(0); j++) {
+        
+        
+        float3 velDiff = getVec(velBuffer, j) - vel;
+        float3 posDiff = pos - getVec(posBuffer, j);
+        float3 vort_j = getVec(vorticities, j);
+        vortMagGrad += length(vort_j) * w_spikygrad( length(posDiff), kernelSize ) * normalize(posDiff);
+        
+        avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), kernelSize );
+        
+    }
+    
+    float3 vorticity_force = RELAXATION * cross( normalize(vortMagGrad), vort_i );
+    
+    float3 correction = 
+                        (vorticity_force * delta * imasses[i]) +
+                        (avgNeighbourVelDiff * VISCOSITY_COEFF);
+    
+    setVec(velCorrect, i, correction);
+}
+
+
+kernel void correct_fluid_vel(global float *velBuffer, global float *velCorrect) {
+    
+    int i = get_global_id(0);
+    float3 vel = getVec(velBuffer, i);
+    float3 correction = getVec(velCorrect, i);
+    vel += correction;
+    setVec(velBuffer, i, vel);
 }
