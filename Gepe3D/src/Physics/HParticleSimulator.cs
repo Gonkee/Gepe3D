@@ -58,10 +58,24 @@ namespace Gepe3D
             lambdas,    // scalar for position adjustment
             corrections,
             vorticities,
-            velCorrect;
+            velCorrect,
+            sortedParticleIDs,
+            cellStartAndEndIDs,
+            cellIDsOfParticles,
+            numParticlesPerCell,
+            particleIDinCell;
         
         public HParticleSimulator(int particleCount)
         {
+            
+            
+            float a = 12.0f;
+            string b = "yes";
+            long c = 1344;
+            
+            foo(a, b, c);
+            
+            
             this.ParticleCount = particleCount;
             PosData = new float[particleCount * 3];
             
@@ -113,6 +127,17 @@ namespace Gepe3D
             this.vorticities= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             this.velCorrect= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
             
+            UIntPtr intbufferSizeParticles = new UIntPtr( (uint) particleCount * sizeof(int) );
+            UIntPtr intbufferSizeCells     = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int));
+            UIntPtr intbufferSizeCells2     = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int) * 2 );
+            this.sortedParticleIDs = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
+            this.cellStartAndEndIDs = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeCells2, new IntPtr(), out result);
+            this.cellIDsOfParticles = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
+            this.numParticlesPerCell = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeCells, new IntPtr(), out result);
+            this.particleIDinCell = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
+            
+            
+            
             Random rand = new Random();
             float[] rands = new float[particleCount * 3];
             for (int i = 0; i < rands.Length; i++)
@@ -128,6 +153,13 @@ namespace Gepe3D
             CL.EnqueueFillBuffer<float>(queue, corrections  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, vorticities  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
             CL.EnqueueFillBuffer<float>(queue, velCorrect  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
+            
+            int[] emptyInt = new int[] {0};
+            CL.EnqueueFillBuffer<int>(queue, sortedParticleIDs   , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, cellStartAndEndIDs  , emptyInt, new UIntPtr(), intbufferSizeCells2, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, cellIDsOfParticles  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, numParticlesPerCell  , emptyInt, new UIntPtr(), intbufferSizeCells, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, particleIDinCell  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
             
             // ensure fills are completed
             CL.Flush(queue);
@@ -163,29 +195,12 @@ namespace Gepe3D
         public void Update(float delta)
         {
             
-            CL.SetKernelArg<float>(kPredictPos, 0, delta);
-            CL.SetKernelArg<CLBuffer>(kPredictPos, 1, pos);
-            CL.SetKernelArg<CLBuffer>(kPredictPos, 2, vel);
-            CL.SetKernelArg<CLBuffer>(kPredictPos, 3, epos);
-            CL.EnqueueNDRangeKernel(queue, kPredictPos, 1, null, workDimensions, null, 0, null, out @event);
+            EnqueueKernel(queue, kPredictPos, ParticleCount, delta, pos, vel, epos);
+            EnqueueKernel(queue, kCalcLambdas, ParticleCount, epos, imass, lambdas, GRID_CELL_WIDTH, REST_DENSITY);
             
             
+            EnqueueKernel(queue, kAddLambdas, ParticleCount, epos, imass, lambdas, GRID_CELL_WIDTH, REST_DENSITY, corrections);
             
-            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 0, epos);
-            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 1, imass);
-            CL.SetKernelArg<CLBuffer>(kCalcLambdas, 2, lambdas);
-            CL.SetKernelArg<float>(kCalcLambdas, 3, GRID_CELL_WIDTH);
-            CL.SetKernelArg<float>(kCalcLambdas, 4, REST_DENSITY);
-            CL.EnqueueNDRangeKernel(queue, kCalcLambdas, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kAddLambdas, 0, epos);
-            CL.SetKernelArg<CLBuffer>(kAddLambdas, 1, imass);
-            CL.SetKernelArg<CLBuffer>(kAddLambdas, 2, lambdas);
-            CL.SetKernelArg<float>(kAddLambdas, 3, GRID_CELL_WIDTH);
-            CL.SetKernelArg<float>(kAddLambdas, 4, REST_DENSITY);
-            CL.SetKernelArg<CLBuffer>(kAddLambdas, 5, corrections);
-            CL.EnqueueNDRangeKernel(queue, kAddLambdas, 1, null, workDimensions, null, 0, null, out @event);
             
             CL.SetKernelArg<CLBuffer>(kCorrectFluid, 0, epos);
             CL.SetKernelArg<CLBuffer>(kCorrectFluid, 1, corrections);
@@ -230,6 +245,31 @@ namespace Gepe3D
             CL.Flush(queue);
             CL.Finish(queue);
         }
+        
+        private static void EnqueueKernel(CLCommandQueue queue, CLKernel kernel, int numWorkUnits, params object[] args)
+        {
+            CLResultCode result = CLResultCode.Success;
+            uint argID = 0;
+            foreach (object arg in args)
+            {
+                Type argType = arg.GetType();
+                if (argType == typeof(float)) {
+                    result = CL.SetKernelArg<float>(kernel, argID++, (float) arg);
+                } else if (argType == typeof(int)) {
+                    result = CL.SetKernelArg<int>(kernel, argID++, (int) arg);
+                } else if (argType == typeof(CLBuffer)) {
+                    result = CL.SetKernelArg<CLBuffer>(kernel, argID++, (CLBuffer) arg);
+                } else {
+                    System.Console.WriteLine("Invalid type of kernel argument! Must be float, int or CLBuffer");
+                }
+                if (result != CLResultCode.Success)
+                    System.Console.WriteLine("Kernel argument error: " + result);
+            }
+            UIntPtr[] workDim = new UIntPtr[] { new UIntPtr( (uint) numWorkUnits) };
+            CLEvent @event = new CLEvent();
+            CL.EnqueueNDRangeKernel(queue, kernel, 1, null, workDim, null, 0, null, out @event);
+        }
+        
         
         
     }
