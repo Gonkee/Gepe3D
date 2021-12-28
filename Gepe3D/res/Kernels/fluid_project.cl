@@ -1,4 +1,10 @@
 
+// #define variables added in the C# code - don't use these as var names
+// CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z
+// MAX_X, MAX_Y, MAX_Z
+// KERNEL_SIZE, REST_DENSITY
+
+
 #define PI 3.1415926f
 
 // Epsilon in gamma correction denominator
@@ -10,6 +16,7 @@
 #define DQ_P 0.2f
 
 #define VISCOSITY_COEFF 0.001f
+
 
 float w_poly6(float dist, float h) {
     dist = clamp(dist, (float) 0, (float) h);
@@ -31,50 +38,73 @@ float w_spikygrad(float dist, float h) {
 
 kernel void calculate_lambdas(    global float *eposBuffer,   // 0
                                   global float *imasses,      // 1
-                                  global float *lambdas,      // 2
-                                  float kernelSize,           // 3
-                                  float restDensity           // 4
+                                  global float *lambdas,     // 2
+                                  global float *cellIDsOfParticles,
+                                  global float *cellStartAndEndIDs,
+                                  global float *sortedParticleIDs
 ) {
+    
     int i = get_global_id(0);
+    
+    int cellID = cellIDsOfParticles[i];
+    
+    int3 cellCoords = cell_id_2_coords(cellID, CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z);
+    int neighbourCellIDs[3 * 3 * 3];
+    int neighbourCellCount = 0;
+    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X ); cx++ ) {
+    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y ); cy++ ) {
+    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z ); cz++ ) {
+        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz), CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z);
+    }}}
+    
+    
+    
+    
     float3 epos1 = getVec(eposBuffer, i);
     
     float density = 0;
     float  gradN = 0; // gradient sum when other particle is neighbour
     float3 gradS = 0; // gradient sum when other particle is self
     
+    // for (int nc = 0; nc < neighbourCellCount; nc++) {
+    //     int nCellID = neighbourCellIDs[nc];
+    //     for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {
+    //         int j = sortedParticleIDs[g];
+    
     for (int j = 0; j < get_global_size(0); j++) {
+        
+        
         
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
         float dist = length(diff);
-        if (dist > kernelSize) continue;
+        if (dist > KERNEL_SIZE) continue;
         
         // the added bit should be multiplied by an extra scalar if its a solid
-        if (imasses[j] > 0) density += (1.0 / imasses[j]) * w_poly6(dist, kernelSize);
+        if (imasses[j] > 0) density += (1.0 / imasses[j]) * w_poly6(dist, KERNEL_SIZE);
         
         if (i != j) {
             
-            float kgrad = w_spikygrad(dist, kernelSize);
-            float tmp = kgrad / restDensity;
+            float kgrad = w_spikygrad(dist, KERNEL_SIZE);
+            float tmp = kgrad / REST_DENSITY;
             // the added bit should be multiplied by an extra scalar if its a solid
             gradN += tmp * tmp;
             // the added bit should be multiplied by an extra scalar if its a solid
             gradS += normalize(diff) * kgrad;
         }
     }
-    gradS /= restDensity;
+    // }
+    gradS /= REST_DENSITY;
     float denominator = gradN + dot(gradS, gradS);
     
-    lambdas[i] = -(density / restDensity - 1.0) / (denominator + RELAXATION);
+    lambdas[i] = -(density / REST_DENSITY - 1.0) / (denominator + RELAXATION);
 }
 
 
 kernel void add_lambdas(global float *eposBuffer,   // 0
                         global float *imasses,      // 1
                         global float *lambdas,      // 2
-                        float kernelSize,           // 3
-                        float restDensity,          // 4
-                        global float *corrections   //5
+                        global float *corrections   // 3
 ) {
     int i = get_global_id(0);
     float3 epos1 = getVec(eposBuffer, i);
@@ -91,17 +121,17 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
         float3 diff = epos1 - epos2;
         float dist = length(diff);
         
-        if (dist > kernelSize) continue;
+        if (dist > KERNEL_SIZE) continue;
         numNeighbours++;
         
-        float3 grad = w_spikygrad(dist, kernelSize) * normalize(diff);
+        float3 grad = w_spikygrad(dist, KERNEL_SIZE) * normalize(diff);
         
-        float artificialPressure = -K_P * pow( w_poly6(dist, kernelSize) / w_poly6(DQ_P * kernelSize, kernelSize), E_P );
+        float artificialPressure = -K_P * pow( w_poly6(dist, KERNEL_SIZE) / w_poly6(DQ_P * KERNEL_SIZE, KERNEL_SIZE), E_P );
         
         correction += (lambdas[i] + lambdas[j] + artificialPressure) * grad;
     }
     
-    correction /= restDensity;
+    correction /= REST_DENSITY;
     correction /= numNeighbours;
     
     setVec(corrections, i, correction);
@@ -117,7 +147,7 @@ kernel void correct_fluid_positions(global float *eposBuffer, global float *corr
     setVec(eposBuffer, i, epos);
 }
 
-kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities, float kernelSize) {
+kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities) {
     
     int i = get_global_id(0);
     float3 pos = getVec(posBuffer, i);
@@ -129,7 +159,7 @@ kernel void calculate_vorticities (global float *posBuffer, global float *velBuf
         
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
-        float3 grad = w_spikygrad( length(posDiff), kernelSize ) * normalize(posDiff);
+        float3 grad = w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
         
         vorticity += cross(velDiff, grad);
     }
@@ -139,7 +169,7 @@ kernel void calculate_vorticities (global float *posBuffer, global float *velBuf
 
 
 kernel void apply_vorticity_viscosity (global float *posBuffer, global float *velBuffer, global float *vorticities, global float *velCorrect, global float *imasses,
-                                        float kernelSize, float restDensity, float delta) {
+                                        float delta) {
     
     int i = get_global_id(0);
     float3 pos = getVec(posBuffer, i);
@@ -158,9 +188,9 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
         float3 vort_j = getVec(vorticities, j);
-        vortMagGrad += length(vort_j) * w_spikygrad( length(posDiff), kernelSize ) * normalize(posDiff);
+        vortMagGrad += length(vort_j) * w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
         
-        avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), kernelSize );
+        avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), KERNEL_SIZE );
         
     }
     

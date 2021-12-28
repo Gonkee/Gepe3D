@@ -16,6 +16,7 @@ namespace Gepe3D
         CLEvent @event = new CLEvent();
         
         public readonly int ParticleCount;
+        private readonly int cellCount;
         public readonly float[] PosData;
         
         
@@ -48,7 +49,11 @@ namespace Gepe3D
             kUpdateVel,         // update final position and velocity with bounds collision
             kCalcVorticity,
             kApplyVortVisc,
-            kCorrectVel;
+            kCorrectVel,
+            kResetCellParticleCount,
+            kAssignParticlCells,
+            kFindCellsStartAndEnd,
+            kSortParticleIDsByCell;
         
         private readonly CLBuffer
             pos,        // positions
@@ -69,14 +74,9 @@ namespace Gepe3D
         {
             
             
-            float a = 12.0f;
-            string b = "yes";
-            long c = 1344;
-            
-            foo(a, b, c);
-            
             
             this.ParticleCount = particleCount;
+            this.cellCount = GridRowsX * GridRowsY * GridRowsZ;
             PosData = new float[particleCount * 3];
             
             
@@ -103,8 +103,11 @@ namespace Gepe3D
             string commonFuncSource   = LoadSource("res/Kernels/common_funcs.cl"); // combine with other source strings to add common functions
             string pbdCommonSource    = LoadSource("res/Kernels/pbd_common.cl");
             string fluidProjectSource = LoadSource("res/Kernels/fluid_project.cl");
-            CLProgram pbdProgram   = BuildClProgram(context, devices, commonFuncSource + pbdCommonSource);
-            CLProgram fluidProgram = BuildClProgram(context, devices, commonFuncSource + fluidProjectSource);
+            
+            string varDefines = GenerateDefines();
+            
+            CLProgram pbdProgram   = BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource);
+            CLProgram fluidProgram = BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
             
             this.kPredictPos = CL.CreateKernel(pbdProgram, "predict_positions", out result);
             this.kUpdateVel = CL.CreateKernel(pbdProgram, "update_velocity", out result);
@@ -114,6 +117,12 @@ namespace Gepe3D
             this.kCalcVorticity = CL.CreateKernel(fluidProgram, "calculate_vorticities", out result);
             this.kApplyVortVisc = CL.CreateKernel(fluidProgram, "apply_vorticity_viscosity", out result);
             this.kCorrectVel = CL.CreateKernel(fluidProgram, "correct_fluid_vel", out result);
+            
+            
+            this.kResetCellParticleCount = CL.CreateKernel(pbdProgram, "reset_cell_particle_count", out result);
+            this.kAssignParticlCells  = CL.CreateKernel(pbdProgram, "assign_particle_cells", out result);
+            this.kFindCellsStartAndEnd = CL.CreateKernel(pbdProgram, "find_cells_start_and_end", out result);
+            this.kSortParticleIDsByCell = CL.CreateKernel(pbdProgram, "sort_particle_ids_by_cell", out result);
             
             // create buffers
             UIntPtr bufferSize3 = new UIntPtr( (uint) particleCount * 3 * sizeof(float) );
@@ -167,14 +176,63 @@ namespace Gepe3D
             
         }
         
+        // TODO: make this more robust
+        private string GenerateDefines()
+        {
+            string defines = "";
+            
+            defines += "\n" + "#define CELLCOUNT_X " + GridRowsX;
+            defines += "\n" + "#define CELLCOUNT_Y " + GridRowsY;
+            defines += "\n" + "#define CELLCOUNT_Z " + GridRowsZ;
+            defines += "\n" + "#define MAX_X " + MAX_X.ToString("0.0000") + "f";
+            defines += "\n" + "#define MAX_Y " + MAX_Y.ToString("0.0000") + "f";
+            defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000") + "f";
+            defines += "\n" + "#define KERNEL_SIZE " + GRID_CELL_WIDTH.ToString("0.0000") + "f";
+            defines += "\n" + "#define REST_DENSITY " + REST_DENSITY.ToString("0.0000") + "f";
+            defines += "\n";
+            
+            return defines;
+        }
         
-        private string LoadSource(string filePath)
+        
+        public void Update(float delta)
+        {
+            EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
+            
+            EnqueueKernel(queue, kResetCellParticleCount, cellCount, numParticlesPerCell);
+            EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
+                cellIDsOfParticles, particleIDinCell, GridRowsX, GridRowsY, GridRowsZ, GRID_CELL_WIDTH);
+            EnqueueKernel(queue, kFindCellsStartAndEnd, cellCount, numParticlesPerCell, cellStartAndEndIDs);
+            EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
+                cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs);
+            
+            EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections);
+            EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
+            EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
+            EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities);
+            EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta);
+            EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
+            
+            CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
+            CL.Flush(queue);
+            CL.Finish(queue);
+        }
+        
+        
+        
+        
+        //////////////////////
+        // Helper Functions //
+        //////////////////////
+        
+        private static string LoadSource(string filePath)
         {
             filePath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), filePath);
             return File.ReadAllText(filePath);
         }
         
-        private CLProgram BuildClProgram(CLContext context, CLDevice[] devices, string source)
+        private static CLProgram BuildClProgram(CLContext context, CLDevice[] devices, string source)
         {
             CLResultCode result;
             CLProgram program = CL.CreateProgramWithSource(context, source, out result);
@@ -188,62 +246,6 @@ namespace Gepe3D
                 System.Console.WriteLine(error);
             }
             return program;
-        }
-        
-        
-        
-        public void Update(float delta)
-        {
-            
-            EnqueueKernel(queue, kPredictPos, ParticleCount, delta, pos, vel, epos);
-            EnqueueKernel(queue, kCalcLambdas, ParticleCount, epos, imass, lambdas, GRID_CELL_WIDTH, REST_DENSITY);
-            
-            
-            EnqueueKernel(queue, kAddLambdas, ParticleCount, epos, imass, lambdas, GRID_CELL_WIDTH, REST_DENSITY, corrections);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kCorrectFluid, 0, epos);
-            CL.SetKernelArg<CLBuffer>(kCorrectFluid, 1, corrections);
-            CL.EnqueueNDRangeKernel(queue, kCorrectFluid, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<float>(kUpdateVel, 0, delta);
-            CL.SetKernelArg<CLBuffer>(kUpdateVel, 1, pos);
-            CL.SetKernelArg<CLBuffer>(kUpdateVel, 2, vel);
-            CL.SetKernelArg<CLBuffer>(kUpdateVel, 3, epos);
-            CL.SetKernelArg<float>(kUpdateVel, 4, MAX_X);
-            CL.SetKernelArg<float>(kUpdateVel, 5, MAX_Y);
-            CL.SetKernelArg<float>(kUpdateVel, 6, MAX_Z);
-            CL.EnqueueNDRangeKernel(queue, kUpdateVel, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kCalcVorticity, 0, pos);
-            CL.SetKernelArg<CLBuffer>(kCalcVorticity, 1, vel);
-            CL.SetKernelArg<CLBuffer>(kCalcVorticity, 2, vorticities);
-            CL.SetKernelArg<float>(kCalcVorticity, 3, GRID_CELL_WIDTH);
-            CL.EnqueueNDRangeKernel(queue, kCalcVorticity, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kApplyVortVisc, 0, pos);
-            CL.SetKernelArg<CLBuffer>(kApplyVortVisc, 1, vel);
-            CL.SetKernelArg<CLBuffer>(kApplyVortVisc, 2, vorticities);
-            CL.SetKernelArg<CLBuffer>(kApplyVortVisc, 3, velCorrect);
-            CL.SetKernelArg<CLBuffer>(kApplyVortVisc, 4, imass);
-            CL.SetKernelArg<float>(kApplyVortVisc, 5, GRID_CELL_WIDTH);
-            CL.SetKernelArg<float>(kApplyVortVisc, 6, REST_DENSITY);
-            CL.SetKernelArg<float>(kApplyVortVisc, 7, delta);
-            CL.EnqueueNDRangeKernel(queue, kApplyVortVisc, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.SetKernelArg<CLBuffer>(kCorrectVel, 0, vel);
-            CL.SetKernelArg<CLBuffer>(kCorrectVel, 1, velCorrect);
-            CL.EnqueueNDRangeKernel(queue, kCorrectVel, 1, null, workDimensions, null, 0, null, out @event);
-            
-            
-            CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
-            
-            CL.Flush(queue);
-            CL.Finish(queue);
         }
         
         private static void EnqueueKernel(CLCommandQueue queue, CLKernel kernel, int numWorkUnits, params object[] args)
