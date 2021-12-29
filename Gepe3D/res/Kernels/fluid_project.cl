@@ -1,8 +1,20 @@
 
 // #define variables added in the C# code - don't use these as var names
-// CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z
+// CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
+
+
+// #define YEE \
+//     int cellID = cellIDsOfParticles[i]; \
+//     int neighbourCellIDs[3 * 3 * 3]; \
+//     int neighbourCellCount = getNeighbourCells(cellID, neighbourCellIDs); \
+//     for (int nc = 0; nc < neighbourCellCount; nc++) { \
+//         int nCellID = neighbourCellIDs[nc]; \
+//         for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) { \
+//             int j = sortedParticleIDs[g]; \
+
+
 
 
 #define PI 3.1415926f
@@ -39,41 +51,60 @@ float w_spikygrad(float dist, float h) {
 kernel void calculate_lambdas(    global float *eposBuffer,   // 0
                                   global float *imasses,      // 1
                                   global float *lambdas,     // 2
-                                  global float *cellIDsOfParticles,
-                                  global float *cellStartAndEndIDs,
-                                  global float *sortedParticleIDs
+                                  global int *cellIDsOfParticles,
+                                  global int *cellStartAndEndIDs,
+                                  global int *sortedParticleIDs,
+                                  global float *debugOut
 ) {
     
     int i = get_global_id(0);
-    
-    int cellID = cellIDsOfParticles[i];
-    
-    int3 cellCoords = cell_id_2_coords(cellID, CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z);
-    int neighbourCellIDs[3 * 3 * 3];
-    int neighbourCellCount = 0;
-    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X ); cx++ ) {
-    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y ); cy++ ) {
-    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z ); cz++ ) {
-        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz), CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z);
-    }}}
     
     
     
     
     float3 epos1 = getVec(eposBuffer, i);
     
+    // int cellID2 = get_cell_id(epos1);
+    
+    // int3 cellCoord = cell_id_2_coords(cellID);
+    
+    int npCount = 0;
+    
     float density = 0;
     float  gradN = 0; // gradient sum when other particle is neighbour
     float3 gradS = 0; // gradient sum when other particle is self
     
-    // for (int nc = 0; nc < neighbourCellCount; nc++) {
-    //     int nCellID = neighbourCellIDs[nc];
-    //     for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {
-    //         int j = sortedParticleIDs[g];
+    int cellID = cellIDsOfParticles[i];
+    int neighbourCellIDs[3 * 3 * 3];
+    int neighbourCellCount = 0;
+    int3 cellCoords = cell_id_2_coords(cellID);
+    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X - 1 ); cx++ ) {
+    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y - 1 ); cy++ ) {
+    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z - 1 ); cz++ ) {
+        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz));
+    }}}
     
-    for (int j = 0; j < get_global_size(0); j++) {
+    
+    // if (i == 400) {
+    //     for (int k = 0; k < 27; k++) {
+    //         debugOut[k] = neighbourCellIDs[k];
+    //     }
+    // }
+    
+    
+    
+    for (int nc = 0; nc < neighbourCellCount; nc++) {
+        int nCellID = neighbourCellIDs[nc];
+        for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {
+            int j = sortedParticleIDs[g];
+            
+            npCount++;
+            // if (j >= 3000) debugOut[26] = 1; 
+            
+    
+    // for (int j = 0; j < get_global_size(0); j++) {
         
-        
+        // YEE
         
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
@@ -93,11 +124,14 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
             gradS += normalize(diff) * kgrad;
         }
     }
-    // }
+    }
     gradS /= REST_DENSITY;
     float denominator = gradN + dot(gradS, gradS);
     
     lambdas[i] = -(density / REST_DENSITY - 1.0) / (denominator + RELAXATION);
+    
+    
+    debugOut[26] = max( (int) debugOut[26], (int) npCount);
 }
 
 

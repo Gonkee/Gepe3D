@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 using OpenTK.Mathematics;
 using OpenTK.Compute.OpenCL;
+using System.Linq;
 
 namespace Gepe3D
 {
@@ -68,11 +69,18 @@ namespace Gepe3D
             cellStartAndEndIDs,
             cellIDsOfParticles,
             numParticlesPerCell,
-            particleIDinCell;
+            particleIDinCell,
+            debugOut;
+            
+        private float[] debugArray;
+        private int[] sortedIDsDebug;
+        private int[] idInCellDebug;
+        private int[] startAndEndDebug = new int[8 * 8 * 8 * 2];
         
         public HParticleSimulator(int particleCount)
         {
-            
+            sortedIDsDebug = new int[particleCount];
+            idInCellDebug = new int[particleCount];
             
             
             this.ParticleCount = particleCount;
@@ -147,6 +155,7 @@ namespace Gepe3D
             
             
             
+            
             Random rand = new Random();
             float[] rands = new float[particleCount * 3];
             for (int i = 0; i < rands.Length; i++)
@@ -170,6 +179,13 @@ namespace Gepe3D
             CL.EnqueueFillBuffer<int>(queue, numParticlesPerCell  , emptyInt, new UIntPtr(), intbufferSizeCells, null, out @event);
             CL.EnqueueFillBuffer<int>(queue, particleIDinCell  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
             
+            
+            int debugSize = 27;
+            UIntPtr debugBufferSize = new UIntPtr( (uint) debugSize * sizeof(float) );
+            this.debugOut = CL.CreateBuffer(context, MemoryFlags.ReadWrite, debugBufferSize, new IntPtr(), out result);
+            CL.EnqueueFillBuffer<float>(queue, debugOut  , emptyFloat, new UIntPtr(), debugBufferSize, null, out @event);
+            this.debugArray = new float[debugSize];
+            
             // ensure fills are completed
             CL.Flush(queue);
             CL.Finish(queue);
@@ -184,6 +200,7 @@ namespace Gepe3D
             defines += "\n" + "#define CELLCOUNT_X " + GridRowsX;
             defines += "\n" + "#define CELLCOUNT_Y " + GridRowsY;
             defines += "\n" + "#define CELLCOUNT_Z " + GridRowsZ;
+            defines += "\n" + "#define CELL_WIDTH " + GRID_CELL_WIDTH.ToString("0.0000") + "f";
             defines += "\n" + "#define MAX_X " + MAX_X.ToString("0.0000") + "f";
             defines += "\n" + "#define MAX_Y " + MAX_Y.ToString("0.0000") + "f";
             defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000") + "f";
@@ -194,19 +211,26 @@ namespace Gepe3D
             return defines;
         }
         
+        float[] emptyFloat = new float[] {0};
+        static int debugSize = 27;
+        UIntPtr debugBufferSize = new UIntPtr( (uint) debugSize * sizeof(float) );
         
         public void Update(float delta)
         {
+            
+            
+            CL.EnqueueFillBuffer<float>(queue, debugOut  , emptyFloat, new UIntPtr(), debugBufferSize, null, out @event);
+            
             EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
             
             EnqueueKernel(queue, kResetCellParticleCount, cellCount, numParticlesPerCell);
             EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
-                cellIDsOfParticles, particleIDinCell, GridRowsX, GridRowsY, GridRowsZ, GRID_CELL_WIDTH);
+                cellIDsOfParticles, particleIDinCell, debugOut);
             EnqueueKernel(queue, kFindCellsStartAndEnd, cellCount, numParticlesPerCell, cellStartAndEndIDs);
             EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
-                cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs);
+                cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs, debugOut);
             
-            EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, debugOut);
             EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections);
             EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
             EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
@@ -215,16 +239,35 @@ namespace Gepe3D
             EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
+            
+            CL.EnqueueReadBuffer<float>(queue, debugOut, false, new UIntPtr(), debugArray, null, out @event);
+            CL.EnqueueReadBuffer<int>(queue, sortedParticleIDs, false, new UIntPtr(), sortedIDsDebug, null, out @event);
+            CL.EnqueueReadBuffer<int>(queue, cellStartAndEndIDs, false, new UIntPtr(), startAndEndDebug, null, out @event);
+            CL.EnqueueReadBuffer<int>(queue, particleIDinCell, false, new UIntPtr(), idInCellDebug, null, out @event);
+            
             CL.Flush(queue);
             CL.Finish(queue);
+            
+            yee++;
+            // if (yee % 30 == 0) System.Console.WriteLine(string.Join(", ", idInCellDebug));
+            // if (yee % 30 == 0) System.Console.WriteLine( idInCellDebug.Count( n => n == 0 ) );
+            if (yee % 30 == 0) System.Console.WriteLine(CheckValidSort(sortedIDsDebug));
+            // if (yee % 30 == 0) System.Console.WriteLine(string.Join(", ", startAndEndDebug));
+            
         }
         
-        
+        int yee = 0;
         
         
         //////////////////////
         // Helper Functions //
         //////////////////////
+        
+        private static int CheckValidSort(int[] sortedIDs) {
+            
+            return sortedIDs.Length - sortedIDs.Distinct().Count();
+        }
+        
         
         private static string LoadSource(string filePath)
         {
