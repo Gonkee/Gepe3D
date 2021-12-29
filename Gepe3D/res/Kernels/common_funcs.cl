@@ -37,6 +37,11 @@ int get_cell_id(float3 pos) {
         (int) (pos.y / CELL_WIDTH),
         (int) (pos.z / CELL_WIDTH)
     );
+    // MUST CLAMP or else a bunch of bugs occur (id out of bounds, reading random areas of memory, etc)
+    // often particles end up right on the boundary, 1 over the max allowed coord
+    cellCoords.x = clamp( cellCoords.x, 0, (int) CELLCOUNT_X - 1 );
+    cellCoords.y = clamp( cellCoords.y, 0, (int) CELLCOUNT_Y - 1 );
+    cellCoords.z = clamp( cellCoords.z, 0, (int) CELLCOUNT_Z - 1 );
     return cell_coords_2_id(cellCoords);
 }
 

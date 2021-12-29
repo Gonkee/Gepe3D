@@ -23,12 +23,12 @@ namespace Gepe3D
         
         public static float GRID_CELL_WIDTH = 0.6f; // used for the fluid effect radius
         
-        public static float REST_DENSITY = 80f;
+        public static float REST_DENSITY = 120f;
         
         public static int
-            GridRowsX = 8,
-            GridRowsY = 8,
-            GridRowsZ = 8;
+            GridRowsX = 10,
+            GridRowsY = 10,
+            GridRowsZ = 10;
             
         public static float
             MAX_X = GRID_CELL_WIDTH * GridRowsX,
@@ -75,13 +75,19 @@ namespace Gepe3D
         private float[] debugArray;
         private int[] sortedIDsDebug;
         private int[] idInCellDebug;
-        private int[] startAndEndDebug = new int[8 * 8 * 8 * 2];
+        private int[] startAndEndDebug;
+        private int[] numPperCellDebug;
+        private int[] cellIDsDebug;
         
         public HParticleSimulator(int particleCount)
         {
             sortedIDsDebug = new int[particleCount];
             idInCellDebug = new int[particleCount];
-            
+            cellIDsDebug = new int[particleCount];
+            sortedBufferSize = new UIntPtr( (uint) particleCount * sizeof(int) );
+            sortedBufferSizeSmall = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int) );
+            startAndEndDebug = new int[GridRowsX * GridRowsY * GridRowsZ * 2];
+            numPperCellDebug = new int[GridRowsX * GridRowsY * GridRowsZ];
             
             this.ParticleCount = particleCount;
             this.cellCount = GridRowsX * GridRowsY * GridRowsZ;
@@ -180,7 +186,7 @@ namespace Gepe3D
             CL.EnqueueFillBuffer<int>(queue, particleIDinCell  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
             
             
-            int debugSize = 27;
+            int debugSize = particleCount;
             UIntPtr debugBufferSize = new UIntPtr( (uint) debugSize * sizeof(float) );
             this.debugOut = CL.CreateBuffer(context, MemoryFlags.ReadWrite, debugBufferSize, new IntPtr(), out result);
             CL.EnqueueFillBuffer<float>(queue, debugOut  , emptyFloat, new UIntPtr(), debugBufferSize, null, out @event);
@@ -214,16 +220,21 @@ namespace Gepe3D
         float[] emptyFloat = new float[] {0};
         static int debugSize = 27;
         UIntPtr debugBufferSize = new UIntPtr( (uint) debugSize * sizeof(float) );
+            int[] emptyInt = new int[] {0};
+            
+        UIntPtr sortedBufferSize;
+        UIntPtr sortedBufferSizeSmall;
         
         public void Update(float delta)
         {
             
             
-            CL.EnqueueFillBuffer<float>(queue, debugOut  , emptyFloat, new UIntPtr(), debugBufferSize, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, sortedParticleIDs  , emptyInt, new UIntPtr(), sortedBufferSize, null, out @event);
+            CL.EnqueueFillBuffer<int>(queue, numParticlesPerCell  , emptyInt, new UIntPtr(), sortedBufferSizeSmall, null, out @event);
             
             EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
             
-            EnqueueKernel(queue, kResetCellParticleCount, cellCount, numParticlesPerCell);
+            // EnqueueKernel(queue, kResetCellParticleCount, cellCount, numParticlesPerCell);
             EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
                 cellIDsOfParticles, particleIDinCell, debugOut);
             EnqueueKernel(queue, kFindCellsStartAndEnd, cellCount, numParticlesPerCell, cellStartAndEndIDs);
@@ -231,28 +242,45 @@ namespace Gepe3D
                 cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs, debugOut);
             
             EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, debugOut);
-            EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections);
+            EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
             EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
             EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
-            EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities);
-            EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta);
+            EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
             EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
             
-            CL.EnqueueReadBuffer<float>(queue, debugOut, false, new UIntPtr(), debugArray, null, out @event);
-            CL.EnqueueReadBuffer<int>(queue, sortedParticleIDs, false, new UIntPtr(), sortedIDsDebug, null, out @event);
-            CL.EnqueueReadBuffer<int>(queue, cellStartAndEndIDs, false, new UIntPtr(), startAndEndDebug, null, out @event);
-            CL.EnqueueReadBuffer<int>(queue, particleIDinCell, false, new UIntPtr(), idInCellDebug, null, out @event);
+            // CL.EnqueueReadBuffer<float>(queue, debugOut, false, new UIntPtr(), debugArray, null, out @event);
+            // CL.EnqueueReadBuffer<int>(queue, sortedParticleIDs, false, new UIntPtr(), sortedIDsDebug, null, out @event);
+            // CL.EnqueueReadBuffer<int>(queue, cellStartAndEndIDs, false, new UIntPtr(), startAndEndDebug, null, out @event); // !
+            // CL.EnqueueReadBuffer<int>(queue, numParticlesPerCell, false, new UIntPtr(), numPperCellDebug, null, out @event); // !
+            // CL.EnqueueReadBuffer<int>(queue, particleIDinCell, false, new UIntPtr(), idInCellDebug, null, out @event);
+            // CL.EnqueueReadBuffer<int>(queue, cellIDsOfParticles, false, new UIntPtr(), cellIDsDebug, null, out @event);
             
             CL.Flush(queue);
             CL.Finish(queue);
             
             yee++;
-            // if (yee % 30 == 0) System.Console.WriteLine(string.Join(", ", idInCellDebug));
             // if (yee % 30 == 0) System.Console.WriteLine( idInCellDebug.Count( n => n == 0 ) );
-            if (yee % 30 == 0) System.Console.WriteLine(CheckValidSort(sortedIDsDebug));
-            // if (yee % 30 == 0) System.Console.WriteLine(string.Join(", ", startAndEndDebug));
+            // if (yee % 30 == 0) System.Console.WriteLine(CheckValidSort(sortedIDsDebug) + ", " + CheckValidSort(debugArray));
+            // if (yee == 700) {
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(CheckValidSort(sortedIDsDebug) + ", " + CheckValidSort(debugArray));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", sortedIDsDebug));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", debugArray));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", idInCellDebug));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", startAndEndDebug));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", numPperCellDebug));
+            //     System.Console.WriteLine("\n\n");
+            //     System.Console.WriteLine(string.Join(", ", cellIDsDebug));
+                
+            // }
             
         }
         
@@ -264,7 +292,9 @@ namespace Gepe3D
         //////////////////////
         
         private static int CheckValidSort(int[] sortedIDs) {
-            
+            return sortedIDs.Length - sortedIDs.Distinct().Count();
+        }
+        private static int CheckValidSort(float[] sortedIDs) {
             return sortedIDs.Length - sortedIDs.Distinct().Count();
         }
         

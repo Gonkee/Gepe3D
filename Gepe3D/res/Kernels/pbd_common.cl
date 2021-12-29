@@ -73,14 +73,14 @@ kernel void assign_particle_cells (global float *eposBuffer,
     
     particleIDinCell[i] = atomic_inc( &numParticlesPerCell[cellID] );
     
-    if (i == 400) {
-        // for (int k = 0; k < 27; k++) {
-        //     debugOut[k] = neighbourCellIDs[k];
-        // }
-        debugOut[0] = cellID;
-        debugOut[1] = cellIDsOfParticles[i];
-        debugOut[2] = particleIDinCell[i];
-    }
+    // if (i == 400) {
+    //     // for (int k = 0; k < 27; k++) {
+    //     //     debugOut[k] = neighbourCellIDs[k];
+    //     // }
+    //     debugOut[0] = cellID;
+    //     debugOut[1] = cellIDsOfParticles[i];
+    //     debugOut[2] = particleIDinCell[i];
+    // }
 }
 
 
@@ -115,10 +115,16 @@ kernel void sort_particle_ids_by_cell ( global int *particleIDinCell,
     int sortedID = cellStartPos + idInCell;
     sortedParticleIDs[sortedID] = i;
     
-    if (i == 400) {
-        // for (int k = 0; k < 27; k++) {
-        //     debugOut[k] = neighbourCellIDs[k];
-        // }
-        debugOut[3] = cellID;
-    }
+    debugOut[i] = sortedID;
+    
+    // if (sortedID > 3000) printf("holup sortedID %d \n", sortedID);
+    // if (cellID > 124) printf("holup cellID %d \n", cellID);
+    
+    
+    // if (i == 400) {
+    //     // for (int k = 0; k < 27; k++) {
+    //     //     debugOut[k] = neighbourCellIDs[k];
+    //     // }
+    //     debugOut[3] = cellID;
+    // }
 }

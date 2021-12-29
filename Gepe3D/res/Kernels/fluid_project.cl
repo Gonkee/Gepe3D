@@ -5,15 +5,23 @@
 // KERNEL_SIZE, REST_DENSITY
 
 
-// #define YEE \
-//     int cellID = cellIDsOfParticles[i]; \
-//     int neighbourCellIDs[3 * 3 * 3]; \
-//     int neighbourCellCount = getNeighbourCells(cellID, neighbourCellIDs); \
-//     for (int nc = 0; nc < neighbourCellCount; nc++) { \
-//         int nCellID = neighbourCellIDs[nc]; \
-//         for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) { \
-//             int j = sortedParticleIDs[g]; \
+// code to gather neighbours, must match input buffer names for particle ids, try not to use var names that might overlap
+#define FOREACH_NEIGHBOUR_j                                                                                 \
+    int cellID = cellIDsOfParticles[i];                                                                     \
+    int neighbourCellIDs[3 * 3 * 3];                                                                        \
+    int neighbourCellCount = 0;                                                                             \
+    int3 cellCoords = cell_id_2_coords(cellID);                                                             \
+    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X - 1 ); cx++ ) {     \
+    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y - 1 ); cy++ ) {     \
+    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z - 1 ); cz++ ) {     \
+        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz));                  \
+    }}}                                                                                                     \
+    for (int nc = 0; nc < neighbourCellCount; nc++) {                                                       \
+        int nCellID = neighbourCellIDs[nc];                                                                 \
+        for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {   \
+            int j = sortedParticleIDs[g];
 
+#define END_FOREACH_NEIGHBOUR_j }}
 
 
 
@@ -59,53 +67,14 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
     
     int i = get_global_id(0);
     
-    
-    
-    
     float3 epos1 = getVec(eposBuffer, i);
-    
-    // int cellID2 = get_cell_id(epos1);
-    
-    // int3 cellCoord = cell_id_2_coords(cellID);
-    
-    int npCount = 0;
-    
     float density = 0;
     float  gradN = 0; // gradient sum when other particle is neighbour
     float3 gradS = 0; // gradient sum when other particle is self
     
-    int cellID = cellIDsOfParticles[i];
-    int neighbourCellIDs[3 * 3 * 3];
-    int neighbourCellCount = 0;
-    int3 cellCoords = cell_id_2_coords(cellID);
-    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X - 1 ); cx++ ) {
-    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y - 1 ); cy++ ) {
-    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z - 1 ); cz++ ) {
-        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz));
-    }}}
     
+    FOREACH_NEIGHBOUR_j
     
-    // if (i == 400) {
-    //     for (int k = 0; k < 27; k++) {
-    //         debugOut[k] = neighbourCellIDs[k];
-    //     }
-    // }
-    
-    
-    
-    for (int nc = 0; nc < neighbourCellCount; nc++) {
-        int nCellID = neighbourCellIDs[nc];
-        for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {
-            int j = sortedParticleIDs[g];
-            
-            npCount++;
-            // if (j >= 3000) debugOut[26] = 1; 
-            
-    
-    // for (int j = 0; j < get_global_size(0); j++) {
-        
-        // YEE
-        
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
         float dist = length(diff);
@@ -123,22 +92,25 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
             // the added bit should be multiplied by an extra scalar if its a solid
             gradS += normalize(diff) * kgrad;
         }
-    }
-    }
+        
+    END_FOREACH_NEIGHBOUR_j
+    
+    
     gradS /= REST_DENSITY;
     float denominator = gradN + dot(gradS, gradS);
     
     lambdas[i] = -(density / REST_DENSITY - 1.0) / (denominator + RELAXATION);
     
-    
-    debugOut[26] = max( (int) debugOut[26], (int) npCount);
 }
 
 
 kernel void add_lambdas(global float *eposBuffer,   // 0
                         global float *imasses,      // 1
                         global float *lambdas,      // 2
-                        global float *corrections   // 3
+                        global float *corrections,  // 3
+                        global int *cellIDsOfParticles,
+                        global int *cellStartAndEndIDs,
+                        global int *sortedParticleIDs
 ) {
     int i = get_global_id(0);
     float3 epos1 = getVec(eposBuffer, i);
@@ -147,7 +119,8 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
     
     int numNeighbours = 1; // start at 1 to prevent divide by zero
     
-    for (int j = 0; j < get_global_size(0); j++) {
+    // for (int j = 0; j < get_global_size(0); j++) {
+    FOREACH_NEIGHBOUR_j
         
         if (i == j) continue;
         
@@ -163,7 +136,9 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
         float artificialPressure = -K_P * pow( w_poly6(dist, KERNEL_SIZE) / w_poly6(DQ_P * KERNEL_SIZE, KERNEL_SIZE), E_P );
         
         correction += (lambdas[i] + lambdas[j] + artificialPressure) * grad;
-    }
+    // }
+    END_FOREACH_NEIGHBOUR_j
+    
     
     correction /= REST_DENSITY;
     correction /= numNeighbours;
@@ -181,7 +156,11 @@ kernel void correct_fluid_positions(global float *eposBuffer, global float *corr
     setVec(eposBuffer, i, epos);
 }
 
-kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities) {
+kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities,
+                        global int *cellIDsOfParticles,
+                        global int *cellStartAndEndIDs,
+                        global int *sortedParticleIDs
+) {
     
     int i = get_global_id(0);
     float3 pos = getVec(posBuffer, i);
@@ -189,21 +168,26 @@ kernel void calculate_vorticities (global float *posBuffer, global float *velBuf
     
     float3 vorticity = (float3) (0, 0, 0);
         
-    for (int j = 0; j < get_global_size(0); j++) {
-        
+    // for (int j = 0; j < get_global_size(0); j++) {
+    FOREACH_NEIGHBOUR_j
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
         float3 grad = w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
         
         vorticity += cross(velDiff, grad);
-    }
+    // }
+    END_FOREACH_NEIGHBOUR_j
     
     setVec(vorticities, i, vorticity);
 }
 
 
 kernel void apply_vorticity_viscosity (global float *posBuffer, global float *velBuffer, global float *vorticities, global float *velCorrect, global float *imasses,
-                                        float delta) {
+                                        float delta,
+                        global int *cellIDsOfParticles,
+                        global int *cellStartAndEndIDs,
+                        global int *sortedParticleIDs
+) {
     
     int i = get_global_id(0);
     float3 pos = getVec(posBuffer, i);
@@ -216,8 +200,8 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
     
     float3 avgNeighbourVelDiff = (float3) (0, 0, 0);
     
-    for (int j = 0; j < get_global_size(0); j++) {
-        
+    // for (int j = 0; j < get_global_size(0); j++) {
+    FOREACH_NEIGHBOUR_j
         
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
@@ -226,7 +210,8 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
         
         avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), KERNEL_SIZE );
         
-    }
+    // }
+    END_FOREACH_NEIGHBOUR_j
     
     float3 vorticity_force = RELAXATION * cross( normalize(vortMagGrad), vort_i );
     

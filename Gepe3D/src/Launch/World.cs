@@ -36,8 +36,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            hsimulator = new HParticleSimulator(3000);
-            prenderer = new ParticleRenderer(3000, hsimulator);
+            hsimulator = new HParticleSimulator(4000);
+            prenderer = new ParticleRenderer(4000, hsimulator);
             
             // hparticles = new HardwareParticles(7, 7, 7);
 
@@ -103,8 +103,8 @@ namespace Gepe3D
             tickCount++;
             if (tickCount >= AVG_FRAME_COUNT)
             { 
-                // System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
-                //     ((float) cumulativeFrameTime / tickCount) + " ms");
+                System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
+                    ((float) cumulativeFrameTime / tickCount) + " ms");
                 tickCount = 0;
                 cumulativeFrameTime = 0;
             }
