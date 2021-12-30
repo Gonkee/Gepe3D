@@ -3,6 +3,7 @@
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
+// PHASE_LIQUID, PHASE_SOLID
 
 kernel void predict_positions(         float delta,         // 0
                                 global float *posBuffer,    // 1
@@ -20,6 +21,22 @@ kernel void predict_positions(         float delta,         // 0
     setVec(eposBuffer, i, epos);
 }
 
+kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
+    
+    int i = get_global_id(0);
+    float3 correction = getVec(corrections, i);
+    
+    float3 epos = getVec(eposBuffer, i);
+    epos += correction;
+    setVec(eposBuffer, i, epos);
+    
+    if (phase[i] == PHASE_SOLID) {
+        float3 pos = getVec(posBuffer, i);
+        pos += correction;
+        setVec(posBuffer, i, pos);
+    }
+    
+}
 
 kernel void update_velocity(           float delta,         // 0
                                 global float *posBuffer,    // 1
@@ -58,24 +75,9 @@ kernel void assign_particle_cells (global float *eposBuffer,
 ) {
     int i = get_global_id(0);
     float3 epos = getVec(eposBuffer, i);
-    
     int cellID = get_cell_id(epos);
-    
     cellIDsOfParticles[i] = cellID;
-    
-    
-    
-    
     particleIDinCell[i] = atomic_inc( &numParticlesPerCell[cellID] );
-    
-    // if (i == 400) {
-    //     // for (int k = 0; k < 27; k++) {
-    //     //     debugOut[k] = neighbourCellIDs[k];
-    //     // }
-    //     debugOut[0] = cellID;
-    //     debugOut[1] = cellIDsOfParticles[i];
-    //     debugOut[2] = particleIDinCell[i];
-    // }
 }
 
 
@@ -100,7 +102,7 @@ kernel void sort_particle_ids_by_cell ( global int *particleIDinCell,
                                     global int *cellStartAndEndIDs,
                                     global int *cellIDsOfParticles,
                                     global int *sortedParticleIDs,
-                                     global float *debugOut
+                                    global float *debugOut
 ) {
     
     int i = get_global_id(0);
@@ -109,17 +111,5 @@ kernel void sort_particle_ids_by_cell ( global int *particleIDinCell,
     int idInCell = particleIDinCell[i];
     int sortedID = cellStartPos + idInCell;
     sortedParticleIDs[sortedID] = i;
-    
     debugOut[i] = sortedID;
-    
-    // if (sortedID > 3000) printf("holup sortedID %d \n", sortedID);
-    // if (cellID > 124) printf("holup cellID %d \n", cellID);
-    
-    
-    // if (i == 400) {
-    //     // for (int k = 0; k < 27; k++) {
-    //     //     debugOut[k] = neighbourCellIDs[k];
-    //     // }
-    //     debugOut[3] = cellID;
-    // }
 }

@@ -3,25 +3,8 @@
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
+// PHASE_LIQUID, PHASE_SOLID
 
-
-// code to gather neighbours, must match input buffer names for particle ids, try not to use var names that might overlap
-#define FOREACH_NEIGHBOUR_j                                                                                 \
-    int cellID = cellIDsOfParticles[i];                                                                     \
-    int neighbourCellIDs[3 * 3 * 3];                                                                        \
-    int neighbourCellCount = 0;                                                                             \
-    int3 cellCoords = cell_id_2_coords(cellID);                                                             \
-    for ( int cx = max( cellCoords.x - 1, 0 ); cx <= min( cellCoords.x + 1, CELLCOUNT_X - 1 ); cx++ ) {     \
-    for ( int cy = max( cellCoords.y - 1, 0 ); cy <= min( cellCoords.y + 1, CELLCOUNT_Y - 1 ); cy++ ) {     \
-    for ( int cz = max( cellCoords.z - 1, 0 ); cz <= min( cellCoords.z + 1, CELLCOUNT_Z - 1 ); cz++ ) {     \
-        neighbourCellIDs[ neighbourCellCount++ ] = cell_coords_2_id( (int3) (cx, cy, cz));                  \
-    }}}                                                                                                     \
-    for (int nc = 0; nc < neighbourCellCount; nc++) {                                                       \
-        int nCellID = neighbourCellIDs[nc];                                                                 \
-        for (int g = cellStartAndEndIDs[nCellID * 2 + 0]; g < cellStartAndEndIDs[nCellID * 2 + 1]; g++) {   \
-            int j = sortedParticleIDs[g];
-
-#define END_FOREACH_NEIGHBOUR_j }}
 
 
 
@@ -62,10 +45,16 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
                                   global int *cellIDsOfParticles,
                                   global int *cellStartAndEndIDs,
                                   global int *sortedParticleIDs,
+                                  global int *phase,
                                   global float *debugOut
 ) {
     
     int i = get_global_id(0);
+    
+    if (phase[i] != PHASE_LIQUID) {
+        lambdas[i] = 0;
+        return;
+    }
     
     float3 epos1 = getVec(eposBuffer, i);
     float density = 0;
@@ -104,22 +93,25 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
 }
 
 
-kernel void add_lambdas(global float *eposBuffer,   // 0
+kernel void calc_fluid_corrections(global float *eposBuffer,   // 0
                         global float *imasses,      // 1
                         global float *lambdas,      // 2
                         global float *corrections,  // 3
                         global int *cellIDsOfParticles,
                         global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs
+                        global int *sortedParticleIDs,
+                        global int *phase
 ) {
     int i = get_global_id(0);
+    
+    if (phase[i] != PHASE_LIQUID) return;
+    
     float3 epos1 = getVec(eposBuffer, i);
     
     float3 correction = (float3) (0, 0, 0);
     
     int numNeighbours = 1; // start at 1 to prevent divide by zero
     
-    // for (int j = 0; j < get_global_size(0); j++) {
     FOREACH_NEIGHBOUR_j
         
         if (i == j) continue;
@@ -136,7 +128,7 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
         float artificialPressure = -K_P * pow( w_poly6(dist, KERNEL_SIZE) / w_poly6(DQ_P * KERNEL_SIZE, KERNEL_SIZE), E_P );
         
         correction += (lambdas[i] + lambdas[j] + artificialPressure) * grad;
-    // }
+        
     END_FOREACH_NEIGHBOUR_j
     
     
@@ -147,22 +139,21 @@ kernel void add_lambdas(global float *eposBuffer,   // 0
     
 }
 
-kernel void correct_fluid_positions(global float *eposBuffer, global float *corrections) {
-    
-    int i = get_global_id(0);
-    float3 epos = getVec(eposBuffer, i);
-    float3 correction = getVec(corrections, i);
-    epos += correction;
-    setVec(eposBuffer, i, epos);
-}
 
 kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities,
                         global int *cellIDsOfParticles,
                         global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs
+                        global int *sortedParticleIDs,
+                        global int *phase
 ) {
     
     int i = get_global_id(0);
+    
+    if (phase[i] != PHASE_LIQUID) {
+        setVec(vorticities, i, (float3) (0, 0, 0) );
+        return;
+    }
+    
     float3 pos = getVec(posBuffer, i);
     float3 vel = getVec(velBuffer, i);
     
@@ -186,10 +177,17 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
                                         float delta,
                         global int *cellIDsOfParticles,
                         global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs
+                        global int *sortedParticleIDs,
+                        global int *phase
 ) {
     
     int i = get_global_id(0);
+    
+    if (phase[i] != PHASE_LIQUID) {
+        setVec(velCorrect, i, (float3) (0, 0, 0) );
+        return;
+    }
+    
     float3 pos = getVec(posBuffer, i);
     float3 vel = getVec(velBuffer, i);
     float3 vort_i = getVec(vorticities, i);

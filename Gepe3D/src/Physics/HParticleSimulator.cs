@@ -22,16 +22,21 @@ namespace Gepe3D
         public static float REST_DENSITY = 120f;
         
         public static int
-            GridRowsX = 10,
-            GridRowsY = 10,
-            GridRowsZ = 10;
+            GridRowsX = 4,
+            GridRowsY = 4,
+            GridRowsZ = 4;
             
         public static float
             MAX_X = GRID_CELL_WIDTH * GridRowsX,
             MAX_Y = GRID_CELL_WIDTH * GridRowsY,
             MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
         
-        private int NUM_ITERATIONS = 2;
+        private int NUM_ITERATIONS = 1;
+        
+        public static int
+            PHASE_LIQUID = 0,
+            PHASE_SOLID = 1;
+        
         
         
         private readonly CLKernel
@@ -39,15 +44,16 @@ namespace Gepe3D
             kGenNeighbours,     // add particles to bins corresponding to coordinates for easy proximity search
             kDistanceProject,   // project distance constraints (for soft bodies etc)
             kCalcLambdas,       // FLUID - calculate lambda at each particle (scalar for position adjustment)
-            kAddLambdas,        // FLUID - adjust position estimates using lambda values
-            kCorrectFluid,
+            kFluidCorrect,        // FLUID - adjust position estimates using lambda values
+            kCorrectPredictions,
             kUpdateVel,         // update final position and velocity with bounds collision
             kCalcVorticity,
             kApplyVortVisc,
             kCorrectVel,
             kAssignParticlCells,
             kFindCellsStartAndEnd,
-            kSortParticleIDsByCell;
+            kSortParticleIDsByCell,
+            kSolidCorrect;
         
         private readonly CLBuffer
             pos,        // positions
@@ -55,6 +61,7 @@ namespace Gepe3D
             epos,       // estimated positions
             imass,      // inverse masses
             lambdas,    // scalar for position adjustment
+            phase,
             corrections,
             vorticities,
             velCorrect,
@@ -95,19 +102,26 @@ namespace Gepe3D
             string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl");
             string pbdCommonSource       = CLUtils.LoadSource("res/Kernels/pbd_common.cl");
             string fluidProjectSource    = CLUtils.LoadSource("res/Kernels/fluid_project.cl");
+            string solidProjectSource    = CLUtils.LoadSource("res/Kernels/solid_project.cl");
             CLProgram pbdProgram         = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource   );
             CLProgram fluidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
-            this.kPredictPos             = CL.CreateKernel( pbdProgram   , "predict_positions"          , out result);
-            this.kUpdateVel              = CL.CreateKernel( pbdProgram   , "update_velocity"            , out result);
-            this.kCalcLambdas            = CL.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
-            this.kAddLambdas             = CL.CreateKernel( fluidProgram , "add_lambdas"                , out result);
-            this.kCorrectFluid           = CL.CreateKernel( fluidProgram , "correct_fluid_positions"    , out result);
-            this.kCalcVorticity          = CL.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
-            this.kApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
-            this.kCorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
+            CLProgram solidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + solidProjectSource);
+            
             this.kAssignParticlCells     = CL.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
             this.kFindCellsStartAndEnd   = CL.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
             this.kSortParticleIDsByCell  = CL.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
+            
+            this.kPredictPos             = CL.CreateKernel( pbdProgram   , "predict_positions"          , out result);
+            this.kCorrectPredictions     = CL.CreateKernel( pbdProgram   , "correct_predictions"        , out result);
+            this.kUpdateVel              = CL.CreateKernel( pbdProgram   , "update_velocity"            , out result);
+            
+            this.kCalcLambdas            = CL.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
+            this.kFluidCorrect           = CL.CreateKernel( fluidProgram , "calc_fluid_corrections"     , out result);
+            this.kCalcVorticity          = CL.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
+            this.kApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
+            this.kCorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
+            
+            this.kSolidCorrect           = CL.CreateKernel( solidProgram , "calc_solid_corrections"          , out result);
             
             // create buffers
             this.pos         = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
@@ -120,6 +134,7 @@ namespace Gepe3D
             this.velCorrect  = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
             this.debugOut    = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount     , 0);
             
+            this.phase               = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
             this.sortedParticleIDs   = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
             this.cellIDsOfParticles  = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
             this.particleIDinCell    = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
@@ -132,6 +147,14 @@ namespace Gepe3D
                 rands[i] = (float) rand.NextDouble() * 2.5f;
             
             CL.EnqueueWriteBuffer<float>(queue, pos, false, new UIntPtr(), rands, null, out @event);
+                
+            int[] phaseArray = new int[particleCount];
+            for (int i = 0; i< particleCount; i++) {
+                phaseArray[i] = PHASE_SOLID;
+                // if (i < 800) phaseArray[i] = PHASE_SOLID;
+                // else phaseArray[i] = PHASE_LIQUID;
+            }
+            CL.EnqueueWriteBuffer<int>(queue, phase, false, new UIntPtr(), phaseArray, null, out @event);
             
             // ensure fills are completed
             CL.Flush(queue);
@@ -154,6 +177,8 @@ namespace Gepe3D
             defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000") + "f";
             defines += "\n" + "#define KERNEL_SIZE " + GRID_CELL_WIDTH.ToString("0.0000") + "f";
             defines += "\n" + "#define REST_DENSITY " + REST_DENSITY.ToString("0.0000") + "f";
+            defines += "\n" + "#define PHASE_LIQUID " + PHASE_LIQUID;
+            defines += "\n" + "#define PHASE_SOLID " + PHASE_SOLID;
             defines += "\n";
             
             return defines;
@@ -180,12 +205,20 @@ namespace Gepe3D
             CLUtils.EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
                 cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs, debugOut);
             
-            CLUtils.EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, debugOut);
-            CLUtils.EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
-            CLUtils.EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
+            for (int i = 0; i < NUM_ITERATIONS; i++) {
+            
+                CLUtils.EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase, debugOut);
+                CLUtils.EnqueueKernel(queue,  kFluidCorrect     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
+                CLUtils.EnqueueKernel(queue,  kSolidCorrect     , ParticleCount, epos, imass, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
+                
+                CLUtils.EnqueueKernel(queue,  kCorrectPredictions   , ParticleCount, pos, epos, corrections, phase);
+            
+            }
+            
             CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
-            CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
-            CLUtils.EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            
+            CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
+            CLUtils.EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             CLUtils.EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
