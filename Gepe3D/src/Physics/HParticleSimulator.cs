@@ -1,10 +1,6 @@
 
 using System;
-using System.IO;
-using System.Collections.Generic;
-using OpenTK.Mathematics;
 using OpenTK.Compute.OpenCL;
-using System.Linq;
 
 namespace Gepe3D
 {
@@ -37,21 +33,18 @@ namespace Gepe3D
         
         private int NUM_ITERATIONS = 2;
         
-        private List<DistanceConstraint> distanceConstraints;
-        public List<FluidConstraint> fluidConstraints;
         
         private readonly CLKernel
             kPredictPos,        // add external forces then predict positions with euler integration
             kGenNeighbours,     // add particles to bins corresponding to coordinates for easy proximity search
             kDistanceProject,   // project distance constraints (for soft bodies etc)
-            kCalcLambdas,     // FLUID - calculate lambda at each particle (scalar for position adjustment)
+            kCalcLambdas,       // FLUID - calculate lambda at each particle (scalar for position adjustment)
             kAddLambdas,        // FLUID - adjust position estimates using lambda values
             kCorrectFluid,
             kUpdateVel,         // update final position and velocity with bounds collision
             kCalcVorticity,
             kApplyVortVisc,
             kCorrectVel,
-            kResetCellParticleCount,
             kAssignParticlCells,
             kFindCellsStartAndEnd,
             kSortParticleIDsByCell;
@@ -72,30 +65,15 @@ namespace Gepe3D
             particleIDinCell,
             debugOut;
             
-        private float[] debugArray;
-        private int[] sortedIDsDebug;
-        private int[] idInCellDebug;
-        private int[] startAndEndDebug;
-        private int[] numPperCellDebug;
-        private int[] cellIDsDebug;
         
         public HParticleSimulator(int particleCount)
         {
-            sortedIDsDebug = new int[particleCount];
-            idInCellDebug = new int[particleCount];
-            cellIDsDebug = new int[particleCount];
             sortedBufferSize = new UIntPtr( (uint) particleCount * sizeof(int) );
             sortedBufferSizeSmall = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int) );
-            startAndEndDebug = new int[GridRowsX * GridRowsY * GridRowsZ * 2];
-            numPperCellDebug = new int[GridRowsX * GridRowsY * GridRowsZ];
             
             this.ParticleCount = particleCount;
             this.cellCount = GridRowsX * GridRowsY * GridRowsZ;
             PosData = new float[particleCount * 3];
-            
-            
-            distanceConstraints = new List<DistanceConstraint>();
-            fluidConstraints = new List<FluidConstraint>();
             
             
             ///////////////////
@@ -113,90 +91,54 @@ namespace Gepe3D
             this.workDimensions = new UIntPtr[] { new UIntPtr( (uint) particleCount) };
             
             // load kernels
-            
-            string commonFuncSource   = LoadSource("res/Kernels/common_funcs.cl"); // combine with other source strings to add common functions
-            string pbdCommonSource    = LoadSource("res/Kernels/pbd_common.cl");
-            string fluidProjectSource = LoadSource("res/Kernels/fluid_project.cl");
-            
-            string varDefines = GenerateDefines();
-            
-            CLProgram pbdProgram   = BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource);
-            CLProgram fluidProgram = BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
-            
-            this.kPredictPos = CL.CreateKernel(pbdProgram, "predict_positions", out result);
-            this.kUpdateVel = CL.CreateKernel(pbdProgram, "update_velocity", out result);
-            this.kCalcLambdas = CL.CreateKernel(fluidProgram, "calculate_lambdas", out result);
-            this.kAddLambdas = CL.CreateKernel(fluidProgram, "add_lambdas", out result);
-            this.kCorrectFluid = CL.CreateKernel(fluidProgram, "correct_fluid_positions", out result);
-            this.kCalcVorticity = CL.CreateKernel(fluidProgram, "calculate_vorticities", out result);
-            this.kApplyVortVisc = CL.CreateKernel(fluidProgram, "apply_vorticity_viscosity", out result);
-            this.kCorrectVel = CL.CreateKernel(fluidProgram, "correct_fluid_vel", out result);
-            
-            
-            this.kResetCellParticleCount = CL.CreateKernel(pbdProgram, "reset_cell_particle_count", out result);
-            this.kAssignParticlCells  = CL.CreateKernel(pbdProgram, "assign_particle_cells", out result);
-            this.kFindCellsStartAndEnd = CL.CreateKernel(pbdProgram, "find_cells_start_and_end", out result);
-            this.kSortParticleIDsByCell = CL.CreateKernel(pbdProgram, "sort_particle_ids_by_cell", out result);
+            string varDefines            = GenerateDefines(); // combine with other source strings to add common functions
+            string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl");
+            string pbdCommonSource       = CLUtils.LoadSource("res/Kernels/pbd_common.cl");
+            string fluidProjectSource    = CLUtils.LoadSource("res/Kernels/fluid_project.cl");
+            CLProgram pbdProgram         = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource   );
+            CLProgram fluidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
+            this.kPredictPos             = CL.CreateKernel( pbdProgram   , "predict_positions"          , out result);
+            this.kUpdateVel              = CL.CreateKernel( pbdProgram   , "update_velocity"            , out result);
+            this.kCalcLambdas            = CL.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
+            this.kAddLambdas             = CL.CreateKernel( fluidProgram , "add_lambdas"                , out result);
+            this.kCorrectFluid           = CL.CreateKernel( fluidProgram , "correct_fluid_positions"    , out result);
+            this.kCalcVorticity          = CL.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
+            this.kApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
+            this.kCorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
+            this.kAssignParticlCells     = CL.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
+            this.kFindCellsStartAndEnd   = CL.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
+            this.kSortParticleIDsByCell  = CL.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
             
             // create buffers
-            UIntPtr bufferSize3 = new UIntPtr( (uint) particleCount * 3 * sizeof(float) );
-            UIntPtr bufferSize1 = new UIntPtr( (uint) particleCount * 1 * sizeof(float) );
-            this.pos       = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.vel       = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.epos      = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.imass     = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
-            this.lambdas   = CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize1, new IntPtr(), out result);
-            this.corrections= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.vorticities= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
-            this.velCorrect= CL.CreateBuffer(context, MemoryFlags.ReadWrite, bufferSize3, new IntPtr(), out result);
+            this.pos         = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.vel         = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.epos        = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.imass       = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount     , 1);
+            this.lambdas     = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount     , 0);
+            this.corrections = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.vorticities = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.velCorrect  = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
+            this.debugOut    = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount     , 0);
             
-            UIntPtr intbufferSizeParticles = new UIntPtr( (uint) particleCount * sizeof(int) );
-            UIntPtr intbufferSizeCells     = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int));
-            UIntPtr intbufferSizeCells2     = new UIntPtr( (uint) (GridRowsX * GridRowsY * GridRowsZ) * sizeof(int) * 2 );
-            this.sortedParticleIDs = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
-            this.cellStartAndEndIDs = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeCells2, new IntPtr(), out result);
-            this.cellIDsOfParticles = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
-            this.numParticlesPerCell = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeCells, new IntPtr(), out result);
-            this.particleIDinCell = CL.CreateBuffer(context, MemoryFlags.ReadWrite, intbufferSizeParticles, new IntPtr(), out result);
-            
-            
-            
+            this.sortedParticleIDs   = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
+            this.cellIDsOfParticles  = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
+            this.particleIDinCell    = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount , 0);
+            this.cellStartAndEndIDs  = CLUtils.EnqueueMakeIntBuffer(context, queue, cellCount * 2 , 0);
+            this.numParticlesPerCell = CLUtils.EnqueueMakeIntBuffer(context, queue, cellCount     , 0);
             
             Random rand = new Random();
             float[] rands = new float[particleCount * 3];
             for (int i = 0; i < rands.Length; i++)
                 rands[i] = (float) rand.NextDouble() * 2.5f;
             
-            // fill buffers with zeroes
-            float[] emptyFloat = new float[] {0};
             CL.EnqueueWriteBuffer<float>(queue, pos, false, new UIntPtr(), rands, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, vel      , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, epos     , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, imass    , new float[] {1}, new UIntPtr(), bufferSize1, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, lambdas  , emptyFloat, new UIntPtr(), bufferSize1, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, corrections  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, vorticities  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            CL.EnqueueFillBuffer<float>(queue, velCorrect  , emptyFloat, new UIntPtr(), bufferSize3, null, out @event);
-            
-            int[] emptyInt = new int[] {0};
-            CL.EnqueueFillBuffer<int>(queue, sortedParticleIDs   , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
-            CL.EnqueueFillBuffer<int>(queue, cellStartAndEndIDs  , emptyInt, new UIntPtr(), intbufferSizeCells2, null, out @event);
-            CL.EnqueueFillBuffer<int>(queue, cellIDsOfParticles  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
-            CL.EnqueueFillBuffer<int>(queue, numParticlesPerCell  , emptyInt, new UIntPtr(), intbufferSizeCells, null, out @event);
-            CL.EnqueueFillBuffer<int>(queue, particleIDinCell  , emptyInt, new UIntPtr(), intbufferSizeParticles, null, out @event);
-            
-            
-            int debugSize = particleCount;
-            UIntPtr debugBufferSize = new UIntPtr( (uint) debugSize * sizeof(float) );
-            this.debugOut = CL.CreateBuffer(context, MemoryFlags.ReadWrite, debugBufferSize, new IntPtr(), out result);
-            CL.EnqueueFillBuffer<float>(queue, debugOut  , emptyFloat, new UIntPtr(), debugBufferSize, null, out @event);
-            this.debugArray = new float[debugSize];
             
             // ensure fills are completed
             CL.Flush(queue);
             CL.Finish(queue);
             
         }
+        
         
         // TODO: make this more robust
         private string GenerateDefines()
@@ -227,124 +169,31 @@ namespace Gepe3D
         
         public void Update(float delta)
         {
-            
-            
             CL.EnqueueFillBuffer<int>(queue, sortedParticleIDs  , emptyInt, new UIntPtr(), sortedBufferSize, null, out @event);
             CL.EnqueueFillBuffer<int>(queue, numParticlesPerCell  , emptyInt, new UIntPtr(), sortedBufferSizeSmall, null, out @event);
             
-            EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
+            CLUtils.EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
             
-            // EnqueueKernel(queue, kResetCellParticleCount, cellCount, numParticlesPerCell);
-            EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
+            CLUtils.EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
                 cellIDsOfParticles, particleIDinCell, debugOut);
-            EnqueueKernel(queue, kFindCellsStartAndEnd, cellCount, numParticlesPerCell, cellStartAndEndIDs);
-            EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
+            CLUtils.EnqueueKernel(queue, kFindCellsStartAndEnd, cellCount, numParticlesPerCell, cellStartAndEndIDs);
+            CLUtils.EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
                 cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs, debugOut);
             
-            EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, debugOut);
-            EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
-            EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
-            EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
-            EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
-            EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
-            EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
+            CLUtils.EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, debugOut);
+            CLUtils.EnqueueKernel(queue,  kAddLambdas     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            CLUtils.EnqueueKernel(queue,  kCorrectFluid   , ParticleCount, epos, corrections);
+            CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
+            CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            CLUtils.EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs);
+            CLUtils.EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
-            
-            // CL.EnqueueReadBuffer<float>(queue, debugOut, false, new UIntPtr(), debugArray, null, out @event);
-            // CL.EnqueueReadBuffer<int>(queue, sortedParticleIDs, false, new UIntPtr(), sortedIDsDebug, null, out @event);
-            // CL.EnqueueReadBuffer<int>(queue, cellStartAndEndIDs, false, new UIntPtr(), startAndEndDebug, null, out @event); // !
-            // CL.EnqueueReadBuffer<int>(queue, numParticlesPerCell, false, new UIntPtr(), numPperCellDebug, null, out @event); // !
-            // CL.EnqueueReadBuffer<int>(queue, particleIDinCell, false, new UIntPtr(), idInCellDebug, null, out @event);
-            // CL.EnqueueReadBuffer<int>(queue, cellIDsOfParticles, false, new UIntPtr(), cellIDsDebug, null, out @event);
             
             CL.Flush(queue);
             CL.Finish(queue);
             
-            yee++;
-            // if (yee % 30 == 0) System.Console.WriteLine( idInCellDebug.Count( n => n == 0 ) );
-            // if (yee % 30 == 0) System.Console.WriteLine(CheckValidSort(sortedIDsDebug) + ", " + CheckValidSort(debugArray));
-            // if (yee == 700) {
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(CheckValidSort(sortedIDsDebug) + ", " + CheckValidSort(debugArray));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", sortedIDsDebug));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", debugArray));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", idInCellDebug));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", startAndEndDebug));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", numPperCellDebug));
-            //     System.Console.WriteLine("\n\n");
-            //     System.Console.WriteLine(string.Join(", ", cellIDsDebug));
-                
-            // }
-            
         }
-        
-        int yee = 0;
-        
-        
-        //////////////////////
-        // Helper Functions //
-        //////////////////////
-        
-        private static int CheckValidSort(int[] sortedIDs) {
-            return sortedIDs.Length - sortedIDs.Distinct().Count();
-        }
-        private static int CheckValidSort(float[] sortedIDs) {
-            return sortedIDs.Length - sortedIDs.Distinct().Count();
-        }
-        
-        
-        private static string LoadSource(string filePath)
-        {
-            filePath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), filePath);
-            return File.ReadAllText(filePath);
-        }
-        
-        private static CLProgram BuildClProgram(CLContext context, CLDevice[] devices, string source)
-        {
-            CLResultCode result;
-            CLProgram program = CL.CreateProgramWithSource(context, source, out result);
-            result = CL.BuildProgram(program, 1, devices, null, new IntPtr(), new IntPtr());
-            
-            if (result != CLResultCode.Success) {
-                System.Console.WriteLine(result);
-                byte[] logParam;
-                CL.GetProgramBuildInfo(program, devices[0], ProgramBuildInfo.Log, out logParam);
-                string error = System.Text.ASCIIEncoding.Default.GetString(logParam);
-                System.Console.WriteLine(error);
-            }
-            return program;
-        }
-        
-        private static void EnqueueKernel(CLCommandQueue queue, CLKernel kernel, int numWorkUnits, params object[] args)
-        {
-            CLResultCode result = CLResultCode.Success;
-            uint argID = 0;
-            foreach (object arg in args)
-            {
-                Type argType = arg.GetType();
-                if (argType == typeof(float)) {
-                    result = CL.SetKernelArg<float>(kernel, argID++, (float) arg);
-                } else if (argType == typeof(int)) {
-                    result = CL.SetKernelArg<int>(kernel, argID++, (int) arg);
-                } else if (argType == typeof(CLBuffer)) {
-                    result = CL.SetKernelArg<CLBuffer>(kernel, argID++, (CLBuffer) arg);
-                } else {
-                    System.Console.WriteLine("Invalid type of kernel argument! Must be float, int or CLBuffer");
-                }
-                if (result != CLResultCode.Success)
-                    System.Console.WriteLine("Kernel argument error: " + result);
-            }
-            UIntPtr[] workDim = new UIntPtr[] { new UIntPtr( (uint) numWorkUnits) };
-            CLEvent @event = new CLEvent();
-            CL.EnqueueNDRangeKernel(queue, kernel, 1, null, workDim, null, 0, null, out @event);
-        }
-        
         
         
     }

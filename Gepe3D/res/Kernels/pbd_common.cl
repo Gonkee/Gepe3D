@@ -49,11 +49,6 @@ kernel void update_velocity(           float delta,         // 0
 }
 
 
-kernel void reset_cell_particle_count(global int *numParticlesPerCell) {
-    
-    int cellID = get_global_id(0);
-    numParticlesPerCell[cellID] = 0;
-}
 
 kernel void assign_particle_cells (global float *eposBuffer,
                                     global int *numParticlesPerCell,
