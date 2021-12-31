@@ -21,20 +21,20 @@ kernel void predict_positions(         float delta,         // 0
     setVec(eposBuffer, i, epos);
 }
 
-kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
+kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase, global int *numConstraints) {
     
     int i = get_global_id(0);
     float3 correction = getVec(corrections, i);
     
     float3 epos = getVec(eposBuffer, i);
-    epos += correction;
+    epos += correction;// / numConstraints[i];
     setVec(eposBuffer, i, epos);
     
-    if (phase[i] == PHASE_SOLID) {
-        float3 pos = getVec(posBuffer, i);
-        pos += correction;
-        setVec(posBuffer, i, pos);
-    }
+    // if (phase[i] == PHASE_SOLID) {
+    //     float3 pos = getVec(posBuffer, i);
+    //     pos += correction;
+    //     setVec(posBuffer, i, pos);
+    // }
     
 }
 

@@ -51,3 +51,56 @@ kernel void calc_solid_corrections (global float *eposBuffer,   // 0
     
     setVec(corrections, i, correction);
 }
+
+
+kernel void solve_dist_constraint( 
+    global float *eposBuffer,
+    global float *imasses,
+    global float *corrections,
+    global int *constraints,
+    global float *distances,
+    int numberOfConstraints
+ ) {
+    int cID = get_global_id(0);
+    
+    
+    // for (int cID = 0; cID < numberOfConstraints; cID++ ) {
+
+        int p1 = constraints[cID * 2 + 0];
+        int p2 = constraints[cID * 2 + 1];
+        float restDist = distances[cID];
+        float imass1 = imasses[p1];
+        float imass2 = imasses[p2];
+        if (imass1 == 0 && imass2 == 0) return;
+
+        float3 epos1 = getVec(eposBuffer, p1);
+        float3 epos2 = getVec(eposBuffer, p2);
+        float3 dir = epos1 - epos2;
+        float displacement = length(dir) - restDist;
+        dir = normalize(dir);
+
+        float w1 = imass1 / (imass1 + imass2);
+        float w2 = imass2 / (imass1 + imass2);
+
+        // float3 correction1 = getVec(corrections, p1);
+        // float3 correction2 = getVec(corrections, p2);
+
+        float3 correction1 = -w1 * displacement * dir;
+        float3 correction2 = +w2 * displacement * dir;
+        
+        // p1.posEstimate += correction1 * stiffnessFac;
+        // p2.posEstimate += correction2 * stiffnessFac;
+        
+        // setVec(corrections, p1, correction1);
+        // setVec(corrections, p2, correction2);
+        atomic_add_global_float( &corrections[p1 * 3 + 0], correction1.x );
+        atomic_add_global_float( &corrections[p1 * 3 + 1], correction1.y );
+        atomic_add_global_float( &corrections[p1 * 3 + 2], correction1.z );
+        
+        atomic_add_global_float( &corrections[p2 * 3 + 0], correction2.x );
+        atomic_add_global_float( &corrections[p2 * 3 + 1], correction2.y );
+        atomic_add_global_float( &corrections[p2 * 3 + 2], correction2.z );
+        
+        
+    // }
+ }
