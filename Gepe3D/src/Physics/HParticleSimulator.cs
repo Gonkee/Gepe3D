@@ -162,7 +162,10 @@ namespace Gepe3D
             // for (int i = 0; i < rands.Length; i++)
             //     rands[i] = (float) rand.NextDouble() * 2.5f;
             int[] numConstraintsArray = new int[particleCount];
-            CubeGenerator.AddCube(0.5f, 0.5f, 0.5f, 2, 2, 2, 10, 10, 10, rands, out constraints, out distances, numConstraintsArray);
+            
+            BallGen.GenBall(1, 2, 1, 1, 10, rands, out constraints, out distances, numConstraintsArray);
+            
+            // CubeGenerator.AddCube(0.5f, 2f, 0.5f, 2, 2, 2, 10, 10, 10, rands, out constraints, out distances, numConstraintsArray);
             // System.Console.WriteLine(string.Join(", ", distances));
             
             this.distConstraintsIDsBuffer = CLUtils.EnqueueMakeIntBuffer(context, queue, constraints.Length, 0);
@@ -240,8 +243,9 @@ namespace Gepe3D
             CLUtils.EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase, debugOut);
             CLUtils.EnqueueKernel(queue,  kFluidCorrect     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             
-            // CLUtils.EnqueueKernel(queue,  kSolidCorrect     , ParticleCount, epos, imass, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
+            CLUtils.EnqueueKernel(queue,  kSolidCorrect     , ParticleCount, epos, imass, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             
+            // CLUtils.EnqueueKernel(queue, kSolveDistConstraints, numDistConstraints, epos, imass, corrections, distConstraintsIDsBuffer, distConstraintsDistancesBuffer, numDistConstraints);
             CLUtils.EnqueueKernel(queue,  kCorrectPredictions   , ParticleCount, pos, epos, corrections, phase, numConstraints);
             
             {
@@ -256,7 +260,6 @@ namespace Gepe3D
                 CL.Flush(queue);
                 CL.Finish(queue);
             }
-            // CLUtils.EnqueueKernel(queue, kSolveDistConstraints, numDistConstraints, epos, imass, corrections, distConstraintsIDsBuffer, distConstraintsDistancesBuffer, numDistConstraints);
             
             
             // }
@@ -278,6 +281,8 @@ namespace Gepe3D
         // jank AF
         private void SolveDistConstraints()
         {
+            float stiffness = 0.1f;
+            float stiffnessFac = 1 - MathF.Pow( 1 - stiffness, 1f / (float) 2 );
             
             for (int cID = 0; cID < distances.Length; cID++ ) {
 
@@ -306,13 +311,13 @@ namespace Gepe3D
                 Vector3 correction1 = -w1 * displacement * dir;
                 Vector3 correction2 = +w2 * displacement * dir;
                 
-                eposData[p1 * 3 + 0] += correction1.X;
-                eposData[p1 * 3 + 1] += correction1.Y;
-                eposData[p1 * 3 + 2] += correction1.Z;
+                eposData[p1 * 3 + 0] += correction1.X * stiffnessFac;
+                eposData[p1 * 3 + 1] += correction1.Y * stiffnessFac;
+                eposData[p1 * 3 + 2] += correction1.Z * stiffnessFac;
                 
-                eposData[p2 * 3 + 0] += correction2.X;
-                eposData[p2 * 3 + 1] += correction2.Y;
-                eposData[p2 * 3 + 2] += correction2.Z;
+                eposData[p2 * 3 + 0] += correction2.X * stiffnessFac;
+                eposData[p2 * 3 + 1] += correction2.Y * stiffnessFac;
+                eposData[p2 * 3 + 2] += correction2.Z * stiffnessFac;
                 
                 // p1.posEstimate += correction1 * stiffnessFac;
                 // p2.posEstimate += correction2 * stiffnessFac;

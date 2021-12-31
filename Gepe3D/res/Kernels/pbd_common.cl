@@ -14,7 +14,7 @@ kernel void predict_positions(         float delta,         // 0
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     
-    vel.y += -1 * delta;
+    vel.y += -3 * delta;
     float3 epos = pos + vel * delta;
     
     setVec( velBuffer, i,  vel);
