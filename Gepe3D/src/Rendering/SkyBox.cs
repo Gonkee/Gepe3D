@@ -2,7 +2,7 @@
 
 namespace Gepe3D
 {
-    public class SkyBox : Renderable
+    public class SkyBox
     {
 
         private static readonly float SIDE_LENGTH = 200;

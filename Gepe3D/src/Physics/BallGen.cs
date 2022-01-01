@@ -52,14 +52,9 @@ namespace Gepe3D
         
         
         public static int GenBall(
-            float x, float y, float z, float radius, int resolution,
-            float[] posData,
-            out int[] constraints,
-            out float[] distances,
-            int[] numConstraints
+            ParticleSystem particleSystem,
+            float x, float y, float z, float radius, int resolution
         ) {
-            
-            List<float> posDataList = new List<float>();
             
             Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
             
@@ -76,10 +71,14 @@ namespace Gepe3D
                         float dist = MathF.Sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
                         
                         if (dist <= radius) {
-                            posDataList.Add( x + offsetX );
-                            posDataList.Add( y + offsetY );
-                            posDataList.Add( z + offsetZ );
                             
+                            particleSystem.SetPhase(particleCount, ParticleSystem.PHASE_SOLID);
+                            particleSystem.SetPos(
+                                particleCount,
+                                x + offsetX, 
+                                y + offsetY,
+                                z + offsetZ
+                            );
                             coord2id[ new Vector3i(px, py, pz) ] = particleCount;
                             particleCount++;
                         }
@@ -87,45 +86,24 @@ namespace Gepe3D
                 }
             }
             
-            List<int> constraintsList = new List<int>();
-            List<float> distList = new List<float>();
-            
             foreach (KeyValuePair<Vector3i, int> pair in coord2id)
             {
                 Vector3i coord = pair.Key;
-                
                 foreach ( (Vector3i, Vector3i) connect in connections)
                 {
                     Vector3i c1 = coord + connect.Item1;
                     Vector3i c2 = coord + connect.Item2;
-                    
                     if (coord2id.ContainsKey(c1) && coord2id.ContainsKey(c2))
                     {
                         int p1 = coord2id[c1];
                         int p2 = coord2id[c2];
-                        
-                        Vector3 pos1 = new Vector3( posDataList[p1 * 3 + 0], posDataList[p1 * 3 + 1], posDataList[p1 * 3 + 2] );
-                        Vector3 pos2 = new Vector3( posDataList[p2 * 3 + 0], posDataList[p2 * 3 + 1], posDataList[p2 * 3 + 2] );
+                        Vector3 pos1 = particleSystem.GetPos(p1);
+                        Vector3 pos2 = particleSystem.GetPos(p2);
                         float dist = (pos1 - pos2).Length;
-                        
-                        constraintsList.Add(p1);
-                        constraintsList.Add(p2);
-                        distList.Add(dist);
-                        
-                        numConstraints[p1]++;
-                        numConstraints[p2]++;
+                        particleSystem.AddDistConstraint(p1, p2, dist);
                     }
                 }
             }
-            
-            
-            constraints = constraintsList.ToArray();
-            distances = distList.ToArray();
-            
-            for (int i = 0; i < Math.Min(posData.Length, posDataList.Count); i++) {
-                posData[i] = posDataList[i];
-            }
-            
             return particleCount;
             
         }

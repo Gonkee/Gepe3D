@@ -21,7 +21,7 @@ kernel void predict_positions(         float delta,         // 0
     setVec(eposBuffer, i, epos);
 }
 
-kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase, global int *numConstraints) {
+kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
     
     int i = get_global_id(0);
     float3 correction = getVec(corrections, i);

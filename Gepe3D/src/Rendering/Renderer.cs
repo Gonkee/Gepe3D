@@ -65,11 +65,6 @@ namespace Gepe3D
         }
     
         
-        public void Render(Renderable renderable)
-        {
-            renderable.Render(this);
-        }
-        
         public Shader UseShader(string shaderName)
         {
             shaders[shaderName].Use();

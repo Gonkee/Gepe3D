@@ -1,5 +1,5 @@
 
-using System.Collections.Generic;
+using System;
 using OpenTK.Mathematics;
 using System.Diagnostics;
 
@@ -20,8 +20,7 @@ namespace Gepe3D
         private readonly Renderer renderer;
         
         
-        public ParticleRenderer prenderer;
-        public HParticleSimulator hsimulator;
+        public ParticleSystem particleSystem;
         
         int tickCount = 0;
         long cumulativeFrameTime = 0;
@@ -33,36 +32,10 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            hsimulator = new HParticleSimulator(5000);
-            prenderer = new ParticleRenderer(5000, hsimulator);
-            
-            // hparticles = new HardwareParticles(7, 7, 7);
+            particleSystem = new ParticleSystem(5000);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
-            
-            //CubeGenerator.AddCube(
-            //    simulator,
-            //    -0.5f, -0.5f, -0.5f,
-            //    1, 1, 1,
-            //    10, 10, 10
-            //);
-
-            // CubeLiquidGenerator.AddCube(
-            //     hsimulator,
-            //     0, 0, 0,
-            //     1, 1, 1,
-            //     10, 10, 10
-            // );
-
-
-
-            //ClothGenerator.AddCloth(
-            //    simulator,
-            //    -0.5f, 0.5f, -0.5f,
-            //    1, 1,
-            //    6, 6
-            //);
 
             _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
             _entityShader.Use();
@@ -83,11 +56,9 @@ namespace Gepe3D
             activeCam.Update(delta);
             
 
-
             long time = stopwatch.ElapsedMilliseconds;
 
-            hsimulator.Update(delta);
-            // hparticles.Update(delta);
+            particleSystem.Update(delta);
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
             tickCount++;
@@ -105,15 +76,33 @@ namespace Gepe3D
             activeCam.MouseInput(window.MouseState.Delta);
 
             renderer.Prepare(this);
-            renderer.Render(skyBox);
             
-            prenderer.Render(renderer);
-            // hparticles.Render(renderer);
+            skyBox.Render(renderer);
+            
+            particleSystem.Render(renderer);
             
         }
         
         private void Init()
         {
+            Random rand = new Random();
+            for (int i = 0; i < particleSystem.ParticleCount; i++) {
+                float x = (float) rand.NextDouble() * ParticleSystem.MAX_X;
+                float y = (float) rand.NextDouble() * ParticleSystem.MAX_Y * 0.7f;
+                float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z * 0.3f + ParticleSystem.MAX_Z * 0.7f;
+                particleSystem.SetPos(i, x, y, z);
+                particleSystem.SetPhase(i, ParticleSystem.PHASE_LIQUID);
+            }
+            
+            int solidParticleCount = BallGen.GenBall(
+                particleSystem,
+                ParticleSystem.MAX_X * 0.5f,
+                1.1f,
+                ParticleSystem.MAX_Z * 0.3f,
+                1, 12
+            );
+                
+            
         }
         
     }
