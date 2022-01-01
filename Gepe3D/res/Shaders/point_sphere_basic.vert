@@ -32,5 +32,7 @@ void main()
     // if (gl_InstanceID % 3 == 0) instanceAlbedo = vec4(1, 0, 0, 1);
     // if (gl_InstanceID % 3 == 1) instanceAlbedo = vec4(0, 1, 0, 1);
     // if (gl_InstanceID % 3 == 2) instanceAlbedo = vec4(0, 0, 1, 1);
-    instanceAlbedo = vec4(1, 0, 0, 1);
+    
+    // if (gl_InstanceID < 672) instanceAlbedo = vec4(1, 0.6, 0, 1);
+    instanceAlbedo = vec4(0, 0.8, 1, 1);
 }

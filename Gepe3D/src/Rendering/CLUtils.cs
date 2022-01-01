@@ -78,6 +78,22 @@ namespace Gepe3D
             return buffer;
         }
         
+        public static void EnqueueFillIntBuffer(CLCommandQueue queue, CLBuffer buffer, int fillValue, int numEntries)
+        {
+            CLEvent @event;
+            UIntPtr bufferSize = new UIntPtr( (uint) numEntries * sizeof(int) );
+            int[] fillArray = new int[] {fillValue};
+            CL.EnqueueFillBuffer<int>(queue, buffer, fillArray, new UIntPtr(), bufferSize, null, out @event);
+        }
+        
+        public static void EnqueueFillFloatBuffer(CLCommandQueue queue, CLBuffer buffer, float fillValue, int numEntries)
+        {
+            CLEvent @event;
+            UIntPtr bufferSize = new UIntPtr( (uint) numEntries * sizeof(float) );
+            float[] fillArray = new float[] {fillValue};
+            CL.EnqueueFillBuffer<float>(queue, buffer, fillArray, new UIntPtr(), bufferSize, null, out @event);
+        }
+        
         
     }
 }

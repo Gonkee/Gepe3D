@@ -73,12 +73,6 @@ namespace Gepe3D
                         ty = MathHelper.Lerp(y, y + yLength, py / (yRes - 1f) );
                         tz = MathHelper.Lerp(z, z + zLength, pz / (zRes - 1f) );
                         
-                        // float dx = tx - (x + xLength / 2);
-                        // float dy = ty - (y + yLength / 2);
-                        // float dz = tz - (z + zLength / 2);
-                        // float dist = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
-                        // if (dist <= )
-                        
 
                         posData[particleCount * 3 + 0] = tx;
                         posData[particleCount * 3 + 1] = ty;

@@ -5,7 +5,7 @@ namespace Gepe3D
     public class ParticleRenderer
     {
         
-        private readonly float PARTICLE_RADIUS = 0.1f;
+        private readonly float PARTICLE_RADIUS = 0.2f;
         private readonly Geometry particleShape;
         
         private readonly int _vaoID;

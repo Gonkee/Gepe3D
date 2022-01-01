@@ -51,7 +51,7 @@ namespace Gepe3D
         }
         
         
-        public static void GenBall(
+        public static int GenBall(
             float x, float y, float z, float radius, int resolution,
             float[] posData,
             out int[] constraints,
@@ -104,8 +104,8 @@ namespace Gepe3D
                         int p1 = coord2id[c1];
                         int p2 = coord2id[c2];
                         
-                        Vector3 pos1 = new Vector3( posData[p1 * 3 + 0], posData[p1 * 3 + 1], posData[p1 * 3 + 2] );
-                        Vector3 pos2 = new Vector3( posData[p2 * 3 + 0], posData[p2 * 3 + 1], posData[p2 * 3 + 2] );
+                        Vector3 pos1 = new Vector3( posDataList[p1 * 3 + 0], posDataList[p1 * 3 + 1], posDataList[p1 * 3 + 2] );
+                        Vector3 pos2 = new Vector3( posDataList[p2 * 3 + 0], posDataList[p2 * 3 + 1], posDataList[p2 * 3 + 2] );
                         float dist = (pos1 - pos2).Length;
                         
                         constraintsList.Add(p1);
@@ -125,6 +125,8 @@ namespace Gepe3D
             for (int i = 0; i < Math.Min(posData.Length, posDataList.Count); i++) {
                 posData[i] = posDataList[i];
             }
+            
+            return particleCount;
             
         }
         

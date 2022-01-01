@@ -33,8 +33,8 @@ namespace Gepe3D
             skyBox = new SkyBox();
             renderer = new Renderer();
             
-            hsimulator = new HParticleSimulator(1000);
-            prenderer = new ParticleRenderer(1000, hsimulator);
+            hsimulator = new HParticleSimulator(5000);
+            prenderer = new ParticleRenderer(5000, hsimulator);
             
             // hparticles = new HardwareParticles(7, 7, 7);
 
