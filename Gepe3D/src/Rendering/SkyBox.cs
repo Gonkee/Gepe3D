@@ -48,8 +48,8 @@ namespace Gepe3D
         {
             
             skyboxShader.Use();
-            skyboxShader.SetVector3("cameraPos", world.activeCam.Position);
-            skyboxShader.SetMatrix4("cameraMatrix", world.activeCam.GetMatrix());
+            skyboxShader.SetVector3("cameraPos", world.character.activeCam.Position);
+            skyboxShader.SetMatrix4("cameraMatrix", world.character.activeCam.GetMatrix());
             
             GLUtils.DrawIndexedVAO(_vaoID, indices.Length);
         }

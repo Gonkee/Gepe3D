@@ -10,7 +10,7 @@ namespace Gepe3D
     {
         
 
-        public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
+        // public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
@@ -18,6 +18,8 @@ namespace Gepe3D
         public SkyBox skyBox;
         
         private int centreParticle;
+        
+        public BallCharacter character;
         
         
         public ParticleSystem particleSystem;
@@ -32,13 +34,32 @@ namespace Gepe3D
             skyBox = new SkyBox();
             
             particleSystem = new ParticleSystem(5000);
+            
+            Random rand = new Random();
+            for (int i = 0; i < particleSystem.ParticleCount; i++) {
+                float x = (float) rand.NextDouble() * ParticleSystem.MAX_X;
+                float y = (float) rand.NextDouble() * ParticleSystem.MAX_Y * 0.7f;
+                float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z * 0.3f + ParticleSystem.MAX_Z * 0.7f;
+                particleSystem.SetPos(i, x, y, z);
+                particleSystem.SetPhase(i, ParticleSystem.PHASE_LIQUID);
+                
+                particleSystem.SetColour( i, 0, 0.5f, 1 );
+            }
+            
+            character = new BallCharacter(
+                particleSystem,
+                ParticleSystem.MAX_X * 0.5f,
+                1.1f,
+                ParticleSystem.MAX_Z * 0.3f,
+                1, 12
+            );
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
 
 
-            activeCam.Position = new Vector3( -2, 2f, 0 );
-            activeCam.LookAt(1, 1, 1);
+            // activeCam.Position = new Vector3( -2, 2f, 0 );
+            // activeCam.LookAt(1, 1, 1);
             
             Init();
         }
@@ -49,7 +70,8 @@ namespace Gepe3D
             float delta = 0.01f;
             Global.Elapsed += delta;
             
-            activeCam.Update(delta);
+            // activeCam.Update(delta);
+            character.Update(delta);
             
             long time = stopwatch.ElapsedMilliseconds;
 
@@ -82,7 +104,9 @@ namespace Gepe3D
         
         public override void Render()
         {
-            activeCam.MouseInput(window.MouseState.Delta);
+            // activeCam.MouseInput(window.MouseState.Delta);
+            
+            character.MouseMovementUpdate(window.MouseState.Delta);
             
             
             skyBox.Render(this);
@@ -93,25 +117,14 @@ namespace Gepe3D
         
         private void Init()
         {
-            Random rand = new Random();
-            for (int i = 0; i < particleSystem.ParticleCount; i++) {
-                float x = (float) rand.NextDouble() * ParticleSystem.MAX_X;
-                float y = (float) rand.NextDouble() * ParticleSystem.MAX_Y * 0.7f;
-                float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z * 0.3f + ParticleSystem.MAX_Z * 0.7f;
-                particleSystem.SetPos(i, x, y, z);
-                particleSystem.SetPhase(i, ParticleSystem.PHASE_LIQUID);
-                
-                particleSystem.SetColour( i, 0, 0.5f, 1 );
-                
-            }
             
-            centreParticle = BallGen.GenBall(
-                particleSystem,
-                ParticleSystem.MAX_X * 0.5f,
-                1.1f,
-                ParticleSystem.MAX_Z * 0.3f,
-                1, 12
-            );
+            // centreParticle = BallGen.GenBall(
+            //     particleSystem,
+            //     ParticleSystem.MAX_X * 0.5f,
+            //     1.1f,
+            //     ParticleSystem.MAX_Z * 0.3f,
+            //     1, 12
+            // );
                 
             
         }

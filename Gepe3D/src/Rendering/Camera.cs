@@ -114,7 +114,7 @@ namespace Gepe3D
             Position = pos;
         }
 
-        private void UpdateLocalVectors()
+        public void UpdateLocalVectors()
         {
             _localForward.X = MathF.Cos( MathHelper.DegreesToRadians(pitch) ) * MathF.Cos( MathHelper.DegreesToRadians(yaw) );
             _localForward.Y = MathF.Sin( MathHelper.DegreesToRadians(pitch) );

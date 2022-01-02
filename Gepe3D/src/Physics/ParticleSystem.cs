@@ -44,8 +44,8 @@ namespace Gepe3D
         public static float REST_DENSITY = 80f;
         
         public static int
-            GridRowsX = 10,
-            GridRowsY = 12,
+            GridRowsX = 12,
+            GridRowsY = 10,
             GridRowsZ = 12;
             
         public static float
@@ -308,8 +308,8 @@ namespace Gepe3D
             
             particleShader.Use();
             particleShader.SetVector3("lightPos", world.lightPos);
-            particleShader.SetMatrix4("viewMatrix", world.activeCam.GetViewMatrix());
-            particleShader.SetMatrix4("projectionMatrix", world.activeCam.GetProjectionMatrix());
+            particleShader.SetMatrix4("viewMatrix", world.character.activeCam.GetViewMatrix());
+            particleShader.SetMatrix4("projectionMatrix", world.character.activeCam.GetProjectionMatrix());
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             
             GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, ParticleCount);
