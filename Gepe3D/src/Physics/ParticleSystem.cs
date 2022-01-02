@@ -16,9 +16,10 @@ namespace Gepe3D
         
         private readonly int _vaoID;
         private readonly int _meshVBO_ID;
-        private readonly int _instanceVBO_ID;
+        private readonly int instancePositions;
+        private readonly int instanceColours;
         
-        
+        private Shader particleShader;
         
         //Update
         
@@ -29,6 +30,10 @@ namespace Gepe3D
         public readonly int ParticleCount;
         private readonly int cellCount;
         public readonly float[] PosData;
+        public readonly float[] velData;
+        
+        private readonly float[] colourData;
+        
         int[] phaseArray;
         
         float[] eposData;
@@ -98,6 +103,7 @@ namespace Gepe3D
         
         bool
             posDirty = false,
+            velDirty = false,
             phaseDirty = false,
             colourDirty = false;
         
@@ -113,6 +119,8 @@ namespace Gepe3D
             this.ParticleCount = particleCount;
             this.cellCount = GridRowsX * GridRowsY * GridRowsZ;
             PosData = new float[particleCount * 3];
+            velData = new float[particleCount * 3];
+            colourData = new float[particleCount * 3];
             eposData = new float[particleCount * 3];
             phaseArray = new int[particleCount];
             
@@ -185,17 +193,20 @@ namespace Gepe3D
             
             // Render
             
+            particleShader = new Shader("res/Shaders/point_sphere_basic.vert", "res/Shaders/point_sphere_basic.frag");
             
             particleShape = GeometryGenerator.GenQuad(PARTICLE_RADIUS, PARTICLE_RADIUS);
             
             float[] vertexData = particleShape.GenerateVertexData();
             _vaoID = GLUtils.GenVAO();
             _meshVBO_ID = GLUtils.GenVBO(vertexData);
-            _instanceVBO_ID = GLUtils.GenVBO( PosData );
+            instancePositions = GLUtils.GenVBO( PosData );
+            instanceColours = GLUtils.GenVBO( colourData );
 
             GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 0, 3, particleShape.FloatsPerVertex, 0); // vertex positions
             GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 1, 3, particleShape.FloatsPerVertex, 0); // vertex normals
-            GLUtils.VaoInstanceFloatAttrib(_vaoID, _instanceVBO_ID, 2, 3, 3, 0);
+            GLUtils.VaoInstanceFloatAttrib(_vaoID, instancePositions, 2, 3, 3, 0);
+            GLUtils.VaoInstanceFloatAttrib(_vaoID, instanceColours, 3, 3, 3, 0);
             
             
         }
@@ -210,9 +221,38 @@ namespace Gepe3D
             posDirty = true;
         }
         
+        public void AddPos(int id, float x, float y, float z)
+        {
+            PosData[id * 3 + 0] += x;
+            PosData[id * 3 + 1] += y;
+            PosData[id * 3 + 2] += z;
+            posDirty = true;
+        }
+        
         public Vector3 GetPos(int id)
         {
             return new Vector3( PosData[id * 3 + 0], PosData[id * 3 + 1], PosData[id * 3 + 2] );
+        }
+        
+        public void SetVel(int id, float x, float y, float z)
+        {
+            velData[id * 3 + 0] = x;
+            velData[id * 3 + 1] = y;
+            velData[id * 3 + 2] = z;
+            velDirty = true;
+        }
+        
+        public void AddVel(int id, float x, float y, float z)
+        {
+            velData[id * 3 + 0] += x;
+            velData[id * 3 + 1] += y;
+            velData[id * 3 + 2] += z;
+            velDirty = true;
+        }
+        
+        public Vector3 GetVel(int id)
+        {
+            return new Vector3( velData[id * 3 + 0], velData[id * 3 + 1], velData[id * 3 + 2] );
         }
         
         public void SetPhase(int id, int phase)
@@ -221,9 +261,12 @@ namespace Gepe3D
             phaseDirty = true;
         }
         
-        public void SetColour()
+        public void SetColour(int id, float r, float g, float b)
         {
-            
+            colourData[id * 3 + 0] = r;
+            colourData[id * 3 + 1] = g;
+            colourData[id * 3 + 2] = b;
+            colourDirty = true;
         }
         
         public void AddDistConstraint(int id1, int id2, float dist)
@@ -254,15 +297,20 @@ namespace Gepe3D
         }
         
         
-        public void Render(Renderer renderer)
+        public void Render(World world)
         {
-            GLUtils.ReplaceBufferData(_instanceVBO_ID, PosData );
             
-            Shader shader = renderer.UseShader("point_sphere_basic");
-            shader.SetVector3("lightPos", renderer.LightPos);
-            shader.SetMatrix4("viewMatrix", renderer.Camera.GetViewMatrix());
-            shader.SetMatrix4("projectionMatrix", renderer.Camera.GetProjectionMatrix());
-            shader.SetFloat("particleRadius", PARTICLE_RADIUS);
+            if (colourDirty) {
+                GLUtils.ReplaceBufferData(instanceColours, colourData );
+                colourDirty = false;
+            }
+            GLUtils.ReplaceBufferData(instancePositions, PosData );
+            
+            particleShader.Use();
+            particleShader.SetVector3("lightPos", world.lightPos);
+            particleShader.SetMatrix4("viewMatrix", world.activeCam.GetViewMatrix());
+            particleShader.SetMatrix4("projectionMatrix", world.activeCam.GetProjectionMatrix());
+            particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             
             GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, ParticleCount);
             
@@ -277,6 +325,11 @@ namespace Gepe3D
             if (posDirty) {
                 CL.EnqueueWriteBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
                 posDirty = false;
+            }
+            
+            if (velDirty) {
+                CL.EnqueueWriteBuffer<float>(queue, vel, false, new UIntPtr(), velData, null, out @event);
+                velDirty = false;
             }
             
             if (phaseDirty) {
@@ -330,6 +383,7 @@ namespace Gepe3D
             CLUtils.EnqueueKernel(queue,  kCorrectVel     , ParticleCount, vel, velCorrect);
             
             CL.EnqueueReadBuffer<float>(queue, pos, false, new UIntPtr(), PosData, null, out @event);
+            CL.EnqueueReadBuffer<float>(queue, vel, false, new UIntPtr(), velData, null, out @event);
             
             CL.Flush(queue);
             CL.Finish(queue);

@@ -58,6 +58,9 @@ namespace Gepe3D
             
             Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
             
+            int centreParticle = 0;
+            float closestDist = float.MaxValue;
+            
             int particleCount = 0;
             for (int px = 0; px < resolution; px++)
             {
@@ -73,13 +76,21 @@ namespace Gepe3D
                         if (dist <= radius) {
                             
                             particleSystem.SetPhase(particleCount, ParticleSystem.PHASE_SOLID);
+                            particleSystem.SetColour(particleCount, 1, 0.6f, 0);
+                            
                             particleSystem.SetPos(
                                 particleCount,
-                                x + offsetX, 
+                                x + offsetX,
                                 y + offsetY,
                                 z + offsetZ
                             );
                             coord2id[ new Vector3i(px, py, pz) ] = particleCount;
+                            
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                centreParticle = particleCount;
+                            }
+                            
                             particleCount++;
                         }
                     }
@@ -104,7 +115,7 @@ namespace Gepe3D
                     }
                 }
             }
-            return particleCount;
+            return centreParticle;
             
         }
         

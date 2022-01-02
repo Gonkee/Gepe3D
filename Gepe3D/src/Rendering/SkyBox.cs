@@ -29,6 +29,8 @@ namespace Gepe3D
 
         private int _vboID, _vaoID;
         
+        
+        private readonly Shader skyboxShader;
 
         public SkyBox()
         {
@@ -37,14 +39,17 @@ namespace Gepe3D
             GLUtils.VaoFloatAttrib(_vaoID, _vboID, 0, 3, 3, 0);
             GLUtils.AttachEBO(_vaoID, indices);
             
+            skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
+            
         }
 
         
-        public void Render(Renderer renderer)
+        public void Render(World world)
         {
-            Shader shader = renderer.UseShader("skybox");
-            shader.SetVector3("cameraPos", renderer.CameraPos);
-            shader.SetMatrix4("cameraMatrix", renderer.CameraMatrix);
+            
+            skyboxShader.Use();
+            skyboxShader.SetVector3("cameraPos", world.activeCam.Position);
+            skyboxShader.SetMatrix4("cameraMatrix", world.activeCam.GetMatrix());
             
             GLUtils.DrawIndexedVAO(_vaoID, indices.Length);
         }

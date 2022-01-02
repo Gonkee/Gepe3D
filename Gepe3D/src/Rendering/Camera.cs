@@ -95,7 +95,23 @@ namespace Gepe3D
 
             pitch = MathHelper.RadiansToDegrees( MathF.Atan2(dy, horizontalDist) );
             yaw =   MathHelper.RadiansToDegrees( MathF.Atan2(dz, dx) );
+        }
 
+        public void LookAt(Vector3 lookAt)
+        {
+            float dx = lookAt.X - Position.X;
+            float dy = lookAt.Y - Position.Y;
+            float dz = lookAt.Z - Position.Z;
+            float horizontalDist = MathF.Sqrt(dx * dx + dz * dz);
+            if (horizontalDist == 0) return;
+
+            pitch = MathHelper.RadiansToDegrees( MathF.Atan2(dy, horizontalDist) );
+            yaw =   MathHelper.RadiansToDegrees( MathF.Atan2(dz, dx) );
+        }
+        
+        public void SetPos(Vector3 pos)
+        {
+            Position = pos;
         }
 
         private void UpdateLocalVectors()

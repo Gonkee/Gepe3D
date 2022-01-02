@@ -2,13 +2,13 @@
 using System;
 using OpenTK.Mathematics;
 using System.Diagnostics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Gepe3D
 {
     public class World : Scene
     {
         
-        private Shader _entityShader;
 
         public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
@@ -17,7 +17,7 @@ namespace Gepe3D
 
         public SkyBox skyBox;
         
-        private readonly Renderer renderer;
+        private int centreParticle;
         
         
         public ParticleSystem particleSystem;
@@ -30,16 +30,12 @@ namespace Gepe3D
         public World(MainWindow window) : base(window)
         {
             skyBox = new SkyBox();
-            renderer = new Renderer();
             
             particleSystem = new ParticleSystem(5000);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            _entityShader = new Shader("res/Shaders/entity.vert", "res/Shaders/entity.frag");
-            _entityShader.Use();
-            _entityShader.SetVector3("lightPos", lightPos);
 
             activeCam.Position = new Vector3( -2, 2f, 0 );
             activeCam.LookAt(1, 1, 1);
@@ -55,12 +51,12 @@ namespace Gepe3D
             
             activeCam.Update(delta);
             
-
             long time = stopwatch.ElapsedMilliseconds;
 
             particleSystem.Update(delta);
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
+            
             tickCount++;
             if (tickCount >= AVG_FRAME_COUNT)
             { 
@@ -69,17 +65,29 @@ namespace Gepe3D
                 tickCount = 0;
                 cumulativeFrameTime = 0;
             }
+            
+            // Vector3 ballPos = particleSystem.GetPos(centreParticle);
+            // activeCam.LookAt(ballPos);
+            // activeCam.SetPos(ballPos + new Vector3(5f, 4, 0));
+            if ( Global.IsKeyDown(Keys.J) )
+            {
+                
+                for (int i = 0; i < 500; i++) {
+                    particleSystem.AddVel(i, 0, 0.1f, 0);
+                }
+                
+            }
+            
         }
         
         public override void Render()
         {
             activeCam.MouseInput(window.MouseState.Delta);
-
-            renderer.Prepare(this);
             
-            skyBox.Render(renderer);
             
-            particleSystem.Render(renderer);
+            skyBox.Render(this);
+            
+            particleSystem.Render(this);
             
         }
         
@@ -92,9 +100,12 @@ namespace Gepe3D
                 float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z * 0.3f + ParticleSystem.MAX_Z * 0.7f;
                 particleSystem.SetPos(i, x, y, z);
                 particleSystem.SetPhase(i, ParticleSystem.PHASE_LIQUID);
+                
+                particleSystem.SetColour( i, 0, 0.5f, 1 );
+                
             }
             
-            int solidParticleCount = BallGen.GenBall(
+            centreParticle = BallGen.GenBall(
                 particleSystem,
                 ParticleSystem.MAX_X * 0.5f,
                 1.1f,

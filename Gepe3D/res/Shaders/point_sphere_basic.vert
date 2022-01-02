@@ -3,6 +3,7 @@
 layout(location = 0) in vec3 vertexPosition;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 instancePosition;
+layout(location = 3) in vec3 instanceColour;
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
@@ -29,10 +30,5 @@ void main()
     texCoords = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
     viewSpaceSphereCenter = ( viewMatrix * vec4(instancePosition, 1.0) ).xyz;
     
-    // if (gl_InstanceID % 3 == 0) instanceAlbedo = vec4(1, 0, 0, 1);
-    // if (gl_InstanceID % 3 == 1) instanceAlbedo = vec4(0, 1, 0, 1);
-    // if (gl_InstanceID % 3 == 2) instanceAlbedo = vec4(0, 0, 1, 1);
-    
-    // if (gl_InstanceID < 672) instanceAlbedo = vec4(1, 0.6, 0, 1);
-    instanceAlbedo = vec4(0, 0.8, 1, 1);
+    instanceAlbedo = vec4(instanceColour, 1);
 }
