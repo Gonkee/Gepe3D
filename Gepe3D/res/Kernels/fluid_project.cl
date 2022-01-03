@@ -3,7 +3,7 @@
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
-// PHASE_LIQUID, PHASE_SOLID
+// PHASE_LIQUID, PHASE_SOLID, PHASE_STATIC
 
 
 
@@ -27,9 +27,6 @@ float w_poly6(float dist, float h) {
     return ( 315.0f / (64.0f * PI * pow(h, 9)) ) * tmp * tmp * tmp;
 }
 
-
-// TODO: neighbour finding so it only loops through ~50 particles instead of 3000
-// TODO: make spiky grad func return a float3 instead (more convenient)
 
 float w_spikygrad(float dist, float h) {
     dist = clamp(dist, (float) 0, (float) h);

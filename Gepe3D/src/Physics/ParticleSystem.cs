@@ -38,6 +38,8 @@ namespace Gepe3D
         
         float[] eposData;
         
+        private readonly Vector3 GRAVITY = new Vector3(-3, -6, 0);
+        
         
         public static float GRID_CELL_WIDTH = 0.6f; // used for the fluid effect radius
         
@@ -57,7 +59,8 @@ namespace Gepe3D
         
         public static int
             PHASE_LIQUID = 0,
-            PHASE_SOLID = 1;
+            PHASE_SOLID = 1,
+            PHASE_STATIC = 2;
         
         
         
@@ -291,6 +294,7 @@ namespace Gepe3D
             defines += "\n" + "#define REST_DENSITY " + REST_DENSITY.ToString("0.0000") + "f";
             defines += "\n" + "#define PHASE_LIQUID " + PHASE_LIQUID;
             defines += "\n" + "#define PHASE_SOLID " + PHASE_SOLID;
+            defines += "\n" + "#define PHASE_STATIC " + PHASE_STATIC;
             defines += "\n";
             
             return defines;
@@ -342,7 +346,7 @@ namespace Gepe3D
             CLUtils.EnqueueFillIntBuffer(queue, numParticlesPerCell, 0, cellCount);
             CLUtils.EnqueueFillFloatBuffer(queue, corrections, 0, ParticleCount * 3);
             
-            CLUtils.EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos);
+            CLUtils.EnqueueKernel(queue,  kPredictPos     , ParticleCount, delta, pos, vel, epos, phase, GRAVITY.X, GRAVITY.Y, GRAVITY.Z);
             
             CLUtils.EnqueueKernel(queue, kAssignParticlCells, ParticleCount, epos, numParticlesPerCell,
                 cellIDsOfParticles, particleIDinCell, debugOut);
@@ -376,7 +380,7 @@ namespace Gepe3D
             
             // }
             
-            CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos);
+            CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos, phase);
             
             CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             CLUtils.EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);

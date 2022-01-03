@@ -3,18 +3,29 @@
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
-// PHASE_LIQUID, PHASE_SOLID
+// PHASE_LIQUID, PHASE_SOLID, PHASE_STATIC
+
+#define MAX_VEL 5
+
 
 kernel void predict_positions(         float delta,         // 0
                                 global float *posBuffer,    // 1
                                 global float *velBuffer,    // 2
-                                global float *eposBuffer    // 3
+                                global float *eposBuffer,   // 3
+                                global int *phase,
+                                float gravityX,
+                                float gravityY,
+                                float gravityZ
 ) {
     int i = get_global_id(0);
+    if (phase[i] == PHASE_STATIC) return;
+    
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     
-    vel.y += -3 * delta;
+    vel.x += gravityX * delta;
+    vel.y += gravityY * delta;
+    vel.z += gravityZ * delta;
     float3 epos = pos + vel * delta;
     
     setVec( velBuffer, i,  vel);
@@ -24,6 +35,8 @@ kernel void predict_positions(         float delta,         // 0
 kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
     
     int i = get_global_id(0);
+    if (phase[i] == PHASE_STATIC) return;
+    
     float3 correction = getVec(corrections, i);
     
     float3 epos = getVec(eposBuffer, i);
@@ -41,9 +54,12 @@ kernel void correct_predictions(global float *posBuffer, global float *eposBuffe
 kernel void update_velocity(           float delta,         // 0
                                 global float *posBuffer,    // 1
                                 global float *velBuffer,    // 2
-                                global float *eposBuffer    // 3
+                                global float *eposBuffer,   // 3
+                                global int *phase
 ) {
     int i = get_global_id(0);
+    if (phase[i] == PHASE_STATIC) return;
+    
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     float3 epos = getVec(eposBuffer, i);
@@ -51,14 +67,24 @@ kernel void update_velocity(           float delta,         // 0
     vel = (epos - pos) / delta;
     pos = epos;
     
-    if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
-    else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
+    if (phase[i] == PHASE_LIQUID) {
+        if (pos.x <     0) pos.x = MAX_X - 0.01f;
+        if (pos.x > MAX_X) pos.x =     0 + 0.01f;
+    }
+    
+    else {
+        if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
+        else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
+    }
+    
     
     if      (pos.y <     0) {  pos.y =     0;  vel.y = fmax( (float) 0, (float) vel.y);  }
     else if (pos.y > MAX_Y) {  pos.y = MAX_Y;  vel.y = fmin( (float) 0, (float) vel.y);  }
     
     if      (pos.z <     0) {  pos.z =     0;  vel.z = fmax( (float) 0, (float) vel.z);  }
     else if (pos.z > MAX_Z) {  pos.z = MAX_Z;  vel.z = fmin( (float) 0, (float) vel.z);  }
+    
+    if (length(vel) > MAX_VEL) vel = normalize(vel) * MAX_VEL;
     
     setVec( posBuffer, i,  pos);
     setVec( velBuffer, i,  vel);

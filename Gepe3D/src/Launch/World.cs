@@ -53,6 +53,8 @@ namespace Gepe3D
                 ParticleSystem.MAX_Z * 0.3f,
                 1, 12
             );
+            
+            GenSpike(3, 3, 2f, 1f, 800);
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -118,16 +120,49 @@ namespace Gepe3D
         private void Init()
         {
             
-            // centreParticle = BallGen.GenBall(
-            //     particleSystem,
-            //     ParticleSystem.MAX_X * 0.5f,
-            //     1.1f,
-            //     ParticleSystem.MAX_Z * 0.3f,
-            //     1, 12
-            // );
-                
-            
         }
+        
+        
+        private void GenSpike(float x, float z, float height, float radius, int startID)
+        {
+            
+            float gap = 0.15f;
+            int xzRes = (int) (radius * 2 / gap);
+            int  yRes = (int) (height / gap);
+            
+            
+            int currentID = startID;
+            
+            for (int py = 0; py < yRes; py++)
+            {
+                for (int px = 0; px < xzRes; px++)
+                {
+                    for (int pz = 0; pz < xzRes; pz++)
+                    {
+                        float offsetY = MathHelper.Lerp( 0, height, py / (yRes - 1f) );
+                        float offsetX = MathHelper.Lerp( -radius, +radius, px / (xzRes - 1f) );
+                        float offsetZ = MathHelper.Lerp( -radius, +radius, pz / (xzRes - 1f) );
+                        float horDist = MathF.Sqrt(offsetX * offsetX + offsetZ * offsetZ);
+                        
+                        if (horDist <= MathHelper.Lerp(radius, 0, offsetY / height)) {
+                            
+                            particleSystem.SetPhase(currentID, ParticleSystem.PHASE_STATIC);
+                            particleSystem.SetColour(currentID, 0.2f, 0.2f, 0.2f);
+                            
+                            particleSystem.SetPos(
+                                currentID,
+                                x + offsetX,
+                                offsetY,
+                                z + offsetZ
+                            );
+                            
+                            currentID++;
+                        }
+                    }
+                }
+            }
+        }
+        
         
     }
 }

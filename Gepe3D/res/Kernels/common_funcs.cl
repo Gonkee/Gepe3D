@@ -3,7 +3,7 @@
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
-// PHASE_LIQUID, PHASE_SOLID
+// PHASE_LIQUID, PHASE_SOLID, PHASE_STATIC
 
 
 // code to gather neighbours, must match input buffer names for particle ids, try not to use var names that might overlap
