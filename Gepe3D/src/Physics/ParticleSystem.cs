@@ -78,8 +78,7 @@ namespace Gepe3D
             kAssignParticlCells,
             kFindCellsStartAndEnd,
             kSortParticleIDsByCell,
-            kSolidCorrect,
-            kSolveDistConstraints;
+            kSolidCorrect;
         
         private readonly CLBuffer
             pos,        // positions
@@ -166,7 +165,6 @@ namespace Gepe3D
             this.kCorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
             
             this.kSolidCorrect           = CL.CreateKernel( solidProgram , "calc_solid_corrections"          , out result);
-            this.kSolveDistConstraints   = CL.CreateKernel( solidProgram , "solve_dist_constraint"          , out result);
             
             // create buffers
             this.pos         = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3 , 0);
@@ -323,7 +321,7 @@ namespace Gepe3D
         
         
         
-        public void Update(float delta)
+        public void Update(float delta, float shiftX)
         {
             
             if (posDirty) {
@@ -361,7 +359,6 @@ namespace Gepe3D
             
             CLUtils.EnqueueKernel(queue,  kSolidCorrect     , ParticleCount, epos, imass, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             
-            // CLUtils.EnqueueKernel(queue, kSolveDistConstraints, numDistConstraints, epos, imass, corrections, distConstraintsIDsBuffer, distConstraintsDistancesBuffer, numDistConstraints);
             CLUtils.EnqueueKernel(queue,  kCorrectPredictions   , ParticleCount, pos, epos, corrections, phase);
             
             {
@@ -380,7 +377,7 @@ namespace Gepe3D
             
             // }
             
-            CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos, phase);
+            CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos, phase, shiftX);
             
             CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
             CLUtils.EnqueueKernel(queue,  kApplyVortVisc  , ParticleCount, pos, vel, vorticities, velCorrect, imass, delta, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);

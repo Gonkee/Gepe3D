@@ -26,11 +26,7 @@ kernel void calc_solid_corrections (global float *eposBuffer,   // 0
     
     float3 correction = (float3) (0, 0, 0);
     
-    bool tee = false;
-    
     FOREACH_NEIGHBOUR_j
-        
-        tee = tee || phase[j] == PHASE_STATIC;
         
         if (i == j) continue;
         
@@ -48,7 +44,6 @@ kernel void calc_solid_corrections (global float *eposBuffer,   // 0
         
     END_FOREACH_NEIGHBOUR_j
     
-    if (tee) printf("tee\n");
     
     // correction /= numNeighbours;
     

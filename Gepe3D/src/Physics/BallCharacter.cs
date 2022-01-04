@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -77,8 +76,8 @@ namespace Gepe3D
             this.particleSystem = particleSystem;
             
             Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
-            List<int> particlesList = new List<int>();
             
+            List<int> particlesList = new List<int>();
             int centreParticleTemp = 0;
             float closestDist = float.MaxValue;
             
@@ -184,10 +183,12 @@ namespace Gepe3D
             foreach (int pID in particleIDs) {
                 particleSystem.AddVel(pID, movement.X, movement.Y, movement.Z);
             }
-
-            // Position += movement * MovementSpeed * delta;
-            // UpdateLocalVectors();
             
+        }
+        
+        public float GetCenterX()
+        {
+            return centrePos.X;
         }
         
         

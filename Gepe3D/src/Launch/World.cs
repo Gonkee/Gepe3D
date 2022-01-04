@@ -10,16 +10,16 @@ namespace Gepe3D
     {
         
 
-        // public Camera activeCam = new Camera( new Vector3(), 16f / 9f);
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
 
         public SkyBox skyBox;
         
-        private int centreParticle;
         
         public BallCharacter character;
+        
+        public Spike[] spikes;
         
         
         public ParticleSystem particleSystem;
@@ -54,14 +54,15 @@ namespace Gepe3D
                 1, 12
             );
             
-            GenSpike(3, 3, 2f, 1f, 800);
+            spikes = new Spike[2];
+            
+            spikes[0] = new Spike(particleSystem, 3f, 1.5f, 2f, 1f, 800);
+            spikes[1] = new Spike(particleSystem, 5f, 5.5f, 2f, 1f, 2000);
+            
 
             stopwatch = new Stopwatch();
             stopwatch.Start();
 
-
-            // activeCam.Position = new Vector3( -2, 2f, 0 );
-            // activeCam.LookAt(1, 1, 1);
             
             Init();
         }
@@ -72,12 +73,15 @@ namespace Gepe3D
             float delta = 0.01f;
             Global.Elapsed += delta;
             
-            // activeCam.Update(delta);
             character.Update(delta);
+            foreach (Spike s in spikes) s.Update();
+            
+            float shiftX = ParticleSystem.MAX_X / 2 - character.GetCenterX();
+            
             
             long time = stopwatch.ElapsedMilliseconds;
 
-            particleSystem.Update(delta);
+            particleSystem.Update(delta, shiftX);
 
             cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
             
@@ -90,9 +94,6 @@ namespace Gepe3D
                 cumulativeFrameTime = 0;
             }
             
-            // Vector3 ballPos = particleSystem.GetPos(centreParticle);
-            // activeCam.LookAt(ballPos);
-            // activeCam.SetPos(ballPos + new Vector3(5f, 4, 0));
             if ( Global.IsKeyDown(Keys.J) )
             {
                 
@@ -106,7 +107,6 @@ namespace Gepe3D
         
         public override void Render()
         {
-            // activeCam.MouseInput(window.MouseState.Delta);
             
             character.MouseMovementUpdate(window.MouseState.Delta);
             
@@ -123,45 +123,6 @@ namespace Gepe3D
         }
         
         
-        private void GenSpike(float x, float z, float height, float radius, int startID)
-        {
-            
-            float gap = 0.15f;
-            int xzRes = (int) (radius * 2 / gap);
-            int  yRes = (int) (height / gap);
-            
-            
-            int currentID = startID;
-            
-            for (int py = 0; py < yRes; py++)
-            {
-                for (int px = 0; px < xzRes; px++)
-                {
-                    for (int pz = 0; pz < xzRes; pz++)
-                    {
-                        float offsetY = MathHelper.Lerp( 0, height, py / (yRes - 1f) );
-                        float offsetX = MathHelper.Lerp( -radius, +radius, px / (xzRes - 1f) );
-                        float offsetZ = MathHelper.Lerp( -radius, +radius, pz / (xzRes - 1f) );
-                        float horDist = MathF.Sqrt(offsetX * offsetX + offsetZ * offsetZ);
-                        
-                        if (horDist <= MathHelper.Lerp(radius, 0, offsetY / height)) {
-                            
-                            particleSystem.SetPhase(currentID, ParticleSystem.PHASE_STATIC);
-                            particleSystem.SetColour(currentID, 0.2f, 0.2f, 0.2f);
-                            
-                            particleSystem.SetPos(
-                                currentID,
-                                x + offsetX,
-                                offsetY,
-                                z + offsetZ
-                            );
-                            
-                            currentID++;
-                        }
-                    }
-                }
-            }
-        }
         
         
     }

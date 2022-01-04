@@ -18,7 +18,7 @@ kernel void predict_positions(         float delta,         // 0
                                 float gravityZ
 ) {
     int i = get_global_id(0);
-    if (phase[i] == PHASE_STATIC) return;
+    // if (phase[i] == PHASE_STATIC) return;
     
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
@@ -35,7 +35,7 @@ kernel void predict_positions(         float delta,         // 0
 kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
     
     int i = get_global_id(0);
-    if (phase[i] == PHASE_STATIC) return;
+    // if (phase[i] == PHASE_STATIC) return;
     
     float3 correction = getVec(corrections, i);
     
@@ -55,24 +55,25 @@ kernel void update_velocity(           float delta,         // 0
                                 global float *posBuffer,    // 1
                                 global float *velBuffer,    // 2
                                 global float *eposBuffer,   // 3
-                                global int *phase
+                                global int *phase,
+                                float shiftX
 ) {
     int i = get_global_id(0);
-    if (phase[i] == PHASE_STATIC) return;
     
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     float3 epos = getVec(eposBuffer, i);
     
+    if (phase[i] == PHASE_STATIC) epos = pos;
+    
     vel = (epos - pos) / delta;
     pos = epos;
+    pos.x += shiftX;
     
     if (phase[i] == PHASE_LIQUID) {
         if (pos.x <     0) pos.x = MAX_X - 0.01f;
         if (pos.x > MAX_X) pos.x =     0 + 0.01f;
-    }
-    
-    else {
+    } else if (phase[i] != PHASE_STATIC) {
         if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
         else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
     }
