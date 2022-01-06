@@ -11,6 +11,7 @@ uniform mat4 projectionMatrix;
 out vec3 texCoords;
 out vec3 viewSpaceSphereCenter;
 out vec4 instanceAlbedo;
+out float xPos;
 
 void main()
 {
@@ -31,4 +32,5 @@ void main()
     viewSpaceSphereCenter = ( viewMatrix * vec4(instancePosition, 1.0) ).xyz;
     
     instanceAlbedo = vec4(instanceColour, 1);
+    xPos = instancePosition.x;
 }

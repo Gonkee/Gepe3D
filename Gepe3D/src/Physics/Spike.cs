@@ -8,6 +8,7 @@ namespace Gepe3D
     public class Spike
     {
         
+        static Random random = new Random();
         int centreParticleID;
         Vector3 centrePos;
         int[] particleIDs;
@@ -72,24 +73,26 @@ namespace Gepe3D
         {
             centrePos = particleSystem.GetPos(centreParticleID);
             
-            if (centrePos.X < 0 - radius)
-            {
-                float targetX = ParticleSystem.MAX_X + radius - 0.01f;
-                Vector3 targetPos = new Vector3(targetX, centrePos.Y, centrePos.Z);
-                MoveTo(targetPos);
-            }
+            // if (centrePos.X < 0 - radius)
+            // {
+            //     float targetX = ParticleSystem.MAX_X + radius - 0.01f;
+            //     MoveTo(targetX);
+            // }
             if (centrePos.X > ParticleSystem.MAX_X + radius)
             {
                 float targetX = 0 - radius + 0.01f;
-                Vector3 targetPos = new Vector3(targetX, centrePos.Y, centrePos.Z);
-                MoveTo(targetPos);
+                MoveTo(targetX);
             }
             
             
         }
         
-        private void MoveTo(Vector3 targetPos)
+        
+        private void MoveTo(float targetX)
         {
+            float randZ = RandZ(radius);
+            
+            Vector3 targetPos = new Vector3(targetX, 0, randZ);
             Vector3 diff = targetPos - centrePos;
             
             foreach (int pID in particleIDs)
@@ -98,6 +101,14 @@ namespace Gepe3D
             }
             
         }
+        
+        public static float RandZ(float radius)
+        {
+            float randFac = (float) random.NextDouble();
+            randFac = randFac * randFac * (3 - 2 * randFac);
+            return MathHelper.Lerp( 0 + radius, ParticleSystem.MAX_Z - radius, randFac );
+        }
+        
         
         
     }

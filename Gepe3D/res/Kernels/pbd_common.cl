@@ -73,10 +73,11 @@ kernel void update_velocity(           float delta,         // 0
     if (phase[i] == PHASE_LIQUID) {
         if (pos.x <     0) pos.x = MAX_X - 0.01f;
         if (pos.x > MAX_X) pos.x =     0 + 0.01f;
-    } else if (phase[i] != PHASE_STATIC) {
-        if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
-        else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
     }
+    // else if (phase[i] != PHASE_STATIC) {
+    //     if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
+    //     else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
+    // }
     
     
     if      (pos.y <     0) {  pos.y =     0;  vel.y = fmax( (float) 0, (float) vel.y);  }

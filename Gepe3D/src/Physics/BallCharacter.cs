@@ -177,7 +177,6 @@ namespace Gepe3D
             movement.Y =  rotatedMovement.Y;
             movement.Z = -rotatedMovement.Z;
             
-            // needs to be negative for some reason
             movement *= 0.1f;
 
             foreach (int pID in particleIDs) {

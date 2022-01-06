@@ -33,7 +33,7 @@ namespace Gepe3D
         {
             skyBox = new SkyBox();
             
-            particleSystem = new ParticleSystem(5000);
+            particleSystem = new ParticleSystem(7000);
             
             Random rand = new Random();
             for (int i = 0; i < particleSystem.ParticleCount; i++) {
@@ -54,10 +54,15 @@ namespace Gepe3D
                 1, 12
             );
             
-            spikes = new Spike[2];
+            spikes = new Spike[3];
             
-            spikes[0] = new Spike(particleSystem, 3f, 1.5f, 2f, 1f, 800);
-            spikes[1] = new Spike(particleSystem, 5f, 5.5f, 2f, 1f, 2000);
+            float radius = 1f;
+            float x1 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.333f;
+            float x2 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.667f;
+            float x3 = radius - (ParticleSystem.MAX_X + radius * 2) * 2.000f;
+            spikes[0] = new Spike(particleSystem, x1, Spike.RandZ(radius), 2f, radius, 800);
+            spikes[1] = new Spike(particleSystem, x2, Spike.RandZ(radius), 2f, radius, 2000);
+            spikes[2] = new Spike(particleSystem, x3, Spike.RandZ(radius), 2f, radius, 3000);
             
 
             stopwatch = new Stopwatch();
@@ -76,7 +81,7 @@ namespace Gepe3D
             character.Update(delta);
             foreach (Spike s in spikes) s.Update();
             
-            float shiftX = ParticleSystem.MAX_X / 2 - character.GetCenterX();
+            float shiftX = 4.5f * delta;
             
             
             long time = stopwatch.ElapsedMilliseconds;
