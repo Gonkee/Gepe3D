@@ -73,18 +73,11 @@ namespace Gepe3D
         {
             centrePos = particleSystem.GetPos(centreParticleID);
             
-            // if (centrePos.X < 0 - radius)
-            // {
-            //     float targetX = ParticleSystem.MAX_X + radius - 0.01f;
-            //     MoveTo(targetX);
-            // }
             if (centrePos.X > ParticleSystem.MAX_X + radius)
             {
                 float targetX = 0 - radius + 0.01f;
                 MoveTo(targetX);
             }
-            
-            
         }
         
         
@@ -108,8 +101,6 @@ namespace Gepe3D
             randFac = randFac * randFac * (3 - 2 * randFac);
             return MathHelper.Lerp( 0 + radius, ParticleSystem.MAX_Z - radius, randFac );
         }
-        
-        
         
     }
 }

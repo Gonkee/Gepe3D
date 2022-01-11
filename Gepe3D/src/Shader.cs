@@ -1,3 +1,4 @@
+
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -6,6 +7,11 @@ using OpenTK.Mathematics;
 
 namespace Gepe3D
 {
+    
+    /*
+    This whole class came from the OpenTK tutorial repository, pls dont come after me
+    */
+    
     
     public class Shader
     {

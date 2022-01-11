@@ -12,7 +12,6 @@ namespace Gepe3D
         // Render
         
         private readonly float PARTICLE_RADIUS = 0.2f;
-        private readonly Geometry particleShape;
         
         private readonly int _vaoID;
         private readonly int _meshVBO_ID;
@@ -21,7 +20,7 @@ namespace Gepe3D
         
         private Shader particleShader;
         
-        //Update
+        // Update
         
         CLCommandQueue queue;
         
@@ -196,18 +195,25 @@ namespace Gepe3D
             
             particleShader = new Shader("res/Shaders/point_sphere_basic.vert", "res/Shaders/point_sphere_basic.frag");
             
-            particleShape = GeometryGenerator.GenQuad(PARTICLE_RADIUS, PARTICLE_RADIUS);
+            float[] vertexData = new float[] {
+                
+                -PARTICLE_RADIUS / 2, -PARTICLE_RADIUS / 2, 0,
+                 PARTICLE_RADIUS / 2, -PARTICLE_RADIUS / 2, 0,
+                 PARTICLE_RADIUS / 2,  PARTICLE_RADIUS / 2, 0,
+                
+                -PARTICLE_RADIUS / 2, -PARTICLE_RADIUS / 2, 0,
+                 PARTICLE_RADIUS / 2,  PARTICLE_RADIUS / 2, 0,
+                -PARTICLE_RADIUS / 2,  PARTICLE_RADIUS / 2, 0,
+            };
             
-            float[] vertexData = particleShape.GenerateVertexData();
             _vaoID = GLUtils.GenVAO();
             _meshVBO_ID = GLUtils.GenVBO(vertexData);
             instancePositions = GLUtils.GenVBO( PosData );
             instanceColours = GLUtils.GenVBO( colourData );
 
-            GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 0, 3, particleShape.FloatsPerVertex, 0); // vertex positions
-            GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 1, 3, particleShape.FloatsPerVertex, 0); // vertex normals
-            GLUtils.VaoInstanceFloatAttrib(_vaoID, instancePositions, 2, 3, 3, 0);
-            GLUtils.VaoInstanceFloatAttrib(_vaoID, instanceColours, 3, 3, 3, 0);
+            GLUtils.VaoFloatAttrib(_vaoID, _meshVBO_ID, 0, 3, 3, 0); // vertex positions
+            GLUtils.VaoInstanceFloatAttrib(_vaoID, instancePositions, 1, 3, 3, 0);
+            GLUtils.VaoInstanceFloatAttrib(_vaoID, instanceColours, 2, 3, 3, 0);
             
             
         }
@@ -276,7 +282,6 @@ namespace Gepe3D
         }
         
         
-        // TODO: make this more robust
         private string GenerateDefines()
         {
             string defines = "";
@@ -299,7 +304,7 @@ namespace Gepe3D
         }
         
         
-        public void Render(World world)
+        public void Render(MainWindow world)
         {
             
             if (colourDirty) {
@@ -315,8 +320,7 @@ namespace Gepe3D
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             particleShader.SetFloat("maxX", MAX_X);
             
-            GLUtils.DrawInstancedVAO(_vaoID, particleShape.TriangleIDs.Count * 3, ParticleCount);
-            
+            GLUtils.DrawInstancedVAO(_vaoID, 6, ParticleCount);
             
         }
         
@@ -353,7 +357,6 @@ namespace Gepe3D
             CLUtils.EnqueueKernel(queue, kSortParticleIDsByCell, ParticleCount, particleIDinCell,
                 cellStartAndEndIDs, cellIDsOfParticles, sortedParticleIDs, debugOut);
             
-            // for (int i = 0; i < NUM_ITERATIONS; i++) {
             
             CLUtils.EnqueueKernel(queue,  kCalcLambdas    , ParticleCount, epos, imass, lambdas, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase, debugOut);
             CLUtils.EnqueueKernel(queue,  kFluidCorrect     , ParticleCount, epos, imass, lambdas, corrections, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
@@ -376,8 +379,6 @@ namespace Gepe3D
             }
             
             
-            // }
-            
             CLUtils.EnqueueKernel(queue,  kUpdateVel      , ParticleCount, delta, pos, vel, epos, phase, shiftX);
             
             CLUtils.EnqueueKernel(queue,  kCalcVorticity  , ParticleCount, pos, vel, vorticities, cellIDsOfParticles, cellStartAndEndIDs, sortedParticleIDs, phase);
@@ -393,12 +394,10 @@ namespace Gepe3D
         }
         
         
-        // jank AF
         private void SolveDistConstraints()
         {
             float stiffness = 0.2f;
             float stiffnessFac = 1 - MathF.Pow( 1 - stiffness, 1f / (float) 2 );
-            
             
             foreach( (int, int, float) constraint in distanceConstraints ) {
             

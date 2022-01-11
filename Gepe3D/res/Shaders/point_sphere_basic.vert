@@ -1,9 +1,8 @@
 #version 330
 
 layout(location = 0) in vec3 vertexPosition;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec3 instancePosition;
-layout(location = 3) in vec3 instanceColour;
+layout(location = 1) in vec3 instancePosition;
+layout(location = 2) in vec3 instanceColour;
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
@@ -15,7 +14,6 @@ out float xPos;
 
 void main()
 {
-    
     mat4 model = mat4(1.0, 0.0, 0.0, 0.0,  // 1. column
                       0.0, 1.0, 0.0, 0.0,  // 2. column
                       0.0, 0.0, 1.0, 0.0,  // 3. column

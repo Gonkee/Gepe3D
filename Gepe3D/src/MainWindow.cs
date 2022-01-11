@@ -1,36 +1,62 @@
 
 using System;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System.Diagnostics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Desktop;
 
 namespace Gepe3D
 {
-    public class World : Scene
+    public class MainWindow : GameWindow
     {
         
-
-
+        static void Main(string[] args)
+        {
+            
+            GameWindowSettings settings = GameWindowSettings.Default;
+            settings.UpdateFrequency = 100;
+            
+            MainWindow game = new MainWindow(
+                settings,
+                new NativeWindowSettings()
+                {
+                    Size = new Vector2i(1280, 720),
+                    Title = "Gepe3D",
+                    // WindowBorder = WindowBorder.Hidden
+                }
+            );
+            
+            game.CenterWindow();
+            game.Run();
+        }
+        
+        
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
 
         public SkyBox skyBox;
-        
-        
+        public ParticleSystem particleSystem;
         public BallCharacter character;
-        
         public Spike[] spikes;
         
-        
-        public ParticleSystem particleSystem;
-        
-        int tickCount = 0;
-        long cumulativeFrameTime = 0;
-        readonly int AVG_FRAME_COUNT = 20;
-        Stopwatch stopwatch;
-        
-        public World(MainWindow window) : base(window)
+        public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
+            : base(gameWindowSettings, nativeWindowSettings)
         {
+        }
+        
+        protected override void OnLoad()
+        {
+            base.OnLoad();
+            GL.ClearColor(1, 0, 1, 1);
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.Enable(EnableCap.Blend);
+            
+            CursorGrabbed = true;
+            
             skyBox = new SkyBox();
             
             particleSystem = new ParticleSystem(7000);
@@ -64,70 +90,29 @@ namespace Gepe3D
             spikes[1] = new Spike(particleSystem, x2, Spike.RandZ(radius), 2f, radius, 2000);
             spikes[2] = new Spike(particleSystem, x3, Spike.RandZ(radius), 2f, radius, 3000);
             
-
-            stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            
-            Init();
         }
         
-
-        public override void Update()
+        protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            if (KeyboardState.IsKeyDown(Keys.Escape)) Close();
+                
             float delta = 0.01f;
-            Global.Elapsed += delta;
-            
-            character.Update(delta);
+            character.Update(delta, KeyboardState);
             foreach (Spike s in spikes) s.Update();
-            
             float shiftX = 4.5f * delta;
-            
-            
-            long time = stopwatch.ElapsedMilliseconds;
-
             particleSystem.Update(delta, shiftX);
-
-            cumulativeFrameTime += stopwatch.ElapsedMilliseconds - time;
-            
-            tickCount++;
-            if (tickCount >= AVG_FRAME_COUNT)
-            { 
-                // System.Console.WriteLine("avg frame time (" + AVG_FRAME_COUNT + " frames) : " +
-                //     ((float) cumulativeFrameTime / tickCount) + " ms");
-                tickCount = 0;
-                cumulativeFrameTime = 0;
-            }
-            
-            if ( Global.IsKeyDown(Keys.J) )
-            {
-                
-                for (int i = 0; i < 500; i++) {
-                    particleSystem.AddVel(i, 0, 0.1f, 0);
-                }
-                
-            }
-            
         }
-        
-        public override void Render()
+
+        protected override void OnRenderFrame(FrameEventArgs e)
         {
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             
-            character.MouseMovementUpdate(window.MouseState.Delta);
-            
-            
+            character.MouseMovementUpdate(MouseState.Delta);
             skyBox.Render(this);
-            
             particleSystem.Render(this);
             
+            SwapBuffers();
         }
-        
-        private void Init()
-        {
-            
-        }
-        
-        
         
         
     }

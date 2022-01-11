@@ -54,15 +54,15 @@ namespace Gepe3D
             return projMatrix * viewMatrix;
         }
         
-        public void Update(float delta)
+        public void Update(float delta, KeyboardState keyboardState)
         {
             Vector3 movement = new Vector3();
-            if ( Global.IsKeyDown(Keys.W)         ) { movement.X += 1; }
-            if ( Global.IsKeyDown(Keys.S)         ) { movement.X -= 1; }
-            if ( Global.IsKeyDown(Keys.A)         ) { movement.Z -= 1; }
-            if ( Global.IsKeyDown(Keys.D)         ) { movement.Z += 1; }
-            if ( Global.IsKeyDown(Keys.Space)     ) { movement.Y += 1; }
-            if ( Global.IsKeyDown(Keys.LeftShift) ) { movement.Y -= 1; }
+            if ( keyboardState.IsKeyDown(Keys.W)         ) { movement.X += 1; }
+            if ( keyboardState.IsKeyDown(Keys.S)         ) { movement.X -= 1; }
+            if ( keyboardState.IsKeyDown(Keys.A)         ) { movement.Z -= 1; }
+            if ( keyboardState.IsKeyDown(Keys.D)         ) { movement.Z += 1; }
+            if ( keyboardState.IsKeyDown(Keys.Space)     ) { movement.Y += 1; }
+            if ( keyboardState.IsKeyDown(Keys.LeftShift) ) { movement.Y -= 1; }
             if (movement.Length != 0) movement.Normalize();
 
             Matrix4 rotation = Matrix4.CreateRotationY( MathHelper.DegreesToRadians(-yaw) );

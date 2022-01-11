@@ -40,13 +40,11 @@ namespace Gepe3D
             GLUtils.AttachEBO(_vaoID, indices);
             
             skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
-            
         }
 
         
-        public void Render(World world)
+        public void Render(MainWindow world)
         {
-            
             skyboxShader.Use();
             skyboxShader.SetVector3("cameraPos", world.character.activeCam.Position);
             skyboxShader.SetMatrix4("cameraMatrix", world.character.activeCam.GetMatrix());
