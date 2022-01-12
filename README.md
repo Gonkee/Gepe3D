@@ -7,7 +7,9 @@
  
  Please don't do pull requests or issues i probably wont look at them
  
- To download an exe, click the releases section on the right
+ [Click here to download ZIP file containing EXE](https://github.com/Gonkee/Gepe3D/releases/download/breh/Gepe3D_win-x64.zip)
+ 
+ (or click the releases section on the right)
  
 Keybinds:
  - W: move forward
