@@ -6,6 +6,17 @@
  This is just here so you can see the code
  
  Please don't do pull requests or issues i probably wont look at them
+ 
+ To download an exe, click the releases section on the right
+ 
+Keybinds:
+ - W: move forward
+ - S: move backward
+ - A: move left
+ - D: move right
+ - Space: move up
+ - Left Shift: move down
+ - Escape: close program
 
 References:
 
