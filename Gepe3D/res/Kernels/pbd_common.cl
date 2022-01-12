@@ -8,14 +8,16 @@
 #define MAX_VEL 5
 
 
-kernel void predict_positions(         float delta,         // 0
-                                global float *posBuffer,    // 1
-                                global float *velBuffer,    // 2
-                                global float *eposBuffer,   // 3
-                                global int *phase,
-                                float gravityX,
-                                float gravityY,
-                                float gravityZ
+
+kernel void predict_positions(
+    float delta,
+    global float *posBuffer,
+    global float *velBuffer,
+    global float *eposBuffer,
+    global int *phase,
+    float gravityX,
+    float gravityY,
+    float gravityZ
 ) {
     int i = get_global_id(0);
     // if (phase[i] == PHASE_STATIC) return;
@@ -32,31 +34,31 @@ kernel void predict_positions(         float delta,         // 0
     setVec(eposBuffer, i, epos);
 }
 
-kernel void correct_predictions(global float *posBuffer, global float *eposBuffer, global float *corrections, global int *phase) {
-    
+
+
+kernel void correct_predictions(
+    global float *posBuffer,
+    global float *eposBuffer,
+    global float *corrections,
+    global int *phase
+) {
     int i = get_global_id(0);
-    // if (phase[i] == PHASE_STATIC) return;
     
     float3 correction = getVec(corrections, i);
-    
     float3 epos = getVec(eposBuffer, i);
-    epos += correction;// / numConstraints[i];
+    epos += correction;
     setVec(eposBuffer, i, epos);
-    
-    // if (phase[i] == PHASE_SOLID) {
-    //     float3 pos = getVec(posBuffer, i);
-    //     pos += correction;
-    //     setVec(posBuffer, i, pos);
-    // }
-    
 }
 
-kernel void update_velocity(           float delta,         // 0
-                                global float *posBuffer,    // 1
-                                global float *velBuffer,    // 2
-                                global float *eposBuffer,   // 3
-                                global int *phase,
-                                float shiftX
+
+
+kernel void update_velocity(
+    float delta,
+    global float *posBuffer,
+    global float *velBuffer,
+    global float *eposBuffer,
+    global int *phase,
+    float shiftX
 ) {
     int i = get_global_id(0);
     
@@ -74,11 +76,6 @@ kernel void update_velocity(           float delta,         // 0
         if (pos.x <     0) pos.x = MAX_X - 0.01f;
         if (pos.x > MAX_X) pos.x =     0 + 0.01f;
     }
-    // else if (phase[i] != PHASE_STATIC) {
-    //     if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
-    //     else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
-    // }
-    
     
     if      (pos.y <     0) {  pos.y =     0;  vel.y = fmax( (float) 0, (float) vel.y);  }
     else if (pos.y > MAX_Y) {  pos.y = MAX_Y;  vel.y = fmin( (float) 0, (float) vel.y);  }
@@ -95,11 +92,11 @@ kernel void update_velocity(           float delta,         // 0
 
 
 
-kernel void assign_particle_cells (global float *eposBuffer,
-                                    global int *numParticlesPerCell,
-                                    global int *cellIDsOfParticles,
-                                    global int *particleIDinCell,
-                                    global float *debugOut
+kernel void assign_particle_cells (
+    global float *eposBuffer,
+    global int *numParticlesPerCell,
+    global int *cellIDsOfParticles,
+    global int *particleIDinCell
 ) {
     int i = get_global_id(0);
     float3 epos = getVec(eposBuffer, i);
@@ -109,9 +106,11 @@ kernel void assign_particle_cells (global float *eposBuffer,
 }
 
 
+
+
 kernel void find_cells_start_and_end (
-                                    global int *numParticlesPerCell,
-                                    global int *cellStartAndEndIDs
+    global int *numParticlesPerCell,
+    global int *cellStartAndEndIDs
 ) {
     int cellID = get_global_id(0);
     
@@ -126,11 +125,11 @@ kernel void find_cells_start_and_end (
 }
 
 
-kernel void sort_particle_ids_by_cell ( global int *particleIDinCell,
-                                    global int *cellStartAndEndIDs,
-                                    global int *cellIDsOfParticles,
-                                    global int *sortedParticleIDs,
-                                    global float *debugOut
+kernel void sort_particle_ids_by_cell (
+    global int *particleIDinCell,
+    global int *cellStartAndEndIDs,
+    global int *cellIDsOfParticles,
+    global int *sortedParticleIDs
 ) {
     
     int i = get_global_id(0);
@@ -139,5 +138,4 @@ kernel void sort_particle_ids_by_cell ( global int *particleIDinCell,
     int idInCell = particleIDinCell[i];
     int sortedID = cellStartPos + idInCell;
     sortedParticleIDs[sortedID] = i;
-    debugOut[i] = sortedID;
 }

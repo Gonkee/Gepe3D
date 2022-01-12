@@ -34,7 +34,6 @@ namespace Gepe3D
         
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
-
         public SkyBox skyBox;
         public ParticleSystem particleSystem;
         public BallCharacter character;
@@ -58,8 +57,12 @@ namespace Gepe3D
             CursorGrabbed = true;
             
             skyBox = new SkyBox();
-            
             particleSystem = new ParticleSystem(7000);
+            
+            
+            ///////////////////////////////////////
+            // Setting up fluid, ball and spikes //
+            ///////////////////////////////////////
             
             Random rand = new Random();
             for (int i = 0; i < particleSystem.ParticleCount; i++) {

@@ -36,14 +36,14 @@ float w_spikygrad(float dist, float h) {
 
 
 
-kernel void calculate_lambdas(    global float *eposBuffer,   // 0
-                                  global float *imasses,      // 1
-                                  global float *lambdas,     // 2
-                                  global int *cellIDsOfParticles,
-                                  global int *cellStartAndEndIDs,
-                                  global int *sortedParticleIDs,
-                                  global int *phase,
-                                  global float *debugOut
+kernel void calculate_lambdas(
+    global float *eposBuffer,
+    global float *imasses,
+    global float *lambdas,
+    global int *cellIDsOfParticles,
+    global int *cellStartAndEndIDs,
+    global int *sortedParticleIDs,
+    global int *phase
 ) {
     
     int i = get_global_id(0);
@@ -90,14 +90,16 @@ kernel void calculate_lambdas(    global float *eposBuffer,   // 0
 }
 
 
-kernel void calc_fluid_corrections(global float *eposBuffer,   // 0
-                        global float *imasses,      // 1
-                        global float *lambdas,      // 2
-                        global float *corrections,  // 3
-                        global int *cellIDsOfParticles,
-                        global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs,
-                        global int *phase
+
+kernel void calc_fluid_corrections(
+    global float *eposBuffer,
+    global float *imasses,
+    global float *lambdas,
+    global float *corrections,
+    global int *cellIDsOfParticles,
+    global int *cellStartAndEndIDs,
+    global int *sortedParticleIDs,
+    global int *phase
 ) {
     int i = get_global_id(0);
     
@@ -137,11 +139,15 @@ kernel void calc_fluid_corrections(global float *eposBuffer,   // 0
 }
 
 
-kernel void calculate_vorticities (global float *posBuffer, global float *velBuffer, global float *vorticities,
-                        global int *cellIDsOfParticles,
-                        global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs,
-                        global int *phase
+
+kernel void calculate_vorticities (
+    global float *posBuffer,
+    global float *velBuffer,
+    global float *vorticities,
+    global int *cellIDsOfParticles,
+    global int *cellStartAndEndIDs,
+    global int *sortedParticleIDs,
+    global int *phase
 ) {
     
     int i = get_global_id(0);
@@ -156,26 +162,30 @@ kernel void calculate_vorticities (global float *posBuffer, global float *velBuf
     
     float3 vorticity = (float3) (0, 0, 0);
         
-    // for (int j = 0; j < get_global_size(0); j++) {
     FOREACH_NEIGHBOUR_j
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
         float3 grad = w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
         
         vorticity += cross(velDiff, grad);
-    // }
+        
     END_FOREACH_NEIGHBOUR_j
     
     setVec(vorticities, i, vorticity);
 }
 
 
-kernel void apply_vorticity_viscosity (global float *posBuffer, global float *velBuffer, global float *vorticities, global float *velCorrect, global float *imasses,
-                                        float delta,
-                        global int *cellIDsOfParticles,
-                        global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs,
-                        global int *phase
+kernel void apply_vorticity_viscosity (
+    global float *posBuffer,
+    global float *velBuffer,
+    global float *vorticities,
+    global float *velCorrect,
+    global float *imasses,
+    float delta,
+    global int *cellIDsOfParticles,
+    global int *cellStartAndEndIDs,
+    global int *sortedParticleIDs,
+    global int *phase
 ) {
     
     int i = get_global_id(0);
@@ -195,7 +205,6 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
     
     float3 avgNeighbourVelDiff = (float3) (0, 0, 0);
     
-    // for (int j = 0; j < get_global_size(0); j++) {
     FOREACH_NEIGHBOUR_j
         
         float3 velDiff = getVec(velBuffer, j) - vel;
@@ -205,7 +214,6 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
         
         avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), KERNEL_SIZE );
         
-    // }
     END_FOREACH_NEIGHBOUR_j
     
     float3 vorticity_force = RELAXATION * cross( normalize(vortMagGrad), vort_i );
@@ -218,7 +226,10 @@ kernel void apply_vorticity_viscosity (global float *posBuffer, global float *ve
 }
 
 
-kernel void correct_fluid_vel(global float *velBuffer, global float *velCorrect) {
+kernel void correct_fluid_vel(
+    global float *velBuffer,
+    global float *velCorrect
+) {
     
     int i = get_global_id(0);
     float3 vel = getVec(velBuffer, i);

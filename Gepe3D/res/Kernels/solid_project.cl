@@ -5,13 +5,14 @@
 // KERNEL_SIZE, REST_DENSITY
 // PHASE_LIQUID, PHASE_SOLID, PHASE_STATIC
 
-kernel void calc_solid_corrections (global float *eposBuffer,   // 0
-                        global float *imasses,      // 1
-                        global float *corrections,  // 3
-                        global int *cellIDsOfParticles,
-                        global int *cellStartAndEndIDs,
-                        global int *sortedParticleIDs,
-                        global int *phase
+kernel void calc_solid_corrections (
+    global float *eposBuffer,
+    global float *imasses,
+    global float *corrections,
+    global int *cellIDsOfParticles,
+    global int *cellStartAndEndIDs,
+    global int *sortedParticleIDs,
+    global int *phase
 ) {
     int i = get_global_id(0);
     
@@ -21,8 +22,6 @@ kernel void calc_solid_corrections (global float *eposBuffer,   // 0
     
     float imass1 = imasses[i];
     if (imass1 == 0) return;
-    
-    int numNeighbours = 1; // start at 1 to prevent divide by zero
     
     float3 correction = (float3) (0, 0, 0);
     
@@ -44,8 +43,6 @@ kernel void calc_solid_corrections (global float *eposBuffer,   // 0
         
     END_FOREACH_NEIGHBOUR_j
     
-    
-    // correction /= numNeighbours;
     
     setVec(corrections, i, correction);
 }
