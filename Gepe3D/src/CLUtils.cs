@@ -3,6 +3,7 @@ using System;
 using OpenTK.Compute.OpenCL;
 using System.Linq;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Gepe3D
 {
@@ -39,15 +40,26 @@ namespace Gepe3D
             foreach (object arg in args)
             {
                 Type argType = arg.GetType();
-                if (argType == typeof(float)) {
-                    result = CL.SetKernelArg<float>(kernel, argID++, (float) arg);
-                } else if (argType == typeof(int)) {
-                    result = CL.SetKernelArg<int>(kernel, argID++, (int) arg);
-                } else if (argType == typeof(CLBuffer)) {
-                    result = CL.SetKernelArg<CLBuffer>(kernel, argID++, (CLBuffer) arg);
-                } else {
+                if (argType == typeof(float))
+                {
+                    result = CL.SetKernelArg(kernel, argID++, (float)arg);
+                    System.Console.WriteLine("1.");
+                }
+                else if (argType == typeof(int))
+                {
+                    result = CL.SetKernelArg(kernel, argID++, (int)arg);
+                    System.Console.WriteLine("2.");
+                }
+                else if (argType == typeof(CLBuffer))
+                {
+                    result = CL.SetKernelArg(kernel, argID++, (CLBuffer)arg);
+                    System.Console.WriteLine("3.");
+                }
+                else
+                {
                     System.Console.WriteLine("Invalid type of kernel argument! Must be float, int or CLBuffer");
                 }
+
                 if (result != CLResultCode.Success)
                     System.Console.WriteLine("Kernel argument error: " + result);
             }
@@ -93,7 +105,16 @@ namespace Gepe3D
             float[] fillArray = new float[] {fillValue};
             CL.EnqueueFillBuffer<float>(queue, buffer, fillArray, new UIntPtr(), bufferSize, null, out @event);
         }
-        
-        
+
+        public static CLKernel CreateKernel(CLProgram program, string name, out CLResultCode res)
+        {
+            CLKernel kernel = CL.CreateKernel(program, name, out res);
+            if (res != CLResultCode.Success)
+            {
+                throw new Exception("Kernel argument error: " + res);
+            }
+
+            return kernel;
+        }
     }
 }
