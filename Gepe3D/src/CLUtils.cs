@@ -40,23 +40,13 @@ namespace Gepe3D
             foreach (object arg in args)
             {
                 Type argType = arg.GetType();
-                if (argType == typeof(float))
-                {
+                if (argType == typeof(float)) {
                     result = CL.SetKernelArg(kernel, argID++, (float)arg);
-                    System.Console.WriteLine("1.");
-                }
-                else if (argType == typeof(int))
-                {
+                } else if (argType == typeof(int)) {
                     result = CL.SetKernelArg(kernel, argID++, (int)arg);
-                    System.Console.WriteLine("2.");
-                }
-                else if (argType == typeof(CLBuffer))
-                {
+                } else if (argType == typeof(CLBuffer)) {
                     result = CL.SetKernelArg(kernel, argID++, (CLBuffer)arg);
-                    System.Console.WriteLine("3.");
-                }
-                else
-                {
+                } else {
                     System.Console.WriteLine("Invalid type of kernel argument! Must be float, int or CLBuffer");
                 }
 
@@ -109,8 +99,7 @@ namespace Gepe3D
         public static CLKernel CreateKernel(CLProgram program, string name, out CLResultCode res)
         {
             CLKernel kernel = CL.CreateKernel(program, name, out res);
-            if (res != CLResultCode.Success)
-            {
+            if (res != CLResultCode.Success) {
                 throw new Exception("Kernel argument error: " + res);
             }
 
