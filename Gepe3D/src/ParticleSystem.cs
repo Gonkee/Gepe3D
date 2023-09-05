@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using OpenTK.Compute.OpenCL;
 using OpenTK.Mathematics;
 
@@ -123,26 +124,26 @@ namespace Gepe3D
             
             // load kernels
             string varDefines            = GenerateDefines(); // combine with other source strings to add common functions
-            string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl");
-            string pbdCommonSource       = CLUtils.LoadSource("res/Kernels/pbd_common.cl");
+            string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl" );
+            string pbdCommonSource       = CLUtils.LoadSource("res/Kernels/pbd_common.cl"   );
             string fluidProjectSource    = CLUtils.LoadSource("res/Kernels/fluid_project.cl");
             string solidProjectSource    = CLUtils.LoadSource("res/Kernels/solid_project.cl");
             CLProgram pbdProgram         = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource   );
             CLProgram fluidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
             CLProgram solidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + solidProjectSource);
-            
-            this.k_AssignParticleCells    = CL.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
-            this.k_FindCellsStartAndEnd   = CL.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
-            this.k_SortParticleIDsByCell  = CL.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
-            this.k_PredictPos             = CL.CreateKernel( pbdProgram   , "predict_positions"          , out result);
-            this.k_CorrectPredictions     = CL.CreateKernel( pbdProgram   , "correct_predictions"        , out result);
-            this.k_UpdateVel              = CL.CreateKernel( pbdProgram   , "update_velocity"            , out result);
-            this.k_CalcLambdas            = CL.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
-            this.k_FluidCorrect           = CL.CreateKernel( fluidProgram , "calc_fluid_corrections"     , out result);
-            this.k_CalcVorticity          = CL.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
-            this.k_ApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
-            this.k_CorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
-            this.k_SolidCorrect           = CL.CreateKernel( solidProgram , "calc_solid_corrections"     , out result);
+
+            this.k_AssignParticleCells    = CLUtils.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
+            this.k_FindCellsStartAndEnd   = CLUtils.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
+            this.k_SortParticleIDsByCell  = CLUtils.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
+            this.k_PredictPos             = CLUtils.CreateKernel( pbdProgram   , "predict_positions"          , out result);
+            this.k_CorrectPredictions     = CLUtils.CreateKernel( pbdProgram   , "correct_predictions"        , out result);
+            this.k_UpdateVel              = CLUtils.CreateKernel( pbdProgram   , "update_velocity"            , out result);
+            this.k_CalcLambdas            = CLUtils.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
+            this.k_FluidCorrect           = CLUtils.CreateKernel( fluidProgram , "calc_fluid_corrections"     , out result);
+            this.k_CalcVorticity          = CLUtils.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
+            this.k_ApplyVortVisc          = CLUtils.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
+            this.k_CorrectVel             = CLUtils.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
+            this.k_SolidCorrect           = CLUtils.CreateKernel( solidProgram , "calc_solid_corrections"     , out result);
             
             // create buffers
             this.b_Pos                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
@@ -191,9 +192,9 @@ namespace Gepe3D
             GLUtils.VaoInstanceFloatAttrib(quad_VAO, instancePositions_VBO, 1, 3, 3, 0);
             GLUtils.VaoInstanceFloatAttrib(quad_VAO, instanceColours_VBO  , 2, 3, 3, 0);
         }
-        
+
         // set pos, phase, colour, constraints, 
-        
+
         public void SetPos(int id, float x, float y, float z)
         {
             posData[id * 3 + 0] = x;
@@ -259,16 +260,16 @@ namespace Gepe3D
         private string GenerateDefines()
         {
             string defines = "";
-            
-            defines += "\n" + "#define MAX_X " + MAX_X.ToString("0.0000") + "f";
-            defines += "\n" + "#define MAX_Y " + MAX_Y.ToString("0.0000") + "f";
-            defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000") + "f";
+
+            defines += "\n" + "#define MAX_X " + MAX_X.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
+            defines += "\n" + "#define MAX_Y " + MAX_Y.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
+            defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
             defines += "\n" + "#define CELLCOUNT_X " + GridRowsX;
             defines += "\n" + "#define CELLCOUNT_Y " + GridRowsY;
             defines += "\n" + "#define CELLCOUNT_Z " + GridRowsZ;
-            defines += "\n" + "#define CELL_WIDTH " + GRID_CELL_WIDTH.ToString("0.0000") + "f";
-            defines += "\n" + "#define KERNEL_SIZE " + KERNEL_SIZE.ToString("0.0000") + "f";
-            defines += "\n" + "#define REST_DENSITY " + REST_DENSITY.ToString("0.0000") + "f";
+            defines += "\n" + "#define CELL_WIDTH " + GRID_CELL_WIDTH.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
+            defines += "\n" + "#define KERNEL_SIZE " + KERNEL_SIZE.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
+            defines += "\n" + "#define REST_DENSITY " + REST_DENSITY.ToString("0.0000", CultureInfo.InvariantCulture) + "f";
             defines += "\n" + "#define PHASE_LIQUID " + PHASE_LIQUID;
             defines += "\n" + "#define PHASE_SOLID " + PHASE_SOLID;
             defines += "\n" + "#define PHASE_STATIC " + PHASE_STATIC;
