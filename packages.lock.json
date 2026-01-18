@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "OpenTK": {
+        "type": "Direct",
+        "requested": "[4.6.*, )",
+        "resolved": "4.6.7",
+        "contentHash": "vdVQ7l0U506DZ+abpmgPAOutOnBv02+ao/OZqeu0r1BKYYaf9Qb8dFDE+DWRo2fREDku7ib+RQAngKvG5eJ7NA==",
+        "dependencies": {
+          "OpenTK.Compute": "4.6.7",
+          "OpenTK.Core": "4.6.7",
+          "OpenTK.Graphics": "4.6.7",
+          "OpenTK.Input": "4.6.7",
+          "OpenTK.Mathematics": "4.6.7",
+          "OpenTK.OpenAL": "4.6.7",
+          "OpenTK.Windowing.Common": "4.6.7",
+          "OpenTK.Windowing.Desktop": "4.6.7",
+          "OpenTK.Windowing.GraphicsLibraryFramework": "4.6.7"
+        }
+      },
+      "OpenTK.Compute": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "NwiFKORIPxTW2w5bdZwli8uuB6SfNhniQ68EsSONf07iMKsYRl9knlMWGC0yzvCTfA4xgoKh/Heu0bJ1PV4OpQ=="
+      },
+      "OpenTK.Core": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "g6qtoOop+RuyLRhsQ6Qxl5LVfhbMZmRM/RCL0WL/MbIfHXKpCOaNsU2JAuiKTVB9ULKsIq3lyLZmcwKKWIRprQ=="
+      },
+      "OpenTK.Graphics": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "czDA/alXa8zVkEZy+Ciwnh5haDLKrkjP5TZjrh0W0fayuDAGiDgUGPupHpfhAH5EZOH0PPKIiLsmJukhub/hqA==",
+        "dependencies": {
+          "OpenTK.Core": "[4.6.7, 4.7.0)",
+          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
+        }
+      },
+      "OpenTK.Input": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "cEVDDE9xuV12hLg44mwCa6LnfOs3sG1LFo42hZajdJ1DTL/SUhDjJeYN/ttKfMy9SUHafweR0FMqkfJasHjuiA=="
+      },
+      "OpenTK.Mathematics": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "hRQCx0WVIzpl5QL/HoaZOpz9INbrfrikFQTXnzWUwQD0vDzgrMrmUVRdjsn4WnGgRI+KV19zUK8iwHUDGavU+g==",
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "[5.0.0, 5.1.0)"
+        }
+      },
+      "OpenTK.OpenAL": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "z5AWwfflhQIJgUMkJr3kdr0YaaBqYIyM1jJ0ppinDR5VI1i2pmDZ4Pom9d56yng/xXAkxr9j3FLACZ3zaTNTaw==",
+        "dependencies": {
+          "OpenTK.Core": "[4.6.7, 4.7.0)",
+          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
+        }
+      },
+      "OpenTK.redist.glfw": {
+        "type": "Transitive",
+        "resolved": "3.3.0-pre20200830200122",
+        "contentHash": "EKE9pJCFHScbqOv/t0zG1h5Eh24nWr44SXYnpYtAWDhJhzAoUoI8TwDRXGvTGhDeCBp8ONEaVsq9xRC+OQIxQA=="
+      },
+      "OpenTK.Windowing.Common": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "xLdsegwi1ggUEWGjvOySFioZf1fRNmCsVxFuW5+0wtmBzLbRdedxQeumKppkioJHhsDe8puM2iokjjYJq+9vkQ==",
+        "dependencies": {
+          "OpenTK.Core": "[4.6.7, 4.7.0)",
+          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
+        }
+      },
+      "OpenTK.Windowing.Desktop": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "I8zxitiMIoxPacMlwrkbjLNYDw+VcdAYKwF6ECo5I5JZZELHizBJXO9txv4JHrQC3QLWtfaYAORHocSqd6h09Q==",
+        "dependencies": {
+          "OpenTK.Core": "[4.6.7, 4.7.0)",
+          "OpenTK.Mathematics": "[4.6.7, 4.7.0)",
+          "OpenTK.Windowing.Common": "[4.6.7, 4.7.0)",
+          "OpenTK.Windowing.GraphicsLibraryFramework": "[4.6.7, 4.7.0)"
+        }
+      },
+      "OpenTK.Windowing.GraphicsLibraryFramework": {
+        "type": "Transitive",
+        "resolved": "4.6.7",
+        "contentHash": "GMFH6nlGll+UM37al3BrjqczyY9KDigHG5H1Tkgf186Z2wRXX3Thx1cOFNaDwBIB7iva73bA0a+cQHgKfV/3wg==",
+        "dependencies": {
+          "OpenTK.Core": "[4.6.7, 4.7.0)",
+          "OpenTK.redist.glfw": "[3.3.0-pre20200830200122, 3.4.0-pre)"
+        }
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "5.0.0",
+        "contentHash": "ZD9TMpsmYJLrxbbmdvhwt9YEgG5WntEnZ/d1eH8JBX9LBp+Ju8BSBhUGbZMNVHHomWo2KVImJhTDl2hIgw/6MA=="
+      }
+    }
+  }
+}
