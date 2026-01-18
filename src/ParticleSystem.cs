@@ -8,18 +8,18 @@ namespace Gepe3D
 {
     public class ParticleSystem
     {
-        
+
         // Render
         private readonly int quad_VAO;
         private readonly int quad_VBO;
         private readonly int instancePositions_VBO;
         private readonly int instanceColours_VBO;
         private readonly Shader particleShader;
-        
+
         // Update
         CLCommandQueue queue;
         CLEvent @event = new CLEvent();
-        
+
         public readonly int ParticleCount;
         private readonly int cellCount;
         private readonly float[] posData;
@@ -27,29 +27,29 @@ namespace Gepe3D
         private readonly float[] velData;
         private readonly float[] colourData;
         private readonly int[]   phaseData;
-        
+
         public static Vector3 GRAVITY          = new Vector3(-3, -6, 0);
         public static float   PARTICLE_RADIUS  = 0.2f;
         public static float   GRID_CELL_WIDTH  = 0.6f;
         public static float   KERNEL_SIZE      = 0.6f;
         public static float   REST_DENSITY     = 80f;
-        
+
         public static int
             GridRowsX = 16,
             GridRowsY = 10,
             GridRowsZ = 12;
-            
+
         public static float
             MAX_X = GRID_CELL_WIDTH * GridRowsX,
             MAX_Y = GRID_CELL_WIDTH * GridRowsY,
             MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
-        
+
         public static int
             PHASE_LIQUID = 0,
             PHASE_SOLID = 1,
             PHASE_STATIC = 2;
-        
-        
+
+
         private readonly CLKernel
             k_PredictPos,
             k_CalcLambdas,
@@ -63,7 +63,7 @@ namespace Gepe3D
             k_FindCellsStartAndEnd,
             k_SortParticleIDsByCell,
             k_SolidCorrect;
-        
+
         private readonly CLBuffer
             b_Pos,              // positions
             b_Vel,              // velocities
@@ -74,25 +74,25 @@ namespace Gepe3D
             b_Vorticities,      // fluid vorticities
             b_PosCorrection,    // position correction
             b_VelCorrection,    // velocity correction
-            
+
             // buffers for neighbour search
             b_sortedParticleIDs,
             b_cellStartAndEndIDs,
             b_cellIDsOfParticles,
             b_numParticlesPerCell,
             b_particleIDinCell;
-        
-        
+
+
         private bool
             posDirty = false,
             velDirty = false,
             phaseDirty = false,
             colourDirty = false;
-    
+
         List<(int, int, float)> distanceConstraints = new List<(int, int, float)>();
-        
-        
-        
+
+
+
         public ParticleSystem(int particleCount)
         {
             this.ParticleCount = particleCount;
@@ -102,17 +102,20 @@ namespace Gepe3D
             colourData = new float[particleCount * 3];
             ePosData   = new float[particleCount * 3];
             phaseData  = new int  [particleCount];
-            
-            
+
+
             ///////////////////
             // Set up OpenCL //
             ///////////////////
-            
+
             // set up context & queue
             CLResultCode result;
             CLPlatform[] platforms;
             CLDevice[] devices;
             result = CL.GetPlatformIds(out platforms);
+            if (result != CLResultCode.Success) {
+                throw new Exception("Fatal error: could not find OpenCL platform");
+            }
             result = CL.GetDeviceIds(platforms[0], DeviceType.Gpu, out devices);
             if (result == CLResultCode.DeviceNotFound) {
                 CL.GetDeviceIds(platforms[0], DeviceType.All, out devices);
@@ -120,7 +123,7 @@ namespace Gepe3D
             }
             CLContext context = CL.CreateContext(new IntPtr(), 1, devices, new IntPtr(), new IntPtr(), out result);
             this.queue = CL.CreateCommandQueueWithProperties(context, devices[0], new IntPtr(), out result);
-            
+
             // load kernels
             string varDefines            = GenerateDefines(); // combine with other source strings to add common functions
             string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl");
@@ -130,7 +133,7 @@ namespace Gepe3D
             CLProgram pbdProgram         = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource   );
             CLProgram fluidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
             CLProgram solidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + solidProjectSource);
-            
+
             this.k_AssignParticleCells    = CL.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
             this.k_FindCellsStartAndEnd   = CL.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
             this.k_SortParticleIDsByCell  = CL.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
@@ -143,7 +146,7 @@ namespace Gepe3D
             this.k_ApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
             this.k_CorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
             this.k_SolidCorrect           = CL.CreateKernel( solidProgram , "calc_solid_corrections"     , out result);
-            
+
             // create buffers
             this.b_Pos                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
             this.b_Vel                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
@@ -159,30 +162,30 @@ namespace Gepe3D
             this.b_particleIDinCell    = CLUtils.EnqueueMakeIntBuffer  (context, queue,  particleCount      , 0);
             this.b_cellStartAndEndIDs  = CLUtils.EnqueueMakeIntBuffer  (context, queue,  cellCount * 2      , 0);
             this.b_numParticlesPerCell = CLUtils.EnqueueMakeIntBuffer  (context, queue,  cellCount          , 0);
-            
+
             // ensure fills are completed
             CL.Flush(queue);
             CL.Finish(queue);
-            
-            
+
+
             /////////////////////////////////
             // Set up OpenGL for rendering //
             /////////////////////////////////
-            
+
             particleShader = new Shader("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
-            
+
             float[] vertexData = new float[]
             {
                 //  X value                    Y value          Z value
                 -PARTICLE_RADIUS / 2,    -PARTICLE_RADIUS / 2,     0,
                  PARTICLE_RADIUS / 2,    -PARTICLE_RADIUS / 2,     0,  // triangle 1
                  PARTICLE_RADIUS / 2,     PARTICLE_RADIUS / 2,     0,
-                
+
                 -PARTICLE_RADIUS / 2,    -PARTICLE_RADIUS / 2,     0,
                  PARTICLE_RADIUS / 2,     PARTICLE_RADIUS / 2,     0,  // triangle 2
                 -PARTICLE_RADIUS / 2,     PARTICLE_RADIUS / 2,     0,
             };
-            
+
             quad_VAO              = GLUtils.GenVAO();
             quad_VBO              = GLUtils.GenVBO(vertexData);
             instancePositions_VBO = GLUtils.GenVBO( posData );
@@ -191,9 +194,9 @@ namespace Gepe3D
             GLUtils.VaoInstanceFloatAttrib(quad_VAO, instancePositions_VBO, 1, 3, 3, 0);
             GLUtils.VaoInstanceFloatAttrib(quad_VAO, instanceColours_VBO  , 2, 3, 3, 0);
         }
-        
-        // set pos, phase, colour, constraints, 
-        
+
+        // set pos, phase, colour, constraints,
+
         public void SetPos(int id, float x, float y, float z)
         {
             posData[id * 3 + 0] = x;
@@ -201,7 +204,7 @@ namespace Gepe3D
             posData[id * 3 + 2] = z;
             posDirty = true;
         }
-        
+
         public void AddPos(int id, float x, float y, float z)
         {
             posData[id * 3 + 0] += x;
@@ -209,12 +212,12 @@ namespace Gepe3D
             posData[id * 3 + 2] += z;
             posDirty = true;
         }
-        
+
         public Vector3 GetPos(int id)
         {
             return new Vector3( posData[id * 3 + 0], posData[id * 3 + 1], posData[id * 3 + 2] );
         }
-        
+
         public void SetVel(int id, float x, float y, float z)
         {
             velData[id * 3 + 0] = x;
@@ -222,7 +225,7 @@ namespace Gepe3D
             velData[id * 3 + 2] = z;
             velDirty = true;
         }
-        
+
         public void AddVel(int id, float x, float y, float z)
         {
             velData[id * 3 + 0] += x;
@@ -230,18 +233,18 @@ namespace Gepe3D
             velData[id * 3 + 2] += z;
             velDirty = true;
         }
-        
+
         public Vector3 GetVel(int id)
         {
             return new Vector3( velData[id * 3 + 0], velData[id * 3 + 1], velData[id * 3 + 2] );
         }
-        
+
         public void SetPhase(int id, int phase)
         {
             phaseData[id] = phase;
             phaseDirty = true;
         }
-        
+
         public void SetColour(int id, float r, float g, float b)
         {
             colourData[id * 3 + 0] = r;
@@ -249,17 +252,17 @@ namespace Gepe3D
             colourData[id * 3 + 2] = b;
             colourDirty = true;
         }
-        
+
         public void AddDistConstraint(int id1, int id2, float dist)
         {
             distanceConstraints.Add( (id1, id2, dist) );
         }
-        
-        
+
+
         private string GenerateDefines()
         {
             string defines = "";
-            
+
             defines += "\n" + "#define MAX_X " + MAX_X.ToString("0.0000") + "f";
             defines += "\n" + "#define MAX_Y " + MAX_Y.ToString("0.0000") + "f";
             defines += "\n" + "#define MAX_Z " + MAX_Z.ToString("0.0000") + "f";
@@ -273,11 +276,11 @@ namespace Gepe3D
             defines += "\n" + "#define PHASE_SOLID " + PHASE_SOLID;
             defines += "\n" + "#define PHASE_STATIC " + PHASE_STATIC;
             defines += "\n";
-            
+
             return defines;
         }
-        
-        
+
+
         public void Render(MainWindow world)
         {
             if (colourDirty) {
@@ -285,78 +288,78 @@ namespace Gepe3D
                 colourDirty = false;
             }
             GLUtils.ReplaceBufferData(instancePositions_VBO, posData );
-            
+
             particleShader.Use();
             particleShader.SetVector3("lightPos", world.lightPos);
             particleShader.SetMatrix4("viewMatrix", world.character.activeCam.GetViewMatrix());
             particleShader.SetMatrix4("projectionMatrix", world.character.activeCam.GetProjectionMatrix());
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             particleShader.SetFloat("maxX", MAX_X);
-            
+
             GLUtils.DrawInstancedVAO(quad_VAO, 6, ParticleCount);
         }
-        
-        
+
+
         public void Update(float delta, float shiftX)
         {
             if (posDirty) {
                 CL.EnqueueWriteBuffer<float>(queue, b_Pos, false, new UIntPtr(), posData, null, out @event);
                 posDirty = false;
             }
-            
+
             if (velDirty) {
                 CL.EnqueueWriteBuffer<float>(queue, b_Vel, false, new UIntPtr(), velData, null, out @event);
                 velDirty = false;
             }
-            
+
             if (phaseDirty) {
                 CL.EnqueueWriteBuffer<int>(queue, b_phase, false, new UIntPtr(), phaseData, null, out @event);
                 phaseDirty = false;
             }
-            
+
             CLUtils.EnqueueFillIntBuffer(queue, b_sortedParticleIDs, 0, ParticleCount);
             CLUtils.EnqueueFillIntBuffer(queue, b_numParticlesPerCell, 0, cellCount);
             CLUtils.EnqueueFillFloatBuffer(queue, b_PosCorrection, 0, ParticleCount * 3);
-            
+
             // predict particle positions, then sort particle IDs for neighbour finding accordingly
             CLUtils.EnqueueKernel(queue, k_PredictPos             , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, GRAVITY.X, GRAVITY.Y, GRAVITY.Z);
             CLUtils.EnqueueKernel(queue, k_AssignParticleCells     , ParticleCount  , b_ePos, b_numParticlesPerCell, b_cellIDsOfParticles, b_particleIDinCell);
             CLUtils.EnqueueKernel(queue, k_FindCellsStartAndEnd   , cellCount      , b_numParticlesPerCell, b_cellStartAndEndIDs);
             CLUtils.EnqueueKernel(queue, k_SortParticleIDsByCell  , ParticleCount  , b_particleIDinCell, b_cellStartAndEndIDs, b_cellIDsOfParticles, b_sortedParticleIDs);
-            
+
             // correct the predicted positions to satisfy fluid and contact constraints
             CLUtils.EnqueueKernel(queue, k_CalcLambdas            , ParticleCount  , b_ePos, b_imass, b_lambdas, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k_FluidCorrect           , ParticleCount  , b_ePos, b_imass, b_lambdas, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k_SolidCorrect           , ParticleCount  , b_ePos, b_imass, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k_CorrectPredictions     , ParticleCount  , b_Pos, b_ePos, b_PosCorrection, b_phase);
-            
+
             CpuSolveDistConstraints(0.2f, 2); // parameters: stiffness, iterations
-            
+
             // update particle velocities using corrected predictions, then correct fluid velocities for vorticity & viscosity
             CLUtils.EnqueueKernel(queue, k_UpdateVel              , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, shiftX);
             CLUtils.EnqueueKernel(queue, k_CalcVorticity          , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k_ApplyVortVisc          , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_VelCorrection, b_imass, delta, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k_CorrectVel             , ParticleCount  , b_Vel, b_VelCorrection);
-            
+
             // read position and velocity data from GPU
             CL.EnqueueReadBuffer<float>(queue, b_Pos, false, new UIntPtr(), posData, null, out @event);
             CL.EnqueueReadBuffer<float>(queue, b_Vel, false, new UIntPtr(), velData, null, out @event);
-            
+
             CL.Flush(queue);
             CL.Finish(queue);
-            
+
         }
-        
+
         // distant constraint projection is performed on CPU because i can't figure out how to do it in OpenCL
         private void CpuSolveDistConstraints(float stiffness, int iterations)
         {
             stiffness = 1 - MathF.Pow( 1 - stiffness, 1f / (float) iterations );
-            
+
             // read estimated positions from the GPU
             CL.EnqueueReadBuffer<float>(queue, b_ePos, false, new UIntPtr(), ePosData, null, out @event);
             CL.Flush(queue);
             CL.Finish(queue);
-            
+
             for (int i = 0; i < iterations; i++)
             {
                 foreach( (int, int, float) constraint in distanceConstraints )
@@ -380,22 +383,22 @@ namespace Gepe3D
 
                     Vector3 correction1 = -w1 * displacement * dir;
                     Vector3 correction2 = +w2 * displacement * dir;
-                    
+
                     ePosData[p1 * 3 + 0] += correction1.X * stiffness;
                     ePosData[p1 * 3 + 1] += correction1.Y * stiffness;
                     ePosData[p1 * 3 + 2] += correction1.Z * stiffness;
-                    
+
                     ePosData[p2 * 3 + 0] += correction2.X * stiffness;
                     ePosData[p2 * 3 + 1] += correction2.Y * stiffness;
                     ePosData[p2 * 3 + 2] += correction2.Z * stiffness;
                 }
             }
-            
+
             // write estimated positions back to the GPU
             CL.EnqueueWriteBuffer<float>(queue, b_ePos, false, new UIntPtr(), ePosData, null, out @event);
             CL.Flush(queue);
             CL.Finish(queue);
         }
-        
+
     }
 }
