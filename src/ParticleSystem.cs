@@ -51,18 +51,18 @@ namespace Gepe3D
 
 
         private readonly CLKernel
-            k_PredictPos,
-            k_CalcLambdas,
-            k_FluidCorrect,
-            k_CorrectPredictions,
-            k_UpdateVel,
-            k_CalcVorticity,
-            k_ApplyVortVisc,
-            k_CorrectVel,
-            k_AssignParticleCells,
-            k_FindCellsStartAndEnd,
-            k_SortParticleIDsByCell,
-            k_SolidCorrect;
+            k01_predict_positions,
+            k02_assign_particle_cells,
+            k03_find_cells_start_and_end,
+            k04_sort_particle_ids_by_cell,
+            k05_compute_lambdas,
+            k07_compute_solid_corrections,
+            k06_compute_fluid_corrections,
+            k08_apply_corrections,
+            k09_update_velocity,
+            k10_compute_vorticity,
+            k11_apply_vorticity_viscosity,
+            k12_correct_fluid_velocity;
 
         private readonly CLBuffer
             b_Pos,              // positions
@@ -125,27 +125,21 @@ namespace Gepe3D
             this.queue = CL.CreateCommandQueueWithProperties(context, devices[0], new IntPtr(), out result);
 
             // load kernels
-            string varDefines            = GenerateDefines(); // combine with other source strings to add common functions
-            string commonFuncSource      = CLUtils.LoadSource("res/Kernels/common_funcs.cl");
-            string pbdCommonSource       = CLUtils.LoadSource("res/Kernels/pbd_common.cl");
-            string fluidProjectSource    = CLUtils.LoadSource("res/Kernels/fluid_project.cl");
-            string solidProjectSource    = CLUtils.LoadSource("res/Kernels/solid_project.cl");
-            CLProgram pbdProgram         = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + pbdCommonSource   );
-            CLProgram fluidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + fluidProjectSource);
-            CLProgram solidProgram       = CLUtils.BuildClProgram(context, devices, varDefines + commonFuncSource + solidProjectSource);
+            string kernelSource = GenerateDefines() + CLUtils.LoadSource("res/Kernels/kernels.cl");
+            CLProgram kernelProgram = CLUtils.BuildClProgram(context, devices, kernelSource);
 
-            this.k_AssignParticleCells    = CL.CreateKernel( pbdProgram   , "assign_particle_cells"      , out result);
-            this.k_FindCellsStartAndEnd   = CL.CreateKernel( pbdProgram   , "find_cells_start_and_end"   , out result);
-            this.k_SortParticleIDsByCell  = CL.CreateKernel( pbdProgram   , "sort_particle_ids_by_cell"  , out result);
-            this.k_PredictPos             = CL.CreateKernel( pbdProgram   , "predict_positions"          , out result);
-            this.k_CorrectPredictions     = CL.CreateKernel( pbdProgram   , "correct_predictions"        , out result);
-            this.k_UpdateVel              = CL.CreateKernel( pbdProgram   , "update_velocity"            , out result);
-            this.k_CalcLambdas            = CL.CreateKernel( fluidProgram , "calculate_lambdas"          , out result);
-            this.k_FluidCorrect           = CL.CreateKernel( fluidProgram , "calc_fluid_corrections"     , out result);
-            this.k_CalcVorticity          = CL.CreateKernel( fluidProgram , "calculate_vorticities"      , out result);
-            this.k_ApplyVortVisc          = CL.CreateKernel( fluidProgram , "apply_vorticity_viscosity"  , out result);
-            this.k_CorrectVel             = CL.CreateKernel( fluidProgram , "correct_fluid_vel"          , out result);
-            this.k_SolidCorrect           = CL.CreateKernel( solidProgram , "calc_solid_corrections"     , out result);
+            this.k01_predict_positions         = CL.CreateKernel( kernelProgram, "predict_positions"        , out result);
+            this.k02_assign_particle_cells     = CL.CreateKernel( kernelProgram, "assign_particle_cells"    , out result);
+            this.k03_find_cells_start_and_end  = CL.CreateKernel( kernelProgram, "find_cells_start_and_end" , out result);
+            this.k04_sort_particle_ids_by_cell = CL.CreateKernel( kernelProgram, "sort_particle_ids_by_cell", out result);
+            this.k05_compute_lambdas           = CL.CreateKernel( kernelProgram, "compute_lambdas"          , out result);
+            this.k06_compute_fluid_corrections = CL.CreateKernel( kernelProgram, "compute_fluid_corrections", out result);
+            this.k07_compute_solid_corrections = CL.CreateKernel( kernelProgram, "compute_solid_corrections", out result);
+            this.k08_apply_corrections         = CL.CreateKernel( kernelProgram, "apply_corrections"        , out result);
+            this.k09_update_velocity           = CL.CreateKernel( kernelProgram, "update_velocity"          , out result);
+            this.k10_compute_vorticity         = CL.CreateKernel( kernelProgram, "compute_vorticity"        , out result);
+            this.k11_apply_vorticity_viscosity = CL.CreateKernel( kernelProgram, "apply_vorticity_viscosity", out result);
+            this.k12_correct_fluid_velocity    = CL.CreateKernel( kernelProgram, "correct_fluid_velocity"   , out result);
 
             // create buffers
             this.b_Pos                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
@@ -322,24 +316,24 @@ namespace Gepe3D
             CLUtils.EnqueueFillFloatBuffer(queue, b_PosCorrection, 0, ParticleCount * 3);
 
             // predict particle positions, then sort particle IDs for neighbour finding accordingly
-            CLUtils.EnqueueKernel(queue, k_PredictPos             , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, GRAVITY.X, GRAVITY.Y, GRAVITY.Z);
-            CLUtils.EnqueueKernel(queue, k_AssignParticleCells     , ParticleCount  , b_ePos, b_numParticlesPerCell, b_cellIDsOfParticles, b_particleIDinCell);
-            CLUtils.EnqueueKernel(queue, k_FindCellsStartAndEnd   , cellCount      , b_numParticlesPerCell, b_cellStartAndEndIDs);
-            CLUtils.EnqueueKernel(queue, k_SortParticleIDsByCell  , ParticleCount  , b_particleIDinCell, b_cellStartAndEndIDs, b_cellIDsOfParticles, b_sortedParticleIDs);
+            CLUtils.EnqueueKernel(queue, k01_predict_positions        , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, GRAVITY.X, GRAVITY.Y, GRAVITY.Z);
+            CLUtils.EnqueueKernel(queue, k02_assign_particle_cells    , ParticleCount  , b_ePos, b_numParticlesPerCell, b_cellIDsOfParticles, b_particleIDinCell);
+            CLUtils.EnqueueKernel(queue, k03_find_cells_start_and_end , cellCount      , b_numParticlesPerCell, b_cellStartAndEndIDs);
+            CLUtils.EnqueueKernel(queue, k04_sort_particle_ids_by_cell, ParticleCount  , b_particleIDinCell, b_cellStartAndEndIDs, b_cellIDsOfParticles, b_sortedParticleIDs);
 
             // correct the predicted positions to satisfy fluid and contact constraints
-            CLUtils.EnqueueKernel(queue, k_CalcLambdas            , ParticleCount  , b_ePos, b_imass, b_lambdas, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-            CLUtils.EnqueueKernel(queue, k_FluidCorrect           , ParticleCount  , b_ePos, b_imass, b_lambdas, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-            CLUtils.EnqueueKernel(queue, k_SolidCorrect           , ParticleCount  , b_ePos, b_imass, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-            CLUtils.EnqueueKernel(queue, k_CorrectPredictions     , ParticleCount  , b_Pos, b_ePos, b_PosCorrection, b_phase);
+            CLUtils.EnqueueKernel(queue, k05_compute_lambdas          , ParticleCount  , b_ePos, b_imass, b_lambdas, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+            CLUtils.EnqueueKernel(queue, k06_compute_fluid_corrections, ParticleCount  , b_ePos, b_imass, b_lambdas, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+            CLUtils.EnqueueKernel(queue, k07_compute_solid_corrections, ParticleCount  , b_ePos, b_imass, b_PosCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+            CLUtils.EnqueueKernel(queue, k08_apply_corrections        , ParticleCount  , b_Pos, b_ePos, b_PosCorrection, b_phase);
 
             CpuSolveDistConstraints(0.2f, 2); // parameters: stiffness, iterations
 
             // update particle velocities using corrected predictions, then correct fluid velocities for vorticity & viscosity
-            CLUtils.EnqueueKernel(queue, k_UpdateVel              , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, shiftX);
-            CLUtils.EnqueueKernel(queue, k_CalcVorticity          , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-            CLUtils.EnqueueKernel(queue, k_ApplyVortVisc          , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_VelCorrection, b_imass, delta, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-            CLUtils.EnqueueKernel(queue, k_CorrectVel             , ParticleCount  , b_Vel, b_VelCorrection);
+            CLUtils.EnqueueKernel(queue, k09_update_velocity          , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, shiftX);
+            CLUtils.EnqueueKernel(queue, k10_compute_vorticity        , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+            CLUtils.EnqueueKernel(queue, k11_apply_vorticity_viscosity, ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_VelCorrection, b_imass, delta, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+            CLUtils.EnqueueKernel(queue, k12_correct_fluid_velocity   , ParticleCount  , b_Vel, b_VelCorrection);
 
             // read position and velocity data from GPU
             CL.EnqueueReadBuffer<float>(queue, b_Pos, false, new UIntPtr(), posData, null, out @event);
