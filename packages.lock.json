@@ -4,100 +4,92 @@
     "net10.0": {
       "OpenTK": {
         "type": "Direct",
-        "requested": "[4.6.*, )",
-        "resolved": "4.6.7",
-        "contentHash": "vdVQ7l0U506DZ+abpmgPAOutOnBv02+ao/OZqeu0r1BKYYaf9Qb8dFDE+DWRo2fREDku7ib+RQAngKvG5eJ7NA==",
+        "requested": "[4.9.4, )",
+        "resolved": "4.9.4",
+        "contentHash": "fp9ZI6akO4ZuIGzuUE0QRU5zRJhXbSXa5racehFoTdvodhRDecXCOcH68mRsZaMwnxLO9ECnf2LGM9BmiJKvhw==",
         "dependencies": {
-          "OpenTK.Compute": "4.6.7",
-          "OpenTK.Core": "4.6.7",
-          "OpenTK.Graphics": "4.6.7",
-          "OpenTK.Input": "4.6.7",
-          "OpenTK.Mathematics": "4.6.7",
-          "OpenTK.OpenAL": "4.6.7",
-          "OpenTK.Windowing.Common": "4.6.7",
-          "OpenTK.Windowing.Desktop": "4.6.7",
-          "OpenTK.Windowing.GraphicsLibraryFramework": "4.6.7"
+          "OpenTK.Audio.OpenAL": "4.9.4",
+          "OpenTK.Compute": "4.9.4",
+          "OpenTK.Core": "4.9.4",
+          "OpenTK.Graphics": "4.9.4",
+          "OpenTK.Input": "4.9.4",
+          "OpenTK.Mathematics": "4.9.4",
+          "OpenTK.Windowing.Common": "4.9.4",
+          "OpenTK.Windowing.Desktop": "4.9.4",
+          "OpenTK.Windowing.GraphicsLibraryFramework": "4.9.4"
+        }
+      },
+      "OpenTK.Audio.OpenAL": {
+        "type": "Transitive",
+        "resolved": "4.9.4",
+        "contentHash": "N/SCeFrLJ3ckUbshyfsonbtjmDxh55urGiR+Fe1iPkTWyEW5OKfQRoIOZyjEva/4eRqOXdt3bV2ka4IJ2+JvZw==",
+        "dependencies": {
+          "OpenTK.Core": "[4.9.4, 4.10.0)",
+          "OpenTK.Mathematics": "[4.9.4, 4.10.0)"
         }
       },
       "OpenTK.Compute": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "NwiFKORIPxTW2w5bdZwli8uuB6SfNhniQ68EsSONf07iMKsYRl9knlMWGC0yzvCTfA4xgoKh/Heu0bJ1PV4OpQ=="
+        "resolved": "4.9.4",
+        "contentHash": "30G+/9mtrUJwX5xcRyz2qcujQ2s+wDm+C7qg6jDsLyGWUdND3j/vD+nlQ6tuKuAow51zWduFVujPkaS8VrBinQ=="
       },
       "OpenTK.Core": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "g6qtoOop+RuyLRhsQ6Qxl5LVfhbMZmRM/RCL0WL/MbIfHXKpCOaNsU2JAuiKTVB9ULKsIq3lyLZmcwKKWIRprQ=="
+        "resolved": "4.9.4",
+        "contentHash": "/4Mn3ABf1xNfHMzDFUapVY2K4PG3oP/oWTQJlK0JacT20HwsNe/HPIAhnAJWz27EM3ukOJDtqyQRukvQKqkcLw=="
       },
       "OpenTK.Graphics": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "czDA/alXa8zVkEZy+Ciwnh5haDLKrkjP5TZjrh0W0fayuDAGiDgUGPupHpfhAH5EZOH0PPKIiLsmJukhub/hqA==",
+        "resolved": "4.9.4",
+        "contentHash": "yZeq5swIsRnNzifVA9fLtl+qMAQvmYiF1b7U/XQLARmmU4PYQ23lPNahqAdD22XzA21ew7eG3yDyPLkYw+hDBA==",
         "dependencies": {
-          "OpenTK.Core": "[4.6.7, 4.7.0)",
-          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
+          "OpenTK.Core": "[4.9.4, 4.10.0)",
+          "OpenTK.Mathematics": "[4.9.4, 4.10.0)"
         }
       },
       "OpenTK.Input": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "cEVDDE9xuV12hLg44mwCa6LnfOs3sG1LFo42hZajdJ1DTL/SUhDjJeYN/ttKfMy9SUHafweR0FMqkfJasHjuiA=="
+        "resolved": "4.9.4",
+        "contentHash": "njbC7fySQEK30rjOQ1uRjlycEkLw+UVoPT3nRQ8uBPNLotDgr47NEcPEjmJyX1ll+pm/wmtcvJIYHBRi1HbOqg=="
       },
       "OpenTK.Mathematics": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "hRQCx0WVIzpl5QL/HoaZOpz9INbrfrikFQTXnzWUwQD0vDzgrMrmUVRdjsn4WnGgRI+KV19zUK8iwHUDGavU+g==",
-        "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "[5.0.0, 5.1.0)"
-        }
-      },
-      "OpenTK.OpenAL": {
-        "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "z5AWwfflhQIJgUMkJr3kdr0YaaBqYIyM1jJ0ppinDR5VI1i2pmDZ4Pom9d56yng/xXAkxr9j3FLACZ3zaTNTaw==",
-        "dependencies": {
-          "OpenTK.Core": "[4.6.7, 4.7.0)",
-          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
-        }
+        "resolved": "4.9.4",
+        "contentHash": "2ucF25RVJzdSLXUHgjAgB058gVfSgerrR5pLCn9J+Bnyqi45NrBfPu9wyTT35ZCjYwLJCu/HJMnzKFLjq+uFIA=="
       },
       "OpenTK.redist.glfw": {
         "type": "Transitive",
-        "resolved": "3.3.0-pre20200830200122",
-        "contentHash": "EKE9pJCFHScbqOv/t0zG1h5Eh24nWr44SXYnpYtAWDhJhzAoUoI8TwDRXGvTGhDeCBp8ONEaVsq9xRC+OQIxQA=="
+        "resolved": "3.4.0.44",
+        "contentHash": "HEjbdk0wWxSRrXHl3DSmrA8trecndgJpAHHloJJ1vPseNfeu/ynmrH/LturU1KguRn4r3IzZ81UIp5xRjnyahg=="
       },
       "OpenTK.Windowing.Common": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "xLdsegwi1ggUEWGjvOySFioZf1fRNmCsVxFuW5+0wtmBzLbRdedxQeumKppkioJHhsDe8puM2iokjjYJq+9vkQ==",
+        "resolved": "4.9.4",
+        "contentHash": "xNjvKjoptAh6w5/YYIx/9sNv3/A2VVlTahlekTlLP+qfNyig+0jBuLHO4bWELWZ7Ta3Y1m/2Pvk0Z1KCG8VZOA==",
         "dependencies": {
-          "OpenTK.Core": "[4.6.7, 4.7.0)",
-          "OpenTK.Mathematics": "[4.6.7, 4.7.0)"
+          "OpenTK.Core": "[4.9.4, 4.10.0)",
+          "OpenTK.Mathematics": "[4.9.4, 4.10.0)"
         }
       },
       "OpenTK.Windowing.Desktop": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "I8zxitiMIoxPacMlwrkbjLNYDw+VcdAYKwF6ECo5I5JZZELHizBJXO9txv4JHrQC3QLWtfaYAORHocSqd6h09Q==",
+        "resolved": "4.9.4",
+        "contentHash": "LBX4jwCneISIBST2vWYLI8cdR8tLwHNcswK1decElbTAXMB+H6uFIoF41ld+af4q3TsHpjR5fyP2ilbTK3T0rA==",
         "dependencies": {
-          "OpenTK.Core": "[4.6.7, 4.7.0)",
-          "OpenTK.Mathematics": "[4.6.7, 4.7.0)",
-          "OpenTK.Windowing.Common": "[4.6.7, 4.7.0)",
-          "OpenTK.Windowing.GraphicsLibraryFramework": "[4.6.7, 4.7.0)"
+          "OpenTK.Core": "[4.9.4, 4.10.0)",
+          "OpenTK.Mathematics": "[4.9.4, 4.10.0)",
+          "OpenTK.Windowing.Common": "[4.9.4, 4.10.0)",
+          "OpenTK.Windowing.GraphicsLibraryFramework": "[4.9.4, 4.10.0)"
         }
       },
       "OpenTK.Windowing.GraphicsLibraryFramework": {
         "type": "Transitive",
-        "resolved": "4.6.7",
-        "contentHash": "GMFH6nlGll+UM37al3BrjqczyY9KDigHG5H1Tkgf186Z2wRXX3Thx1cOFNaDwBIB7iva73bA0a+cQHgKfV/3wg==",
+        "resolved": "4.9.4",
+        "contentHash": "wNlxnPrD7veMV8EGTTi/sCDeg5V8w/18vC0aw0Ao69eNneD7YSq9Ad+C389rVA957eHNR6Xieu/5qzHQeEOyxQ==",
         "dependencies": {
-          "OpenTK.Core": "[4.6.7, 4.7.0)",
-          "OpenTK.redist.glfw": "[3.3.0-pre20200830200122, 3.4.0-pre)"
+          "OpenTK.Core": "[4.9.4, 4.10.0)",
+          "OpenTK.redist.glfw": "3.4.0.44"
         }
-      },
-      "System.Runtime.CompilerServices.Unsafe": {
-        "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "ZD9TMpsmYJLrxbbmdvhwt9YEgG5WntEnZ/d1eH8JBX9LBp+Ju8BSBhUGbZMNVHHomWo2KVImJhTDl2hIgw/6MA=="
       }
     }
   }
