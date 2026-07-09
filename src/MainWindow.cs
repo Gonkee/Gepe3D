@@ -37,7 +37,7 @@ namespace Gepe3D
         public SkyBox skyBox;
         public ParticleSystem particleSystem;
         public BallCharacter character;
-        public Spike[] spikes;
+        // public Spike[] spikes;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -57,7 +57,7 @@ namespace Gepe3D
             CursorState = CursorState.Grabbed;
 
             skyBox = new SkyBox();
-            particleSystem = new ParticleSystem(7000);
+            particleSystem = new ParticleSystem(20000);
 
 
             ///////////////////////////////////////
@@ -83,15 +83,15 @@ namespace Gepe3D
                 1, 12
             );
 
-            spikes = new Spike[3];
-
-            float radius = 1f;
-            float x1 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.333f;
-            float x2 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.667f;
-            float x3 = radius - (ParticleSystem.MAX_X + radius * 2) * 2.000f;
-            spikes[0] = new Spike(particleSystem, x1, Spike.RandZ(radius), 2f, radius, 800);
-            spikes[1] = new Spike(particleSystem, x2, Spike.RandZ(radius), 2f, radius, 2000);
-            spikes[2] = new Spike(particleSystem, x3, Spike.RandZ(radius), 2f, radius, 3000);
+            // spikes = new Spike[3];
+            //
+            // float radius = 1f;
+            // float x1 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.333f;
+            // float x2 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.667f;
+            // float x3 = radius - (ParticleSystem.MAX_X + radius * 2) * 2.000f;
+            // spikes[0] = new Spike(particleSystem, x1, Spike.RandZ(radius), 2f, radius, 800);
+            // spikes[1] = new Spike(particleSystem, x2, Spike.RandZ(radius), 2f, radius, 2000);
+            // spikes[2] = new Spike(particleSystem, x3, Spike.RandZ(radius), 2f, radius, 3000);
 
         }
 
@@ -102,9 +102,8 @@ namespace Gepe3D
 
             float delta = 0.01f;
             character.Update(delta, KeyboardState);
-            foreach (Spike s in spikes) s.Update();
-            float shiftX = 4.5f * delta;
-            particleSystem.Update(delta, shiftX);
+            // foreach (Spike s in spikes) s.Update();
+            particleSystem.Update(delta);
 
             // render
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);

@@ -28,7 +28,7 @@ namespace Gepe3D
         private readonly float[] colourData;
         private readonly int[]   phaseData;
 
-        public static Vector3 GRAVITY          = new Vector3(-3, -6, 0);
+        public static Vector3 GRAVITY          = new Vector3(0, -6, 0);
         public static float   PARTICLE_RADIUS  = 0.2f;
         public static float   GRID_CELL_WIDTH  = 0.6f;
         public static float   KERNEL_SIZE      = 0.6f;
@@ -36,8 +36,8 @@ namespace Gepe3D
 
         public static int
             GridRowsX = 16,
-            GridRowsY = 10,
-            GridRowsZ = 12;
+            GridRowsY = 16,
+            GridRowsZ = 16;
 
         public static float
             MAX_X = GRID_CELL_WIDTH * GridRowsX,
@@ -294,7 +294,7 @@ namespace Gepe3D
         }
 
 
-        public void Update(float delta, float shiftX)
+        public void Update(float delta)
         {
             if (posDirty) {
                 CL.EnqueueWriteBuffer<float>(queue, b_Pos, false, new UIntPtr(), posData, null, out @event);
@@ -330,7 +330,7 @@ namespace Gepe3D
             CpuSolveDistConstraints(0.2f, 2); // parameters: stiffness, iterations
 
             // update particle velocities using corrected predictions, then correct fluid velocities for vorticity & viscosity
-            CLUtils.EnqueueKernel(queue, k09_update_velocity          , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase, shiftX);
+            CLUtils.EnqueueKernel(queue, k09_update_velocity          , ParticleCount  , delta, b_Pos, b_Vel, b_ePos, b_phase);
             CLUtils.EnqueueKernel(queue, k10_compute_vorticity        , ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k11_apply_vorticity_viscosity, ParticleCount  , b_Pos, b_Vel, b_Vorticities, b_VelCorrection, b_imass, delta, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
             CLUtils.EnqueueKernel(queue, k12_correct_fluid_velocity   , ParticleCount  , b_Vel, b_VelCorrection);

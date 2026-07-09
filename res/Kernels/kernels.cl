@@ -49,7 +49,7 @@ void setVec(global float *buffer, int i, float3 val) {
 
 
 int3 cell_id_2_coords(int id) {
-    
+
     int x =   id / (CELLCOUNT_Y * CELLCOUNT_Z);
     int y = ( id % (CELLCOUNT_Y * CELLCOUNT_Z) ) / CELLCOUNT_Z;
     int z = ( id % (CELLCOUNT_Y * CELLCOUNT_Z) ) % CELLCOUNT_Z;
@@ -57,10 +57,10 @@ int3 cell_id_2_coords(int id) {
 }
 
 int cell_coords_2_id(int3 coords) {
-    
+
     return
         coords.x * CELLCOUNT_Y * CELLCOUNT_Z +
-        coords.y * CELLCOUNT_Z + 
+        coords.y * CELLCOUNT_Z +
         coords.z;
 }
 
@@ -87,7 +87,7 @@ void atomic_add_global_float(volatile global float *source, const float operand)
         unsigned int intVal;
         float floatVal;
     } prevVal;
- 
+
     do {
         prevVal.floatVal = *source;
         newVal.floatVal = prevVal.floatVal + operand;
@@ -112,15 +112,15 @@ kernel void predict_positions(
 ) {
     int i = get_global_id(0);
     // if (phase[i] == PHASE_STATIC) return;
-    
+
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
-    
+
     vel.x += gravityX * delta;
     vel.y += gravityY * delta;
     vel.z += gravityZ * delta;
     float3 epos = pos + vel * delta;
-    
+
     setVec( velBuffer, i,  vel);
     setVec(eposBuffer, i, epos);
 }
@@ -145,7 +145,7 @@ kernel void find_cells_start_and_end (
     global int *cellStartAndEndIDs
 ) {
     int cellID = get_global_id(0);
-    
+
     int startPos = 0;
     for (int i = 0; i < cellID; i++) {
         startPos += numParticlesPerCell[i];
@@ -162,7 +162,7 @@ kernel void sort_particle_ids_by_cell (
     global int *cellIDsOfParticles,
     global int *sortedParticleIDs
 ) {
-    
+
     int i = get_global_id(0);
     int cellID = cellIDsOfParticles[i];
     int cellStartPos = cellStartAndEndIDs[cellID * 2 + 0];
@@ -194,32 +194,32 @@ kernel void compute_lambdas(
     global int *sortedParticleIDs,
     global int *phase
 ) {
-    
+
     int i = get_global_id(0);
-    
+
     if (phase[i] != PHASE_LIQUID) {
         lambdas[i] = 0;
         return;
     }
-    
+
     float3 epos1 = getVec(eposBuffer, i);
     float density = 0;
     float  gradN = 0; // gradient sum when other particle is neighbour
     float3 gradS = 0; // gradient sum when other particle is self
-    
-    
+
+
     FOREACH_NEIGHBOUR_j
-    
+
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
         float dist = length(diff);
         if (dist > KERNEL_SIZE) continue;
-        
+
         // the added bit should be multiplied by an extra scalar if its a solid
         if (imasses[j] > 0) density += (1.0 / imasses[j]) * w_poly6(dist, KERNEL_SIZE);
-        
+
         if (i != j) {
-            
+
             float kgrad = w_spikygrad(dist, KERNEL_SIZE);
             float tmp = kgrad / REST_DENSITY;
             // the added bit should be multiplied by an extra scalar if its a solid
@@ -227,15 +227,15 @@ kernel void compute_lambdas(
             // the added bit should be multiplied by an extra scalar if its a solid
             gradS += normalize(diff) * kgrad;
         }
-        
+
     END_FOREACH_NEIGHBOUR_j
-    
-    
+
+
     gradS /= REST_DENSITY;
     float denominator = gradN + dot(gradS, gradS);
-    
+
     lambdas[i] = -(density / REST_DENSITY - 1.0) / (denominator + RELAXATION);
-    
+
 }
 
 kernel void compute_fluid_corrections(
@@ -249,40 +249,40 @@ kernel void compute_fluid_corrections(
     global int *phase
 ) {
     int i = get_global_id(0);
-    
+
     if (phase[i] != PHASE_LIQUID) return;
-    
+
     float3 epos1 = getVec(eposBuffer, i);
-    
+
     float3 correction = (float3) (0, 0, 0);
-    
+
     int numNeighbours = 1; // start at 1 to prevent divide by zero
-    
+
     FOREACH_NEIGHBOUR_j
-        
+
         if (i == j) continue;
-        
+
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
         float dist = length(diff);
-        
+
         if (dist > KERNEL_SIZE) continue;
         numNeighbours++;
-        
+
         float3 grad = w_spikygrad(dist, KERNEL_SIZE) * normalize(diff);
-        
+
         float artificialPressure = -K_P * pow( w_poly6(dist, KERNEL_SIZE) / w_poly6(DQ_P * KERNEL_SIZE, KERNEL_SIZE), E_P );
-        
+
         correction += (lambdas[i] + lambdas[j] + artificialPressure) * grad;
-        
+
     END_FOREACH_NEIGHBOUR_j
-    
-    
+
+
     correction /= REST_DENSITY;
     correction /= numNeighbours;
-    
+
     setVec(corrections, i, correction);
-    
+
 }
 
 
@@ -296,35 +296,35 @@ kernel void compute_solid_corrections (
     global int *phase
 ) {
     int i = get_global_id(0);
-    
+
     if (phase[i] != PHASE_SOLID) return;
-    
+
     float3 epos1 = getVec(eposBuffer, i);
-    
+
     float imass1 = imasses[i];
     if (imass1 == 0) return;
-    
+
     float3 correction = (float3) (0, 0, 0);
-    
+
     FOREACH_NEIGHBOUR_j
-        
+
         if (i == j) continue;
-        
+
         float3 epos2 = getVec(eposBuffer, j);
         float3 diff = epos1 - epos2;
         float dist = length(diff);
-        
+
         float imass2 = imasses[j];
-        
+
         if (dist < 0.2f) {
             float displacement = dist - 0.2f;
             float w = imass1 / (imass1 + imass2);
             correction -= w * displacement * normalize(diff);
         }
-        
+
     END_FOREACH_NEIGHBOUR_j
-    
-    
+
+
     setVec(corrections, i, correction);
 }
 
@@ -336,7 +336,7 @@ kernel void apply_corrections(
     global int *phase
 ) {
     int i = get_global_id(0);
-    
+
     float3 correction = getVec(corrections, i);
     float3 epos = getVec(eposBuffer, i);
     epos += correction;
@@ -350,34 +350,30 @@ kernel void update_velocity(
     global float *posBuffer,
     global float *velBuffer,
     global float *eposBuffer,
-    global int *phase,
-    float shiftX
+    global int *phase
 ) {
     int i = get_global_id(0);
-    
+
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     float3 epos = getVec(eposBuffer, i);
-    
+
     if (phase[i] == PHASE_STATIC) epos = pos;
-    
+
     vel = (epos - pos) / delta;
     pos = epos;
-    pos.x += shiftX;
-    
-    if (phase[i] == PHASE_LIQUID) {
-        if (pos.x <     0) pos.x = MAX_X - 0.01f;
-        if (pos.x > MAX_X) pos.x =     0 + 0.01f;
-    }
-    
+
+    if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
+    else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }
+
     if      (pos.y <     0) {  pos.y =     0;  vel.y = fmax( (float) 0, (float) vel.y);  }
     else if (pos.y > MAX_Y) {  pos.y = MAX_Y;  vel.y = fmin( (float) 0, (float) vel.y);  }
-    
+
     if      (pos.z <     0) {  pos.z =     0;  vel.z = fmax( (float) 0, (float) vel.z);  }
     else if (pos.z > MAX_Z) {  pos.z = MAX_Z;  vel.z = fmin( (float) 0, (float) vel.z);  }
-    
+
     if (length(vel) > MAX_VEL) vel = normalize(vel) * MAX_VEL;
-    
+
     setVec( posBuffer, i,  pos);
     setVec( velBuffer, i,  vel);
     setVec(eposBuffer, i, epos);
@@ -393,28 +389,28 @@ kernel void compute_vorticity (
     global int *sortedParticleIDs,
     global int *phase
 ) {
-    
+
     int i = get_global_id(0);
-    
+
     if (phase[i] != PHASE_LIQUID) {
         setVec(vorticities, i, (float3) (0, 0, 0) );
         return;
     }
-    
+
     float3 pos = getVec(posBuffer, i);
     float3 vel = getVec(velBuffer, i);
-    
+
     float3 vorticity = (float3) (0, 0, 0);
-        
+
     FOREACH_NEIGHBOUR_j
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
         float3 grad = w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
-        
+
         vorticity += cross(velDiff, grad);
-        
+
     END_FOREACH_NEIGHBOUR_j
-    
+
     setVec(vorticities, i, vorticity);
 }
 
@@ -431,41 +427,41 @@ kernel void apply_vorticity_viscosity (
     global int *sortedParticleIDs,
     global int *phase
 ) {
-    
+
     int i = get_global_id(0);
-    
+
     if (phase[i] != PHASE_LIQUID) {
         setVec(velCorrect, i, (float3) (0, 0, 0) );
         return;
     }
-    
+
     float3 pos = getVec(posBuffer, i);
     float3 vel = getVec(velBuffer, i);
     float3 vort_i = getVec(vorticities, i);
-    
+
     // gradient direction of the magnitude of vorticities around this point (scalar field)
     // gradient of a function is calculated by summing function values multiplied by spikygrad
     float3 vortMagGrad = (float3) (0, 0, 0);
-    
+
     float3 avgNeighbourVelDiff = (float3) (0, 0, 0);
-    
+
     FOREACH_NEIGHBOUR_j
-        
+
         float3 velDiff = getVec(velBuffer, j) - vel;
         float3 posDiff = pos - getVec(posBuffer, j);
         float3 vort_j = getVec(vorticities, j);
         vortMagGrad += length(vort_j) * w_spikygrad( length(posDiff), KERNEL_SIZE ) * normalize(posDiff);
-        
+
         avgNeighbourVelDiff += velDiff * w_poly6( length(posDiff), KERNEL_SIZE );
-        
+
     END_FOREACH_NEIGHBOUR_j
-    
+
     float3 vorticity_force = RELAXATION * cross( normalize(vortMagGrad), vort_i );
-    
-    float3 correction = 
+
+    float3 correction =
                         (vorticity_force * delta * imasses[i]) +
                         (avgNeighbourVelDiff * VISCOSITY_COEFF);
-    
+
     setVec(velCorrect, i, correction);
 }
 
@@ -474,7 +470,7 @@ kernel void correct_fluid_velocity(
     global float *velBuffer,
     global float *velCorrect
 ) {
-    
+
     int i = get_global_id(0);
     float3 vel = getVec(velBuffer, i);
     float3 correction = getVec(velCorrect, i);
