@@ -6,7 +6,7 @@ namespace Gepe3D
     {
 
         private static readonly float SIDE_LENGTH = 200;
-        
+
         private readonly float[] vertices = new float[]
         {
             -SIDE_LENGTH / 2, -SIDE_LENGTH / 2, -SIDE_LENGTH / 2,
@@ -18,7 +18,7 @@ namespace Gepe3D
              SIDE_LENGTH / 2,  SIDE_LENGTH / 2,  SIDE_LENGTH / 2,
              SIDE_LENGTH / 2,  SIDE_LENGTH / 2, -SIDE_LENGTH / 2
         };
-        
+
         // counter clockwise specification, faces facing inward
         private readonly uint[] indices = new uint[]
         {
@@ -28,8 +28,8 @@ namespace Gepe3D
         };
 
         private int _vboID, _vaoID;
-        
-        
+
+
         private readonly Shader skyboxShader;
 
         public SkyBox()
@@ -38,19 +38,19 @@ namespace Gepe3D
             _vboID = GLUtils.GenVBO(vertices);
             GLUtils.VaoFloatAttrib(_vaoID, _vboID, 0, 3, 3, 0);
             GLUtils.AttachEBO(_vaoID, indices);
-            
+
             skyboxShader = new Shader("res/Shaders/skybox.vert", "res/Shaders/skybox.frag");
         }
 
-        
+
         public void Render(MainWindow world)
         {
             skyboxShader.Use();
-            skyboxShader.SetVector3("cameraPos", world.character.activeCam.Position);
-            skyboxShader.SetMatrix4("cameraMatrix", world.character.activeCam.GetMatrix());
-            
+            skyboxShader.SetVector3("cameraPos", world.camera.Position);
+            skyboxShader.SetMatrix4("cameraMatrix", world.camera.GetMatrix());
+
             GLUtils.DrawIndexedVAO(_vaoID, indices.Length);
         }
-        
+
     }
 }

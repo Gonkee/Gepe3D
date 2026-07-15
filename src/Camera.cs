@@ -9,7 +9,7 @@ namespace Gepe3D
 
         public Vector3 Position { get; set; }
         public float AspectRatio { private get; set; }
-        public float FovDegrees = 70;
+        public float FovDegrees = 60;
         public float NearClip = 0.01f, FarClip = 500;
         public float MovementSpeed = 1.5f;
         public float Sensitivity = 0.2f;
@@ -34,26 +34,19 @@ namespace Gepe3D
             viewMatrix.Transpose();
             return viewMatrix;
         }
-        
+
         public Matrix4 GetProjectionMatrix()
         {
-            Matrix4 projMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(FovDegrees), AspectRatio, NearClip, FarClip );
-            projMatrix.Transpose();
-            return projMatrix;
+            Matrix4 projectionMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(FovDegrees), AspectRatio, NearClip, FarClip );
+            projectionMatrix.Transpose();
+            return projectionMatrix;
         }
 
         public Matrix4 GetMatrix()
         {
-            // OpenTK matrices are transposed by default for some reason
-            Matrix4 viewMatrix = Matrix4.LookAt(Position, Position + _localForward, _localUp);
-            viewMatrix.Transpose();
-            Matrix4 projMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(FovDegrees), AspectRatio, NearClip, FarClip );
-            projMatrix.Transpose();
-
-            // transformations go from right to left
-            return projMatrix * viewMatrix;
+            return GetProjectionMatrix() * GetViewMatrix();
         }
-        
+
         public void Update(float delta, KeyboardState keyboardState)
         {
             Vector3 movement = new Vector3();
@@ -108,7 +101,7 @@ namespace Gepe3D
             pitch = MathHelper.RadiansToDegrees( MathF.Atan2(dy, horizontalDist) );
             yaw =   MathHelper.RadiansToDegrees( MathF.Atan2(dz, dx) );
         }
-        
+
         public void SetPos(Vector3 pos)
         {
             Position = pos;

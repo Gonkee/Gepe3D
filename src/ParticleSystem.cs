@@ -36,13 +36,20 @@ namespace Gepe3D
 
         public static int
             GridRowsX = 16,
-            GridRowsY = 16,
+            GridRowsY = 10,
             GridRowsZ = 16;
+
+        public static int
+            BarCellsX = 12,
+            BarCellsY = 1,
+            BarCellsZ = 1;
 
         public static float
             MAX_X = GRID_CELL_WIDTH * GridRowsX,
             MAX_Y = GRID_CELL_WIDTH * GridRowsY,
             MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
+
+        public static Vector3 center = new Vector3(MAX_X, MAX_Y, MAX_Z) / 2f;
 
         public static int
             PHASE_LIQUID = 0,
@@ -285,8 +292,8 @@ namespace Gepe3D
 
             particleShader.Use();
             particleShader.SetVector3("lightPos", world.lightPos);
-            particleShader.SetMatrix4("viewMatrix", world.character.activeCam.GetViewMatrix());
-            particleShader.SetMatrix4("projectionMatrix", world.character.activeCam.GetProjectionMatrix());
+            particleShader.SetMatrix4("viewMatrix", world.camera.GetViewMatrix());
+            particleShader.SetMatrix4("projectionMatrix", world.camera.GetProjectionMatrix());
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             particleShader.SetFloat("maxX", MAX_X);
 

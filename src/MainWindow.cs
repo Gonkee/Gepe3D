@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -23,7 +24,6 @@ namespace Gepe3D
                 {
                     ClientSize = new Vector2i(1280, 720),
                     Title = "Gepe3D",
-                    // WindowBorder = WindowBorder.Hidden
                 }
             );
 
@@ -36,13 +36,16 @@ namespace Gepe3D
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
         public SkyBox skyBox;
         public ParticleSystem particleSystem;
-        public BallCharacter character;
-        // public Spike[] spikes;
+
+        // camera initially points in the positive X
+        public Camera camera = new Camera( new Vector3(), 16f / 9f);
+        private float pitch = 0;
+        private float yaw = 0;
+        public float Sensitivity = 0.2f;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
-        {
-        }
+        {}
 
         protected override void OnLoad()
         {
@@ -59,7 +62,6 @@ namespace Gepe3D
             skyBox = new SkyBox();
             particleSystem = new ParticleSystem(20000);
 
-
             ///////////////////////////////////////
             // Setting up fluid, ball and spikes //
             ///////////////////////////////////////
@@ -67,32 +69,92 @@ namespace Gepe3D
             Random rand = new Random();
             for (int i = 0; i < particleSystem.ParticleCount; i++) {
                 float x = (float) rand.NextDouble() * ParticleSystem.MAX_X;
-                float y = (float) rand.NextDouble() * ParticleSystem.MAX_Y * 0.7f;
-                float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z * 0.3f + ParticleSystem.MAX_Z * 0.7f;
+                float y = (float) rand.NextDouble() * ParticleSystem.MAX_Y * 0.5f;
+                float z = (float) rand.NextDouble() * ParticleSystem.MAX_Z;
                 particleSystem.SetPos(i, x, y, z);
                 particleSystem.SetPhase(i, ParticleSystem.PHASE_LIQUID);
-
                 particleSystem.SetColour( i, 0, 0.5f, 1 );
             }
 
-            character = new BallCharacter(
-                particleSystem,
+            CreateBall(
                 ParticleSystem.MAX_X * 0.5f,
                 1.1f,
                 ParticleSystem.MAX_Z * 0.3f,
                 1, 12
             );
+        }
 
-            // spikes = new Spike[3];
-            //
-            // float radius = 1f;
-            // float x1 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.333f;
-            // float x2 = radius - (ParticleSystem.MAX_X + radius * 2) * 1.667f;
-            // float x3 = radius - (ParticleSystem.MAX_X + radius * 2) * 2.000f;
-            // spikes[0] = new Spike(particleSystem, x1, Spike.RandZ(radius), 2f, radius, 800);
-            // spikes[1] = new Spike(particleSystem, x2, Spike.RandZ(radius), 2f, radius, 2000);
-            // spikes[2] = new Spike(particleSystem, x3, Spike.RandZ(radius), 2f, radius, 3000);
+        private void CreateBall(float x, float y, float z, float radius, int resolution) {
+            (Vector3i, Vector3i)[] connections = {
+                // 1 axis
+                ( new Vector3i(0, 0, 0), new Vector3i(1, 0, 0) ) ,
+                ( new Vector3i(0, 0, 0), new Vector3i(0, 1, 0) ) ,
+                ( new Vector3i(0, 0, 0), new Vector3i(0, 0, 1) ) ,
 
+                // 2 axes
+                ( new Vector3i(0, 0, 0), new Vector3i(1, 1, 0) ) ,
+                ( new Vector3i(0, 0, 0), new Vector3i(0, 1, 1) ) ,
+                ( new Vector3i(0, 0, 0), new Vector3i(1, 0, 1) ) ,
+
+                // 2 axes other
+                ( new Vector3i(1, 0, 0), new Vector3i(0, 1, 0) ) ,
+                ( new Vector3i(1, 0, 0), new Vector3i(0, 0, 1) ) ,
+                ( new Vector3i(0, 1, 0), new Vector3i(0, 0, 1) ) ,
+
+                // 3 axes
+                ( new Vector3i(0, 0, 0), new Vector3i(1, 1, 1) ) ,
+                ( new Vector3i(1, 0, 0), new Vector3i(0, 1, 1) ) ,
+                ( new Vector3i(0, 1, 0), new Vector3i(1, 0, 1) ) ,
+                ( new Vector3i(0, 0, 1), new Vector3i(1, 1, 0) ) ,
+            };
+
+            Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
+
+            List<int> particlesList = new List<int>();
+
+            int currentID = 0;
+            for (int px = 0; px < resolution; px++) {
+                for (int py = 0; py < resolution; py++) {
+                    for (int pz = 0; pz < resolution; pz++) {
+                        float offsetX = MathHelper.Lerp( -radius, +radius, px / (resolution - 1f) );
+                        float offsetY = MathHelper.Lerp( -radius, +radius, py / (resolution - 1f) );
+                        float offsetZ = MathHelper.Lerp( -radius, +radius, pz / (resolution - 1f) );
+                        float dist = MathF.Sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
+                        if (dist <= radius) {
+                            particleSystem.SetPhase(currentID, ParticleSystem.PHASE_SOLID);
+                            particleSystem.SetColour(currentID, 1, 0.6f, 0);
+                            particleSystem.SetPos(
+                                currentID,
+                                x + offsetX,
+                                y + offsetY,
+                                z + offsetZ
+                            );
+                            coord2id[ new Vector3i(px, py, pz) ] = currentID;
+                            particlesList.Add(currentID);
+                            currentID++;
+                        }
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<Vector3i, int> pair in coord2id)
+            {
+                Vector3i coord = pair.Key;
+                foreach ( (Vector3i, Vector3i) connect in connections)
+                {
+                    Vector3i c1 = coord + connect.Item1;
+                    Vector3i c2 = coord + connect.Item2;
+                    if (coord2id.ContainsKey(c1) && coord2id.ContainsKey(c2))
+                    {
+                        int p1 = coord2id[c1];
+                        int p2 = coord2id[c2];
+                        Vector3 pos1 = particleSystem.GetPos(p1);
+                        Vector3 pos2 = particleSystem.GetPos(p2);
+                        float dist = (pos1 - pos2).Length;
+                        particleSystem.AddDistConstraint(p1, p2, dist);
+                    }
+                }
+            }
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -101,14 +163,23 @@ namespace Gepe3D
             if (KeyboardState.IsKeyDown(Keys.Escape)) Close();
 
             float delta = 0.01f;
-            character.Update(delta, KeyboardState);
-            // foreach (Spike s in spikes) s.Update();
             particleSystem.Update(delta);
 
             // render
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            character.MouseMovementUpdate(MouseState.Delta);
+
+            // update camera
+            yaw   += MouseState.Delta.X * Sensitivity;
+            pitch -= MouseState.Delta.Y * Sensitivity;
+            pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
+            Vector3 camOffset = new Vector3(15, 0, 0);
+            camOffset = Vector3.TransformColumn( Matrix3.CreateRotationZ( MathHelper.DegreesToRadians(pitch) ), camOffset );
+            camOffset = Vector3.TransformColumn( Matrix3.CreateRotationY( MathHelper.DegreesToRadians(yaw) ), camOffset );
+            camera.SetPos(ParticleSystem.center + camOffset);
+            camera.LookAt(ParticleSystem.center);
+            camera.UpdateLocalVectors();
+
             skyBox.Render(this);
             particleSystem.Render(this);
 
