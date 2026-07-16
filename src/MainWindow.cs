@@ -40,8 +40,6 @@ namespace Gepe3D
 
         // camera initially points in the positive X
         public Camera camera = new Camera( new Vector3(), 16f / 9f);
-        private float pitch = 0;
-        private float yaw = 0;
         public float Sensitivity = 0.2f;
         private float totalTime = 0;
 
@@ -58,8 +56,6 @@ namespace Gepe3D
             GL.CullFace(TriangleFace.Back);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.Enable(EnableCap.Blend);
-
-            CursorState = CursorState.Grabbed;
 
             skyBox = new SkyBox();
             particleSystem = new ParticleSystem(20000);
@@ -206,22 +202,17 @@ namespace Gepe3D
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             // update camera
-            yaw   += MouseState.Delta.X * Sensitivity;
-            pitch -= MouseState.Delta.Y * Sensitivity;
-            pitch = MathHelper.Clamp(pitch, -89.9f, 89.9f);
-            Vector3 camOffset = new Vector3(15, 0, 0);
-            camOffset = Vector3.TransformColumn( Matrix3.CreateRotationZ( MathHelper.DegreesToRadians(pitch) ), camOffset );
-            camOffset = Vector3.TransformColumn( Matrix3.CreateRotationY( MathHelper.DegreesToRadians(yaw) ), camOffset );
-            camera.SetPos(ParticleSystem.center + camOffset);
-            camera.LookAt(ParticleSystem.center);
+            Vector3 camOffset = new Vector3(-12, 8, -6);
+            camera.SetPos(ParticleSystem.lowCenter + camOffset);
+            camera.LookAt(ParticleSystem.lowCenter);
             camera.UpdateLocalVectors();
 
             // update bar position
             foreach ((int id, float px, float py, float pz) in barParticles) {
                 particleSystem.SetPos(id,
-                    px + MathF.Cos(totalTime) * ParticleSystem.MAX_X * 0.3f,
-                    py,// + MathF.Cos(totalTime) * ParticleSystem.MAX_Y * 0.4f,
-                    pz + MathF.Sin(totalTime) * ParticleSystem.MAX_Z * 0.3f
+                    px + MathF.Cos(totalTime * 1.5f) * ParticleSystem.MAX_X * 0.3f,
+                    py,
+                    pz + MathF.Sin(totalTime * 1.5f) * ParticleSystem.MAX_Z * 0.3f
                 );
             }
 

@@ -49,7 +49,7 @@ namespace Gepe3D
             MAX_Y = GRID_CELL_WIDTH * GridRowsY,
             MAX_Z = GRID_CELL_WIDTH * GridRowsZ;
 
-        public static Vector3 center = new Vector3(MAX_X, MAX_Y, MAX_Z) / 2f;
+        public static Vector3 lowCenter = new Vector3(MAX_X, MAX_Y / 3, MAX_Z) / 2f;
 
         public static int
             PHASE_LIQUID = 0,
