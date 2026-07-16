@@ -36,12 +36,14 @@ namespace Gepe3D
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
         public SkyBox skyBox;
         public ParticleSystem particleSystem;
+        (int, float, float, float)[] barParticles;
 
         // camera initially points in the positive X
         public Camera camera = new Camera( new Vector3(), 16f / 9f);
         private float pitch = 0;
         private float yaw = 0;
         public float Sensitivity = 0.2f;
+        private float totalTime = 0;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -78,13 +80,19 @@ namespace Gepe3D
 
             CreateBall(
                 ParticleSystem.MAX_X * 0.5f,
-                1.1f,
-                ParticleSystem.MAX_Z * 0.3f,
-                1, 12
+                ParticleSystem.MAX_Y * 0.5f,
+                ParticleSystem.MAX_Z * 0.5f,
+                1.2f, 0.15f
+            );
+
+            barParticles = CreateBar(
+                ParticleSystem.MAX_X * 0.4f, ParticleSystem.MAX_Y * 0.1f, ParticleSystem.MAX_Z * 0.4f,
+                ParticleSystem.MAX_X * 0.2f, ParticleSystem.MAX_Y * 0.3f, ParticleSystem.MAX_Z * 0.2f,
+                0.15f, 3000
             );
         }
 
-        private void CreateBall(float x, float y, float z, float radius, int resolution) {
+        private void CreateBall(float x, float y, float z, float radius, float particleGap) {
             (Vector3i, Vector3i)[] connections = {
                 // 1 axis
                 ( new Vector3i(0, 0, 0), new Vector3i(1, 0, 0) ) ,
@@ -108,8 +116,8 @@ namespace Gepe3D
                 ( new Vector3i(0, 0, 1), new Vector3i(1, 1, 0) ) ,
             };
 
+            int resolution = (int) (radius / particleGap) * 2;
             Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
-
             List<int> particlesList = new List<int>();
 
             int currentID = 0;
@@ -157,17 +165,45 @@ namespace Gepe3D
             }
         }
 
+        private (int, float, float, float)[] CreateBar(
+            float x, float y, float z,
+            float dimX, float dimY, float dimZ,
+            float particleGap, int startID
+        ) {
+            int resX = (int) (dimX / particleGap) + 1;
+            int resY = (int) (dimY / particleGap) + 1;
+            int resZ = (int) (dimZ / particleGap) + 1;
+
+            List<(int, float, float, float)> particlesList = new List<(int, float, float, float)>();
+            int currentID = startID;
+            for (int i = 0; i < resX; i++) {
+                for (int j = 0; j < resY; j++) {
+                    for (int k = 0; k < resZ; k++) {
+                        particleSystem.SetPhase(currentID, ParticleSystem.PHASE_STATIC);
+                        particleSystem.SetColour(currentID, 0.4f, 0.4f, 0.4f);
+                        float px = x + i * particleGap;
+                        float py = y + j * particleGap;
+                        float pz = z + k * particleGap;
+                        particleSystem.SetPos(currentID, px, py, pz);
+                        particlesList.Add((currentID, px, py, pz));
+                        currentID++;
+                    }
+                }
+            }
+            return particlesList.ToArray();
+        }
+
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // update
             if (KeyboardState.IsKeyDown(Keys.Escape)) Close();
 
             float delta = 0.01f;
+            totalTime += delta;
             particleSystem.Update(delta);
 
             // render
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
 
             // update camera
             yaw   += MouseState.Delta.X * Sensitivity;
@@ -179,6 +215,15 @@ namespace Gepe3D
             camera.SetPos(ParticleSystem.center + camOffset);
             camera.LookAt(ParticleSystem.center);
             camera.UpdateLocalVectors();
+
+            // update bar position
+            foreach ((int id, float px, float py, float pz) in barParticles) {
+                particleSystem.SetPos(id,
+                    px + MathF.Cos(totalTime) * ParticleSystem.MAX_X * 0.3f,
+                    py,// + MathF.Cos(totalTime) * ParticleSystem.MAX_Y * 0.4f,
+                    pz + MathF.Sin(totalTime) * ParticleSystem.MAX_Z * 0.3f
+                );
+            }
 
             skyBox.Render(this);
             particleSystem.Render(this);
