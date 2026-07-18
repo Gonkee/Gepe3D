@@ -1,6 +1,2 @@
-**/obj/
-**/bin/
-.vscode/
-.vs/
-.idea/
-*.sln
+build
+.cache
