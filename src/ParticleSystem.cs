@@ -292,8 +292,8 @@ namespace Gepe3D
 
             particleShader.Use();
             particleShader.SetVector3("lightPos", world.lightPos);
-            particleShader.SetMatrix4("viewMatrix", world.camera.GetViewMatrix());
-            particleShader.SetMatrix4("projectionMatrix", world.camera.GetProjectionMatrix());
+            particleShader.SetMatrix4("viewMatrix", world.camViewMatrix);
+            particleShader.SetMatrix4("projectionMatrix", world.camProjectionMatrix);
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             particleShader.SetFloat("maxX", MAX_X);
 

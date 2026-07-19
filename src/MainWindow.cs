@@ -37,9 +37,8 @@ namespace Gepe3D
         public ParticleSystem particleSystem;
         (int, float, float, float)[] barParticles;
 
-        // camera initially points in the positive X
-        public Camera camera = new Camera( new Vector3(), 16f / 9f);
-        public float Sensitivity = 0.2f;
+        public Matrix4 camViewMatrix;
+        public Matrix4 camProjectionMatrix;
         private float totalTime = 0;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
@@ -55,6 +54,16 @@ namespace Gepe3D
             GL.CullFace(TriangleFace.Back);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.Enable(EnableCap.Blend);
+
+            // set up camera
+            (camViewMatrix, camProjectionMatrix) = MainWindow.GetCameraMatrices(
+                fovDegrees : 50,
+                aspectRatio : 16f / 9f,
+                nearClip : 0.01f,
+                farClip : 500f,
+                camPosition : ParticleSystem.lowCenter + new Vector3(-12, 8, -6),
+                camLookAt : ParticleSystem.lowCenter
+            );
 
             particleSystem = new ParticleSystem(20000);
 
@@ -84,6 +93,38 @@ namespace Gepe3D
                 ParticleSystem.MAX_X * 0.2f, ParticleSystem.MAX_Y * 0.3f, ParticleSystem.MAX_Z * 0.2f,
                 0.15f, 3000
             );
+        }
+
+        private static (Matrix4, Matrix4) GetCameraMatrices(
+            float fovDegrees,
+            float aspectRatio,
+            float nearClip,
+            float farClip,
+            Vector3 camPosition,
+            Vector3 camLookAt
+        ) {
+            float dx = camLookAt.X - camPosition.X;
+            float dy = camLookAt.Y - camPosition.Y;
+            float dz = camLookAt.Z - camPosition.Z;
+            float horizontalDist = MathF.Sqrt(dx * dx + dz * dz);
+            float pitch = MathHelper.RadiansToDegrees( MathF.Atan2(dy, horizontalDist) );
+            float yaw =   MathHelper.RadiansToDegrees( MathF.Atan2(dz, dx) );
+
+            Vector3 localForward = Vector3.Normalize(new Vector3(
+                MathF.Cos( MathHelper.DegreesToRadians(pitch) ) * MathF.Cos( MathHelper.DegreesToRadians(yaw) ),
+                MathF.Sin( MathHelper.DegreesToRadians(pitch) ),
+                MathF.Cos( MathHelper.DegreesToRadians(pitch) ) * MathF.Sin( MathHelper.DegreesToRadians(yaw) )
+            ));
+            Vector3 localRight = Vector3.Normalize( Vector3.Cross(localForward, Vector3.UnitY) );
+            Vector3 localUp    = Vector3.Normalize( Vector3.Cross(localRight  , localForward) );
+
+            Matrix4 viewMatrix = Matrix4.LookAt(camPosition, camPosition + localForward, localUp);
+            viewMatrix.Transpose();
+
+            Matrix4 projectionMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(fovDegrees), aspectRatio, nearClip, farClip );
+            projectionMatrix.Transpose();
+
+            return (viewMatrix, projectionMatrix);
         }
 
         private void CreateBall(float x, float y, float z, float radius, float particleGap) {
@@ -199,12 +240,6 @@ namespace Gepe3D
             // render
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            // update camera
-            Vector3 camOffset = new Vector3(-12, 8, -6);
-            camera.SetPos(ParticleSystem.lowCenter + camOffset);
-            camera.LookAt(ParticleSystem.lowCenter);
-            camera.UpdateLocalVectors();
-
             // update bar position
             foreach ((int id, float px, float py, float pz) in barParticles) {
                 particleSystem.SetPos(id,
@@ -221,7 +256,6 @@ namespace Gepe3D
 
         // using same function for both update and render
         protected override void OnRenderFrame(FrameEventArgs e) { }
-
 
     }
 }
