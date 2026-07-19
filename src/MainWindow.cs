@@ -34,7 +34,6 @@ namespace Gepe3D
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 lightPos = new Vector3(0f, 10f, 0f);
-        public SkyBox skyBox;
         public ParticleSystem particleSystem;
         (int, float, float, float)[] barParticles;
 
@@ -50,14 +49,13 @@ namespace Gepe3D
         protected override void OnLoad()
         {
             base.OnLoad();
-            GL.ClearColor(1, 0, 1, 1);
+            GL.ClearColor(0.4f, 0.4f, 0.4f, 1);
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(TriangleFace.Back);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.Enable(EnableCap.Blend);
 
-            skyBox = new SkyBox();
             particleSystem = new ParticleSystem(20000);
 
             ///////////////////////////////////////
@@ -216,7 +214,6 @@ namespace Gepe3D
                 );
             }
 
-            skyBox.Render(this);
             particleSystem.Render(this);
 
             SwapBuffers();
