@@ -18,6 +18,31 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw)
 
-add_executable(${PROJECT_NAME} src/main.cpp glad/src/gl.c)
+set(RESOURCE_FILES kernels.cl point_sphere.vert point_sphere.frag)
+find_program(XXD xxd REQUIRED)
+message(STATUS "Found xxd, embedding resource files into header files")
+foreach(RESOURCE_FILE ${RESOURCE_FILES})
+    set(RESOURCE_PATH "${CMAKE_SOURCE_DIR}/res/${RESOURCE_FILE}")
+    set(HEADER_PATH   "${CMAKE_BINARY_DIR}/${RESOURCE_FILE}.h")
+    add_custom_command(
+        OUTPUT ${HEADER_PATH}
+        # xxd [options] [infile [outfile]]
+        COMMAND ${XXD} -n ${RESOURCE_FILE} -i ${RESOURCE_PATH} ${HEADER_PATH}
+        DEPENDS ${RESOURCE_PATH}
+    )
+    list(APPEND EMBED_HEADERS ${HEADER_PATH})
+    message(STATUS "Generated embedded resource header ${HEADER_PATH}")
+endforeach()
+
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    src/particle_renderer.cpp
+    glad/src/gl.c
+    ${EMBED_HEADERS}
+)
 target_link_libraries(${PROJECT_NAME} glfw)
-target_include_directories(${PROJECT_NAME} PRIVATE glad/include)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    include
+    glad/include
+    ${CMAKE_BINARY_DIR}
+)
