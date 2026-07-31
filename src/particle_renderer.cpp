@@ -4,7 +4,43 @@
 #include "point_sphere.vert.h"
 #include "point_sphere.frag.h"
 
-ParticleRenderer::ParticleRenderer(int width, int height, const char* title) {
+
+unsigned int loadShader(GLenum shaderType, const GLchar** shaderSource) {
+    unsigned int shader = glCreateShader(shaderType);
+    glShaderSource(shader, 1, shaderSource, NULL);
+    glCompileShader(shader);
+    int success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        throw std::runtime_error("Error: shader compilation failed.\n" + std::string(infoLog));
+    }
+    return shader;
+}
+
+unsigned int createShaderProgram() {
+    unsigned int vertexShader = loadShader(GL_VERTEX_SHADER, reinterpret_cast<const GLchar**>(&point_sphere_vert));
+    unsigned int fragmentShader = loadShader(GL_FRAGMENT_SHADER, reinterpret_cast<const GLchar**>(&point_sphere_frag));
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    int success;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        throw std::runtime_error("Error: shader program linking failed.\n" + std::string(infoLog));
+    }
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    return shaderProgram;
+}
+
+ParticleRenderer::ParticleRenderer(int width, int height, const char* title)
+    : shaderProgram(createShaderProgram())
+{
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to init GLFW");
     }
@@ -38,12 +74,4 @@ void ParticleRenderer::render() {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-}
-
-void ParticleRenderer::loadShader() {
-    // TODO
-}
-
-void ParticleRenderer::createShaderProgram() {
-    // TODO
 }

@@ -20,7 +20,5 @@ public:
 
 private:
     GLFWwindow* window = nullptr;
-
-    void loadShader();
-    void createShaderProgram();
+    const unsigned int shaderProgram;
 };

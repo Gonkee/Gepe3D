@@ -18,17 +18,17 @@ void main()
                       0.0, 1.0, 0.0, 0.0,  // 2. column
                       0.0, 0.0, 1.0, 0.0,  // 3. column
                       instancePosition.x, instancePosition.y, instancePosition.z, 1.0); // 4. column
-    
+
     mat4 viewModelMat = viewMatrix * model;
     viewModelMat[0][0] = 1;   viewModelMat[1][0] = 0;   viewModelMat[2][0] = 0;
     viewModelMat[0][1] = 0;   viewModelMat[1][1] = 1;   viewModelMat[2][1] = 0;
     viewModelMat[0][2] = 0;   viewModelMat[1][2] = 0;   viewModelMat[2][2] = 1;
 
     gl_Position = projectionMatrix * viewModelMat * vec4(vertexPosition, 1.0);
-    
+
     texCoords = normalize(vertexPosition) * sqrt(2); // square from (-1, -1) to (1, 1)
     viewSpaceSphereCenter = ( viewMatrix * vec4(instancePosition, 1.0) ).xyz;
-    
+
     instanceAlbedo = vec4(instanceColour, 1);
     xPos = instancePosition.x;
 }
