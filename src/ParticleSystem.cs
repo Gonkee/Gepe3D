@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using OpenTK.Compute.OpenCL;
 using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL4;
 
 namespace Gepe3D
 {
@@ -187,7 +188,7 @@ namespace Gepe3D
                 -PARTICLE_RADIUS / 2,     PARTICLE_RADIUS / 2,     0,
             };
 
-            quad_VAO              = GLUtils.GenVAO();
+            quad_VAO              = GL.GenVertexArray();
             quad_VBO              = GLUtils.GenVBO(vertexData);
             instancePositions_VBO = GLUtils.GenVBO( posData );
             instanceColours_VBO   = GLUtils.GenVBO( colourData );
@@ -297,7 +298,8 @@ namespace Gepe3D
             particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
             particleShader.SetFloat("maxX", MAX_X);
 
-            GLUtils.DrawInstancedVAO(quad_VAO, 6, ParticleCount);
+            GL.BindVertexArray(quad_VAO);
+            GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, 6, ParticleCount);
         }
 
 
