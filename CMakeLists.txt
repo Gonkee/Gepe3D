@@ -3,6 +3,7 @@ project(gepe3d LANGUAGES CXX C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 # set some glfw flags to avoid building extra fluff
@@ -45,4 +46,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     include
     glad/include
     ${CMAKE_BINARY_DIR}
+)
+target_compile_options(${PROJECT_NAME} PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
 )

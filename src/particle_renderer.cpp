@@ -38,8 +38,23 @@ unsigned int createShaderProgram() {
     return shaderProgram;
 }
 
-ParticleRenderer::ParticleRenderer(int width, int height, const char* title)
-    : shaderProgram(createShaderProgram())
+ParticleRenderer::ParticleRenderer(
+    int width,
+    int height,
+    const char* title,
+    float particleVisualRadius
+)
+    : shaderProgram(createShaderProgram()),
+      billboardQuadVertices{
+         // triangle 1
+        -particleVisualRadius / 2, -particleVisualRadius / 2, 0,
+         particleVisualRadius / 2, -particleVisualRadius / 2, 0,
+         particleVisualRadius / 2,  particleVisualRadius / 2, 0,
+         // triangle 2
+        -particleVisualRadius / 2, -particleVisualRadius / 2, 0,
+         particleVisualRadius / 2,  particleVisualRadius / 2, 0,
+        -particleVisualRadius / 2,  particleVisualRadius / 2, 0,
+      }
 {
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to init GLFW");
@@ -67,11 +82,19 @@ int ParticleRenderer::shouldClose() { return glfwWindowShouldClose(window); }
 void ParticleRenderer::render() {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    const float ratio = width / (float) height;
+    // const float ratio = width / (float) height;
 
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
+}
+
+void genVAO() {
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // TODO
 }

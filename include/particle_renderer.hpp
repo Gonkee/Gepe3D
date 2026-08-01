@@ -3,10 +3,11 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <array>
 
 class ParticleRenderer {
 public:
-    ParticleRenderer(int width, int height, const char* title);
+    ParticleRenderer(int width, int height, const char* title, float particleVisualRadius);
     ~ParticleRenderer();
 
     // no copy or move constructors/assignment
@@ -21,4 +22,5 @@ public:
 private:
     GLFWwindow* window = nullptr;
     const unsigned int shaderProgram;
+    const std::array<float, 18> billboardQuadVertices;
 };
