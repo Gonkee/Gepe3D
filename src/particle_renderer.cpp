@@ -38,6 +38,47 @@ unsigned int createShaderProgram() {
     return shaderProgram;
 }
 
+unsigned int genVBO() {
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
+    return VBO;
+}
+
+
+unsigned int genParticlesVAO(
+    unsigned int billboardQuadVerticesVBO,
+    unsigned int particlePositionsVBO,
+    unsigned int particleColoursVBO
+) {
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    auto setFloatVertexAttrib = [](
+        unsigned int VBO,
+        unsigned int attribIndex,
+        unsigned int attribSize,
+        bool instanced
+    ) {
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glVertexAttribPointer(
+            attribIndex,
+            attribSize,
+            GL_FLOAT,
+            GL_FALSE,
+            attribSize * sizeof(float),
+            reinterpret_cast<void*>(0)
+        );
+        if (instanced) glVertexAttribDivisor(attribIndex, 1);
+        glEnableVertexAttribArray(attribIndex);
+    };
+
+    setFloatVertexAttrib(billboardQuadVerticesVBO, 0, 3, false);
+    setFloatVertexAttrib(particlePositionsVBO,     1, 3, true);
+    setFloatVertexAttrib(particleColoursVBO,       2, 3, true);
+    return VAO;
+}
+
 ParticleRenderer::ParticleRenderer(
     int width,
     int height,
@@ -54,7 +95,15 @@ ParticleRenderer::ParticleRenderer(
         -particleVisualRadius / 2, -particleVisualRadius / 2, 0,
          particleVisualRadius / 2,  particleVisualRadius / 2, 0,
         -particleVisualRadius / 2,  particleVisualRadius / 2, 0,
-      }
+      },
+      billboardQuadVerticesVBO(genVBO()),
+      particlePositionsVBO(genVBO()),
+      particleColoursVBO(genVBO()),
+      particlesVAO(genParticlesVAO(
+        billboardQuadVerticesVBO,
+        particlePositionsVBO,
+        particleColoursVBO
+      ))
 {
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to init GLFW");
@@ -70,6 +119,8 @@ ParticleRenderer::ParticleRenderer(
     glfwMakeContextCurrent(window);
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(0); // 0 disables vsync for max FPS
+
+    // TODO: actually load data into VBOs
 }
 
 ParticleRenderer::~ParticleRenderer() {
@@ -91,10 +142,3 @@ void ParticleRenderer::render() {
     glfwPollEvents();
 }
 
-void genVAO() {
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // TODO
-}

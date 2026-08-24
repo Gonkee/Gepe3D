@@ -23,4 +23,9 @@ private:
     GLFWwindow* window = nullptr;
     const unsigned int shaderProgram;
     const std::array<float, 18> billboardQuadVertices;
+    const unsigned int billboardQuadVerticesVBO;
+    const unsigned int particlePositionsVBO;
+    const unsigned int particleColoursVBO;
+    // particlesVAO must come after the 3 VBOs as it depends on them
+    const unsigned int particlesVAO;
 };
