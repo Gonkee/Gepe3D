@@ -5,9 +5,9 @@
 #include "point_sphere.frag.h"
 
 
-unsigned int loadShader(GLenum shaderType, const GLchar** shaderSource) {
+unsigned int loadShader(GLenum shaderType, const GLchar* shaderSource) {
     unsigned int shader = glCreateShader(shaderType);
-    glShaderSource(shader, 1, shaderSource, NULL);
+    glShaderSource(shader, 1, &shaderSource, NULL);
     glCompileShader(shader);
     int success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -20,8 +20,8 @@ unsigned int loadShader(GLenum shaderType, const GLchar** shaderSource) {
 }
 
 unsigned int createShaderProgram() {
-    unsigned int vertexShader = loadShader(GL_VERTEX_SHADER, reinterpret_cast<const GLchar**>(&point_sphere_vert));
-    unsigned int fragmentShader = loadShader(GL_FRAGMENT_SHADER, reinterpret_cast<const GLchar**>(&point_sphere_frag));
+    unsigned int vertexShader = loadShader(GL_VERTEX_SHADER, reinterpret_cast<const GLchar*>(point_sphere_vert));
+    unsigned int fragmentShader = loadShader(GL_FRAGMENT_SHADER, reinterpret_cast<const GLchar*>(point_sphere_frag));
     unsigned int shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -79,13 +79,36 @@ unsigned int genParticlesVAO(
     return VAO;
 }
 
-ParticleRenderer::ParticleRenderer(
+ParticleRenderer ParticleRenderer::create(
     int width,
     int height,
     const char* title,
     float particleVisualRadius
+) {
+    if (glfwInit() != GLFW_TRUE) {
+        throw std::runtime_error("Failed to init GLFW");
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+    if (!window) {
+        glfwTerminate();
+        throw std::runtime_error("Failed to create GLFW window");
+    }
+    glfwMakeContextCurrent(window);
+    gladLoadGL(glfwGetProcAddress);
+    glfwSwapInterval(0); // 0 disables vsync for max FPS
+
+    return ParticleRenderer(window, particleVisualRadius);
+}
+
+ParticleRenderer::ParticleRenderer(
+    GLFWwindow* window,
+    float particleVisualRadius
 )
-    : shaderProgram(createShaderProgram()),
+    : window(window),
+      shaderProgram(createShaderProgram()),
       billboardQuadVertices{
          // triangle 1
         -particleVisualRadius / 2, -particleVisualRadius / 2, 0,
@@ -105,21 +128,6 @@ ParticleRenderer::ParticleRenderer(
         particleColoursVBO
       ))
 {
-    if (glfwInit() != GLFW_TRUE) {
-        throw std::runtime_error("Failed to init GLFW");
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (!window) {
-        glfwTerminate();
-        throw std::runtime_error("Failed to create GLFW window");
-    }
-    glfwMakeContextCurrent(window);
-    gladLoadGL(glfwGetProcAddress);
-    glfwSwapInterval(0); // 0 disables vsync for max FPS
-
     // TODO: actually load data into VBOs
 }
 

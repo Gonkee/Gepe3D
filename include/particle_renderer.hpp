@@ -7,7 +7,12 @@
 
 class ParticleRenderer {
 public:
-    ParticleRenderer(int width, int height, const char* title, float particleVisualRadius);
+    static ParticleRenderer create(
+        int width,
+        int height,
+        const char* title,
+        float particleVisualRadius
+    );
     ~ParticleRenderer();
 
     // no copy or move constructors/assignment
@@ -20,7 +25,9 @@ public:
     void render();
 
 private:
-    GLFWwindow* window = nullptr;
+    ParticleRenderer(GLFWwindow* window, float particleVisualRadius);
+
+    GLFWwindow* window;
     const unsigned int shaderProgram;
     const std::array<float, 18> billboardQuadVertices;
     const unsigned int billboardQuadVerticesVBO;
