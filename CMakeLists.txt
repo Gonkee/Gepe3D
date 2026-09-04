@@ -17,7 +17,12 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG        3.4
 )
-FetchContent_MakeAvailable(glfw)
+FetchContent_Declare(
+    OpenCLHeaders
+    GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-Headers.git
+    GIT_TAG        v2026.05.29
+)
+FetchContent_MakeAvailable(glfw OpenCLHeaders)
 
 set(RESOURCE_FILES kernels.cl point_sphere.vert point_sphere.frag)
 find_program(XXD xxd REQUIRED)
@@ -38,10 +43,11 @@ endforeach()
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/particle_renderer.cpp
+    src/particle_simulator.cpp
     glad/src/gl.c
     ${EMBED_HEADERS}
 )
-target_link_libraries(${PROJECT_NAME} glfw)
+target_link_libraries(${PROJECT_NAME} glfw OpenCL::Headers)
 target_include_directories(${PROJECT_NAME} PRIVATE
     include
     glad/include
