@@ -76,12 +76,12 @@ private:
         b_pos,              // positions
         b_vel,              // velocities
         b_ePos,             // estimated positions
-        b_imass,            // inverse masses
-        b_lambdas,          // fluid correction scalar
-        b_phase,            // particle phase
         b_vorticities,      // fluid vorticities
         b_posCorrection,    // position correction
         b_velCorrection,    // velocity correction
+        b_imass,            // inverse masses
+        b_lambdas,          // fluid correction scalar
+        b_phase,            // particle phase
 
         // buffers for neighbour search
         b_sortedParticleIDs,

@@ -61,6 +61,7 @@ ParticleSimulator ParticleSimulator::create(size_t particleCount) {
 
 ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
     : particleCount(particleCount),
+      // TODO: probably change to kernel functors for convenience
       k01_predict_positions         (cl::Kernel(kernels, "predict_positions"        )),
       k02_assign_particle_cells     (cl::Kernel(kernels, "assign_particle_cells"    )),
       k03_find_cells_start_and_end  (cl::Kernel(kernels, "find_cells_start_and_end" )),
@@ -72,8 +73,26 @@ ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
       k09_update_velocity           (cl::Kernel(kernels, "update_velocity"          )),
       k10_compute_vorticity         (cl::Kernel(kernels, "compute_vorticity"        )),
       k11_apply_vorticity_viscosity (cl::Kernel(kernels, "apply_vorticity_viscosity")),
-      k12_correct_fluid_velocity    (cl::Kernel(kernels, "correct_fluid_velocity"   ))
+      k12_correct_fluid_velocity    (cl::Kernel(kernels, "correct_fluid_velocity"   )),
+
+      // TODO: must use fixed width types like int32_t to match opencl
+      b_pos           (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_vel           (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_ePos          (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_vorticities   (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_posCorrection (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_velCorrection (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_imass         (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount)),
+      b_lambdas       (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount)),
+
+      b_phase               (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
+      b_sortedParticleIDs   (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
+      b_cellStartAndEndIDs  (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
+      b_cellIDsOfParticles  (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
+      b_numParticlesPerCell (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount * 2)),
+      b_particleIDinCell    (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount))
 {
+    // TODO: fill imass with 1's
 
 }
 
