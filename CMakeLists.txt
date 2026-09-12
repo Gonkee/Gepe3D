@@ -18,6 +18,11 @@ FetchContent_Declare(
     GIT_TAG        3.4
 )
 FetchContent_Declare(
+	glm
+	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_TAG 	    1.0.3
+)
+FetchContent_Declare(
     OpenCLHeaders
     GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-Headers.git
     GIT_TAG        v2026.05.29
@@ -32,7 +37,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-CLHPP.git
     GIT_TAG        v2026.05.29
 )
-FetchContent_MakeAvailable(glfw OpenCLHeaders OpenCLICDLoader OpenCLHeadersCpp)
+FetchContent_MakeAvailable(glfw glm OpenCLHeaders OpenCLICDLoader OpenCLHeadersCpp)
 
 set(RESOURCE_FILES kernels.cl point_sphere.vert point_sphere.frag)
 find_program(XXD xxd REQUIRED)
@@ -57,7 +62,13 @@ add_executable(${PROJECT_NAME}
     glad/src/gl.c
     ${EMBED_HEADERS}
 )
-target_link_libraries(${PROJECT_NAME} glfw OpenCL::Headers OpenCL::OpenCL OpenCL::HeadersCpp)
+target_link_libraries(${PROJECT_NAME}
+    glfw
+    glm::glm
+    OpenCL::Headers
+    OpenCL::OpenCL
+    OpenCL::HeadersCpp
+)
 target_include_directories(${PROJECT_NAME} PRIVATE
     include
     glad/include

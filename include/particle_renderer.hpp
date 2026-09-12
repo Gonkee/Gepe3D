@@ -15,8 +15,8 @@ public:
         const char* title,
         float particleVisualRadius
     );
-    ~ParticleRenderer();
 
+    ~ParticleRenderer();
     // no copy or move constructors/assignment
     ParticleRenderer(const ParticleRenderer&) = delete;
     ParticleRenderer& operator=(const ParticleRenderer&) = delete;
