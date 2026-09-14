@@ -33,6 +33,8 @@ public:
         barCellsZ = 1;
 
     static constexpr float
+        DELTA_TIME = 0.01f,
+
         PARTICLE_RADIUS = 0.2f,
         GRID_CELL_WIDTH = 0.6f,
         KERNEL_SIZE     = 0.6f,
@@ -52,13 +54,18 @@ private:
     ParticleSimulator(size_t particleCount, cl::Program kernels);
 
     const size_t particleCount;
+    std::vector<float> posData;
+    std::vector<float> ePosData;
+    std::vector<float> velData;
+    std::vector<float> colourData;
+    std::vector<int>   phaseData;
 
     const cl::Platform clPlatform;
     const cl::Device clDevice;
     const cl::Context clContext;
     const cl::CommandQueue clQueue;
 
-    const cl::Kernel
+    cl::Kernel
         k01_predict_positions,
         k02_assign_particle_cells,
         k03_find_cells_start_and_end,
@@ -103,6 +110,27 @@ private:
     };
 
     std::vector<Constraint> constraints;
+
+    template <typename... Args>
+    void enqueueKernelHelper(cl::Kernel& kernel, size_t numWorkUnits, Args&&... args);
+
+    template <typename T>
+    void enqueueWriteBufferHelper(const cl::Buffer& buffer, const std::vector<T>& vector);
+
+    template <typename T>
+    void enqueueReadBufferHelper(const cl::Buffer& buffer, std::vector<T>& vector);
+
+    template <typename T>
+    void enqueueFillBufferHelper(const cl::Buffer& buffer, std::type_identity_t<T> value, size_t count);
+
+    // void enqueueWriteBufferHelper(cl::Buffer& buffer, std::vector<T>& vector) {
+    //     clQueue.enqueueWriteBuffer(buffer, false, 0, sizeof(T) * vector.size(), vector.data());
+    // }
+    void enqueueFillIntBufferHelper(const cl::Buffer& buffer, int32_t value, size_t count);
+    void enqueueFillFloatBufferHelper(const cl::Buffer& buffer, float value, size_t count);
+
+    void update();
+    void cpuSolveDistConstraints(float stiffness, size_t iterations);
 };
 
 void setupOpenCL();
