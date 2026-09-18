@@ -17,7 +17,13 @@ namespace Gepe3D
         private readonly int instancePositions_VBO;
         private readonly int instanceColours_VBO;
         private readonly int shaderProgram;
-        private readonly Dictionary<string, int> uniformLocations;
+
+        // Shader uniform locations
+        private static readonly int UNIFORM_LOCATION_LIGHT_POS         = 0;
+        private static readonly int UNIFORM_LOCATION_MAX_X             = 1;
+        private static readonly int UNIFORM_LOCATION_PARTICLE_RADIUS   = 2;
+        private static readonly int UNIFORM_LOCATION_PROJECTION_MATRIX = 3;
+        private static readonly int UNIFORM_LOCATION_VIEW_MATRIX       = 4;
 
         // Update
         CLCommandQueue queue;
@@ -103,8 +109,12 @@ namespace Gepe3D
 
 
 
-        public ParticleSystem(int particleCount)
-        {
+        public ParticleSystem(
+            int particleCount,
+            Vector3 lightPos,
+            Matrix4 camViewMatrix,
+            Matrix4 camProjectionMatrix
+        ) {
             this.ParticleCount = particleCount;
             this.cellCount = GridRowsX * GridRowsY * GridRowsZ;
             posData    = new float[particleCount * 3];
@@ -176,7 +186,15 @@ namespace Gepe3D
             // Set up OpenGL for rendering //
             /////////////////////////////////
 
-            (shaderProgram, uniformLocations) = createShaderProgram("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
+            shaderProgram = CreateShaderProgram("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
+
+            // only set once as these don't change
+            GL.UseProgram(shaderProgram);
+            GL.Uniform3(UNIFORM_LOCATION_LIGHT_POS      , lightPos);
+            GL.Uniform1(UNIFORM_LOCATION_MAX_X          , MAX_X);
+            GL.Uniform1(UNIFORM_LOCATION_PARTICLE_RADIUS, PARTICLE_RADIUS);
+            GL.UniformMatrix4(UNIFORM_LOCATION_VIEW_MATRIX      , true, ref camViewMatrix);
+            GL.UniformMatrix4(UNIFORM_LOCATION_PROJECTION_MATRIX, true, ref camProjectionMatrix);
 
             float[] vertexData = new float[]
             {
@@ -221,7 +239,7 @@ namespace Gepe3D
             }
         }
 
-        private static (int, Dictionary<string, int>) createShaderProgram(string vertPath, string fragPath)
+        private static int CreateShaderProgram(string vertPath, string fragPath)
         {
             vertPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), vertPath);
             fragPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), fragPath);
@@ -253,16 +271,7 @@ namespace Gepe3D
 
             GL.GetProgram(shaderProgram, GetProgramParameterName.ActiveUniforms, out var numberOfUniforms);
 
-            Dictionary<string, int> uniformLocations = new Dictionary<string, int>();
-
-            for (int i = 0; i < numberOfUniforms; i++)
-            {
-                string key = GL.GetActiveUniform(shaderProgram, i, out _, out _);
-                int location = GL.GetUniformLocation(shaderProgram, key);
-                uniformLocations.Add(key, location);
-            }
-
-            return (shaderProgram, uniformLocations);
+            return shaderProgram;
         }
         // set pos, phase, colour, constraints,
 
@@ -357,14 +366,6 @@ namespace Gepe3D
                 colourDirty = false;
             }
             GLUtils.ReplaceBufferData(instancePositions_VBO, posData );
-
-            GL.UseProgram(shaderProgram);
-            GL.Uniform3(uniformLocations["lightPos"], world.lightPos);
-            GL.UniformMatrix4(uniformLocations["viewMatrix"], true, ref world.camViewMatrix);
-            GL.UniformMatrix4(uniformLocations["projectionMatrix"], true, ref world.camProjectionMatrix);
-            GL.Uniform1(uniformLocations["particleRadius"], PARTICLE_RADIUS);
-            GL.Uniform1(uniformLocations["maxX"], MAX_X);
-
 
             GL.BindVertexArray(quad_VAO);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, 6, ParticleCount);

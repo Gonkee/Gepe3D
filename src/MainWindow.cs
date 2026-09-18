@@ -33,12 +33,9 @@ namespace Gepe3D
 
 
         public Vector3 ambientLight = new Vector3(0.2f, 0.2f, 0.2f);
-        public Vector3 lightPos = new Vector3(0f, 10f, 0f);
         public ParticleSystem particleSystem;
         (int, float, float, float)[] barParticles;
 
-        public Matrix4 camViewMatrix;
-        public Matrix4 camProjectionMatrix;
         private float totalTime = 0;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
@@ -56,7 +53,7 @@ namespace Gepe3D
             GL.Enable(EnableCap.Blend);
 
             // set up camera
-            (camViewMatrix, camProjectionMatrix) = MainWindow.GetCameraMatrices(
+            (Matrix4 camViewMatrix, Matrix4 camProjectionMatrix) = MainWindow.GetCameraMatrices(
                 fovDegrees : 50,
                 aspectRatio : 16f / 9f,
                 nearClip : 0.01f,
@@ -65,7 +62,12 @@ namespace Gepe3D
                 camLookAt : ParticleSystem.lowCenter
             );
 
-            particleSystem = new ParticleSystem(20000);
+            particleSystem = new ParticleSystem(
+                particleCount: 20000,
+                lightPos: new Vector3(0f, 10f, 0f),
+                camViewMatrix: camViewMatrix,
+                camProjectionMatrix: camProjectionMatrix
+            );
 
             ///////////////////////////////////////
             // Setting up fluid, ball and spikes //
