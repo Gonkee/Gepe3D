@@ -1,5 +1,6 @@
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using OpenTK.Compute.OpenCL;
 using OpenTK.Mathematics;
@@ -15,7 +16,8 @@ namespace Gepe3D
         private readonly int quad_VBO;
         private readonly int instancePositions_VBO;
         private readonly int instanceColours_VBO;
-        private readonly Shader particleShader;
+        private readonly int shaderProgram;
+        private readonly Dictionary<string, int> uniformLocations;
 
         // Update
         CLCommandQueue queue;
@@ -174,7 +176,7 @@ namespace Gepe3D
             // Set up OpenGL for rendering //
             /////////////////////////////////
 
-            particleShader = new Shader("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
+            (shaderProgram, uniformLocations) = createShaderProgram("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
 
             float[] vertexData = new float[]
             {
@@ -197,6 +199,71 @@ namespace Gepe3D
             GLUtils.VaoInstanceFloatAttrib(quad_VAO, instanceColours_VBO  , 2, 3, 3, 0);
         }
 
+
+        private static void CompileShader(int shader)
+        {
+            GL.CompileShader(shader);
+            GL.GetShader(shader, ShaderParameter.CompileStatus, out var code);
+            if (code != (int)All.True)
+            {
+                var infoLog = GL.GetShaderInfoLog(shader);
+                throw new Exception($"Error occurred whilst compiling Shader({shader}).\n\n{infoLog}");
+            }
+        }
+
+        private static void LinkProgram(int program)
+        {
+            GL.LinkProgram(program);
+            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out var code);
+            if (code != (int)All.True)
+            {
+                throw new Exception($"Error occurred whilst linking Program({program})");
+            }
+        }
+
+        private static (int, Dictionary<string, int>) createShaderProgram(string vertPath, string fragPath)
+        {
+            vertPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), vertPath);
+            fragPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), fragPath);
+
+            string shaderSource = File.ReadAllText(vertPath);
+
+            int vertexShader = GL.CreateShader(ShaderType.VertexShader);
+
+            GL.ShaderSource(vertexShader, shaderSource);
+
+            CompileShader(vertexShader);
+
+            shaderSource = File.ReadAllText(fragPath);
+            int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
+            GL.ShaderSource(fragmentShader, shaderSource);
+            CompileShader(fragmentShader);
+
+            int shaderProgram = GL.CreateProgram();
+
+            GL.AttachShader(shaderProgram, vertexShader);
+            GL.AttachShader(shaderProgram, fragmentShader);
+
+            LinkProgram(shaderProgram);
+
+            GL.DetachShader(shaderProgram, vertexShader);
+            GL.DetachShader(shaderProgram, fragmentShader);
+            GL.DeleteShader(fragmentShader);
+            GL.DeleteShader(vertexShader);
+
+            GL.GetProgram(shaderProgram, GetProgramParameterName.ActiveUniforms, out var numberOfUniforms);
+
+            Dictionary<string, int> uniformLocations = new Dictionary<string, int>();
+
+            for (int i = 0; i < numberOfUniforms; i++)
+            {
+                string key = GL.GetActiveUniform(shaderProgram, i, out _, out _);
+                int location = GL.GetUniformLocation(shaderProgram, key);
+                uniformLocations.Add(key, location);
+            }
+
+            return (shaderProgram, uniformLocations);
+        }
         // set pos, phase, colour, constraints,
 
         public void SetPos(int id, float x, float y, float z)
@@ -291,12 +358,13 @@ namespace Gepe3D
             }
             GLUtils.ReplaceBufferData(instancePositions_VBO, posData );
 
-            particleShader.Use();
-            particleShader.SetVector3("lightPos", world.lightPos);
-            particleShader.SetMatrix4("viewMatrix", world.camViewMatrix);
-            particleShader.SetMatrix4("projectionMatrix", world.camProjectionMatrix);
-            particleShader.SetFloat("particleRadius", PARTICLE_RADIUS);
-            particleShader.SetFloat("maxX", MAX_X);
+            GL.UseProgram(shaderProgram);
+            GL.Uniform3(uniformLocations["lightPos"], world.lightPos);
+            GL.UniformMatrix4(uniformLocations["viewMatrix"], true, ref world.camViewMatrix);
+            GL.UniformMatrix4(uniformLocations["projectionMatrix"], true, ref world.camProjectionMatrix);
+            GL.Uniform1(uniformLocations["particleRadius"], PARTICLE_RADIUS);
+            GL.Uniform1(uniformLocations["maxX"], MAX_X);
+
 
             GL.BindVertexArray(quad_VAO);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, 6, ParticleCount);
