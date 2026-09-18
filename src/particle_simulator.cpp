@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <print>
 #include <format>
+#include <cmath>
+#include <glm/geometric.hpp>
 
 std::string ParticleSimulator::generateKernelDefines() {
     std::string defines = "";
@@ -189,7 +191,40 @@ void ParticleSimulator::update() {
 }
 
 void ParticleSimulator::cpuSolveDistConstraints(float stiffness, size_t iterations) {
-    // TODO
+    stiffness = 1.0f - pow(1.0f - stiffness, 1.0f / iterations);
+
+    enqueueReadBufferHelper(b_ePos, ePosData);
+    clQueue.finish();
+
+    for (size_t i = 0; i < iterations; ++i) {
+        for (Constraint& c : constraints) {
+            float imass1 = 1;
+            float imass2 = 1;
+
+            glm::vec3 ePos1(ePosData[c.p1 * 3 + 0], ePosData[c.p1 * 3 + 1], ePosData[c.p1 * 3 + 2]);
+            glm::vec3 ePos2(ePosData[c.p2 * 3 + 0], ePosData[c.p2 * 3 + 1], ePosData[c.p2 * 3 + 2]);
+
+            glm::vec3 diff = ePos1 - ePos2;
+            float displacement = glm::length(diff) - c.distance;
+            glm::vec3 dir = glm::normalize(diff);
+
+            float w1 = imass1 / (imass1 + imass2);
+            float w2 = imass2 / (imass1 + imass2);
+
+            glm::vec3 correction1 = -w1 * displacement * dir;
+            glm::vec3 correction2 = +w2 * displacement * dir;
+
+            ePosData[c.p1 * 3 + 0] += correction1.x * stiffness;
+            ePosData[c.p1 * 3 + 1] += correction1.y * stiffness;
+            ePosData[c.p1 * 3 + 2] += correction1.z * stiffness;
+
+            ePosData[c.p2 * 3 + 0] += correction2.x * stiffness;
+            ePosData[c.p2 * 3 + 1] += correction2.y * stiffness;
+            ePosData[c.p2 * 3 + 2] += correction2.z * stiffness;
+        }
+    }
+    enqueueWriteBufferHelper(b_ePos, ePosData);
+    clQueue.finish();
 }
 
 int testCL() {

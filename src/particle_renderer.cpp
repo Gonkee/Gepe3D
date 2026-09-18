@@ -83,7 +83,10 @@ ParticleRenderer ParticleRenderer::create(
     int width,
     int height,
     const char* title,
-    float particleVisualRadius
+    float particleVisualRadius,
+    glm::vec3 lightPosition,
+    glm::mat4 cameraViewMatrix,
+    glm::mat4 cameraProjectionMatrix
 ) {
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to init GLFW");
@@ -100,12 +103,21 @@ ParticleRenderer ParticleRenderer::create(
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(0); // 0 disables vsync for max FPS
 
-    return ParticleRenderer(window, particleVisualRadius);
+    return ParticleRenderer(
+        window,
+        particleVisualRadius,
+        lightPosition,
+        cameraViewMatrix,
+        cameraProjectionMatrix
+    );
 }
 
 ParticleRenderer::ParticleRenderer(
     GLFWwindow* window,
-    float particleVisualRadius
+    float particleVisualRadius,
+    glm::vec3 lightPosition,
+    glm::mat4 cameraViewMatrix,
+    glm::mat4 cameraProjectionMatrix
 )
     : window(window),
       shaderProgram(createShaderProgram()),
@@ -129,6 +141,15 @@ ParticleRenderer::ParticleRenderer(
       ))
 {
     // TODO: actually load data into VBOs
+    //...
+    glUseProgram(shaderProgram);
+    glUniform3f(UNIFORM_LOCATION_LIGHT_POS      , lightPosition.x, lightPosition.y, lightPosition.z);
+    // TODO: MAX_X actually not needed in shader?
+    // glUniform1f(UNIFORM_LOCATION_MAX_X          , MAX_X);
+    // GL.Uniform1(UNIFORM_LOCATION_PARTICLE_RADIUS, PARTICLE_RADIUS);
+    // GL.UniformMatrix4(UNIFORM_LOCATION_VIEW_MATRIX      , true, ref camViewMatrix);
+    // GL.UniformMatrix4(UNIFORM_LOCATION_PROJECTION_MATRIX, true, ref camProjectionMatrix);
+
 }
 
 ParticleRenderer::~ParticleRenderer() {
@@ -145,6 +166,11 @@ void ParticleRenderer::render() {
 
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // set stuff
+    glBindVertexArray(particlesVAO);
+    // TODO
+    // glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particleCount);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
