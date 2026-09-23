@@ -210,32 +210,25 @@ namespace Gepe3D
                 -PARTICLE_RADIUS / 2,     PARTICLE_RADIUS / 2,     0,
             };
 
-            quad_VAO              = GL.GenVertexArray();
+            quad_VAO = GL.GenVertexArray();
+            GL.BindVertexArray(quad_VAO);
 
             quad_VBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, quad_VBO);
             GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
 
             instancePositions_VBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
             GL.BufferData(BufferTarget.ArrayBuffer, posData.Length * sizeof(float), posData, BufferUsageHint.StaticDraw);
-
-            instanceColours_VBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, colourData.Length * sizeof(float), colourData, BufferUsageHint.StaticDraw);
-
-            GL.BindVertexArray(quad_VAO);
-
-            GL.BindBuffer(BufferTarget.ArrayBuffer, quad_VBO);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(0);
-
-            GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.VertexAttribDivisor(1, 1);
             GL.EnableVertexAttribArray(1);
 
+            instanceColours_VBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, colourData.Length * sizeof(float), colourData, BufferUsageHint.StaticDraw);
             GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.VertexAttribDivisor(2, 1);
             GL.EnableVertexAttribArray(2);
