@@ -211,14 +211,35 @@ namespace Gepe3D
             };
 
             quad_VAO              = GL.GenVertexArray();
-            quad_VBO              = GLUtils.GenVBO(vertexData);
-            instancePositions_VBO = GLUtils.GenVBO( posData );
-            instanceColours_VBO   = GLUtils.GenVBO( colourData );
-            GLUtils.VaoFloatAttrib        (quad_VAO, quad_VBO             , 0, 3, 3, 0); // vertex positions
-            GLUtils.VaoInstanceFloatAttrib(quad_VAO, instancePositions_VBO, 1, 3, 3, 0);
-            GLUtils.VaoInstanceFloatAttrib(quad_VAO, instanceColours_VBO  , 2, 3, 3, 0);
-        }
 
+            quad_VBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, quad_VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
+
+            instancePositions_VBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, posData.Length * sizeof(float), posData, BufferUsageHint.StaticDraw);
+
+            instanceColours_VBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, colourData.Length * sizeof(float), colourData, BufferUsageHint.StaticDraw);
+
+            GL.BindVertexArray(quad_VAO);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, quad_VBO);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.VertexAttribDivisor(1, 1);
+            GL.EnableVertexAttribArray(1);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
+            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.VertexAttribDivisor(2, 1);
+            GL.EnableVertexAttribArray(2);
+        }
 
         private static void CompileShader(int shader)
         {
@@ -360,14 +381,15 @@ namespace Gepe3D
             return defines;
         }
 
-
         public void Render(MainWindow world)
         {
             if (colourDirty) {
-                GLUtils.ReplaceBufferData(instanceColours_VBO, colourData );
+                GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
+                GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), colourData.Length * sizeof(float), colourData);
                 colourDirty = false;
             }
-            GLUtils.ReplaceBufferData(instancePositions_VBO, posData );
+            GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), posData.Length * sizeof(float), posData);
 
             GL.BindVertexArray(quad_VAO);
             GL.DrawArraysInstanced(PrimitiveType.Triangles, 0, 6, ParticleCount);
