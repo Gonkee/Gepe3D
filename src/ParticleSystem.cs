@@ -16,13 +16,13 @@ namespace Gepe3D
         private readonly int quad_VBO;
         private readonly int instancePositions_VBO;
         private readonly int instanceColours_VBO;
-        private int shaderProgram;
+        private readonly int shaderProgram;
 
         // Shader uniform locations
-        private int UNIFORM_LOCATION_LIGHT_POS;
-        private int UNIFORM_LOCATION_PARTICLE_RADIUS;
-        private int UNIFORM_LOCATION_PROJECTION_MATRIX;
-        private int UNIFORM_LOCATION_VIEW_MATRIX;
+        private readonly int UNIFORM_LOCATION_LIGHT_POS;
+        private readonly int UNIFORM_LOCATION_PARTICLE_RADIUS;
+        private readonly int UNIFORM_LOCATION_PROJECTION_MATRIX;
+        private readonly int UNIFORM_LOCATION_VIEW_MATRIX;
 
         // Update
         CLCommandQueue queue;
@@ -185,7 +185,11 @@ namespace Gepe3D
             // Set up OpenGL for rendering //
             /////////////////////////////////
 
-            CreateShaderProgram("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
+            shaderProgram = CreateShaderProgram("res/Shaders/point_sphere.vert", "res/Shaders/point_sphere.frag");
+            UNIFORM_LOCATION_LIGHT_POS         = GL.GetUniformLocation(shaderProgram, "lightPos");
+            UNIFORM_LOCATION_PARTICLE_RADIUS   = GL.GetUniformLocation(shaderProgram, "particleRadius");
+            UNIFORM_LOCATION_PROJECTION_MATRIX = GL.GetUniformLocation(shaderProgram, "projectionMatrix");
+            UNIFORM_LOCATION_VIEW_MATRIX       = GL.GetUniformLocation(shaderProgram, "viewMatrix");
 
             // only set once as these don't change
             GL.UseProgram(shaderProgram);
@@ -237,7 +241,7 @@ namespace Gepe3D
             }
         }
 
-        private void CreateShaderProgram(string vertPath, string fragPath)
+        private static int CreateShaderProgram(string vertPath, string fragPath)
         {
             vertPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), vertPath);
             fragPath = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), fragPath);
@@ -255,7 +259,7 @@ namespace Gepe3D
             GL.ShaderSource(fragmentShader, shaderSource);
             CompileShader(fragmentShader);
 
-            shaderProgram = GL.CreateProgram();
+            int shaderProgram = GL.CreateProgram();
 
             GL.AttachShader(shaderProgram, vertexShader);
             GL.AttachShader(shaderProgram, fragmentShader);
@@ -269,10 +273,7 @@ namespace Gepe3D
 
             GL.GetProgram(shaderProgram, GetProgramParameterName.ActiveUniforms, out var numberOfUniforms);
 
-            UNIFORM_LOCATION_LIGHT_POS         = GL.GetUniformLocation(shaderProgram, "lightPos");
-            UNIFORM_LOCATION_PARTICLE_RADIUS   = GL.GetUniformLocation(shaderProgram, "particleRadius");
-            UNIFORM_LOCATION_PROJECTION_MATRIX = GL.GetUniformLocation(shaderProgram, "projectionMatrix");
-            UNIFORM_LOCATION_VIEW_MATRIX       = GL.GetUniformLocation(shaderProgram, "viewMatrix");
+            return shaderProgram;
         }
         // set pos, phase, colour, constraints,
 
