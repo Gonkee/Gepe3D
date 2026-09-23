@@ -195,8 +195,8 @@ namespace Gepe3D
             GL.UseProgram(shaderProgram);
             GL.Uniform3(UNIFORM_LOCATION_LIGHT_POS      , lightPos);
             GL.Uniform1(UNIFORM_LOCATION_PARTICLE_RADIUS, PARTICLE_RADIUS);
-            GL.UniformMatrix4(UNIFORM_LOCATION_VIEW_MATRIX      , true, ref camViewMatrix);
-            GL.UniformMatrix4(UNIFORM_LOCATION_PROJECTION_MATRIX, true, ref camProjectionMatrix);
+            GL.UniformMatrix4(UNIFORM_LOCATION_VIEW_MATRIX      , false, ref camViewMatrix);
+            GL.UniformMatrix4(UNIFORM_LOCATION_PROJECTION_MATRIX, false, ref camProjectionMatrix);
 
             float[] vertexData = new float[]
             {

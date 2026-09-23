@@ -121,10 +121,7 @@ namespace Gepe3D
             Vector3 localUp    = Vector3.Normalize( Vector3.Cross(localRight  , localForward) );
 
             Matrix4 viewMatrix = Matrix4.LookAt(camPosition, camPosition + localForward, localUp);
-            viewMatrix.Transpose();
-
             Matrix4 projectionMatrix = Matrix4.CreatePerspectiveFieldOfView( MathHelper.DegreesToRadians(fovDegrees), aspectRatio, nearClip, farClip );
-            projectionMatrix.Transpose();
 
             return (viewMatrix, projectionMatrix);
         }
