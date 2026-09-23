@@ -2,7 +2,6 @@
 
 uniform vec3 lightPos;
 uniform float particleRadius;
-uniform float maxX;
 
 out vec4 FragColor;
 
@@ -16,8 +15,6 @@ uniform mat4 projectionMatrix;
 
 void main()
 {
-    if (xPos < 0 || xPos > maxX) discard;
-    
     float d2 = texCoords.x * texCoords.x + texCoords.y * texCoords.y;
     
     if (d2 > 1) discard;
