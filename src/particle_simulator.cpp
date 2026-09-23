@@ -66,7 +66,6 @@ ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
       posData    (std::vector<float>(particleCount * 3)),
       ePosData   (std::vector<float>(particleCount * 3)),
       velData    (std::vector<float>(particleCount * 3)),
-      colourData (std::vector<float>(particleCount * 3)),
       phaseData  (std::vector<int>(particleCount)),
 
       clQueue(cl::CommandQueue(cl::Context::getDefault(), cl::Device::getDefault())),

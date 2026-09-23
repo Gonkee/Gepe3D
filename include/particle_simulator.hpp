@@ -57,7 +57,6 @@ private:
     std::vector<float> posData;
     std::vector<float> ePosData;
     std::vector<float> velData;
-    std::vector<float> colourData;
     std::vector<int>   phaseData;
 
     const cl::Platform clPlatform;
@@ -100,8 +99,7 @@ private:
     bool
         posDirty = false,
         velDirty = false,
-        phaseDirty = false,
-        colourDirty = false;
+        phaseDirty = false;
 
     struct Constraint {
         size_t p1;

@@ -15,6 +15,7 @@ public:
         int width,
         int height,
         const char* title,
+        size_t particleCount,
         float particleVisualRadius,
         glm::vec3 lightPosition,
         glm::mat4 cameraViewMatrix,
@@ -34,26 +35,28 @@ public:
 private:
     ParticleRenderer(
         GLFWwindow* window,
+        size_t particleCount,
         float particleVisualRadius,
         glm::vec3 lightPosition,
         glm::mat4 cameraViewMatrix,
         glm::mat4 cameraProjectionMatrix
     );
 
-    // shader uniform locations
-    static constexpr GLint UNIFORM_LOCATION_LIGHT_POS         = 0;
-    static constexpr GLint UNIFORM_LOCATION_MAX_X             = 1;
-    static constexpr GLint UNIFORM_LOCATION_PARTICLE_RADIUS   = 2;
-    static constexpr GLint UNIFORM_LOCATION_PROJECTION_MATRIX = 3;
-    static constexpr GLint UNIFORM_LOCATION_VIEW_MATRIX       = 4;
-
-
     GLFWwindow* window;
     const unsigned int shaderProgram;
+    const GLint lightPosUniformLocation;
+    const GLint particleRadiusUniformLocation;
+    const GLint projectionMatrixUniformLocation;
+    const GLint viewMatrixUniformLocation;
+
     const std::array<float, 18> billboardQuadVertices;
     const unsigned int billboardQuadVerticesVBO;
     const unsigned int particlePositionsVBO;
     const unsigned int particleColoursVBO;
     // particlesVAO must come after the 3 VBOs as it depends on them
     const unsigned int particlesVAO;
+
+    const size_t particleCount;
+    std::vector<float> colourData;
+    bool colourDirty = false;
 };

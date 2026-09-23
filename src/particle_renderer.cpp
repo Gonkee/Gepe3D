@@ -1,9 +1,9 @@
 #include "particle_renderer.hpp"
-#include <stdexcept>
-
 #include "point_sphere.vert.h"
 #include "point_sphere.frag.h"
 
+#include <glm/gtc/type_ptr.hpp>
+#include <stdexcept>
 
 unsigned int loadShader(GLenum shaderType, const GLchar* shaderSource) {
     unsigned int shader = glCreateShader(shaderType);
@@ -44,6 +44,11 @@ unsigned int genVBO() {
     return VBO;
 }
 
+unsigned int genVAO() {
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    return VAO;
+}
 
 unsigned int genParticlesVAO(
     unsigned int billboardQuadVerticesVBO,
@@ -83,6 +88,7 @@ ParticleRenderer ParticleRenderer::create(
     int width,
     int height,
     const char* title,
+    size_t particleCount,
     float particleVisualRadius,
     glm::vec3 lightPosition,
     glm::mat4 cameraViewMatrix,
@@ -105,6 +111,7 @@ ParticleRenderer ParticleRenderer::create(
 
     return ParticleRenderer(
         window,
+        particleCount,
         particleVisualRadius,
         lightPosition,
         cameraViewMatrix,
@@ -114,6 +121,7 @@ ParticleRenderer ParticleRenderer::create(
 
 ParticleRenderer::ParticleRenderer(
     GLFWwindow* window,
+    size_t particleCount,
     float particleVisualRadius,
     glm::vec3 lightPosition,
     glm::mat4 cameraViewMatrix,
@@ -121,6 +129,10 @@ ParticleRenderer::ParticleRenderer(
 )
     : window(window),
       shaderProgram(createShaderProgram()),
+      lightPosUniformLocation        (glGetUniformLocation(shaderProgram, "lightPos")),
+      particleRadiusUniformLocation  (glGetUniformLocation(shaderProgram, "particleRadius")),
+      projectionMatrixUniformLocation(glGetUniformLocation(shaderProgram, "projectionMatrix")),
+      viewMatrixUniformLocation      (glGetUniformLocation(shaderProgram, "viewMatrix")),
       billboardQuadVertices{
          // triangle 1
         -particleVisualRadius / 2, -particleVisualRadius / 2, 0,
@@ -134,22 +146,48 @@ ParticleRenderer::ParticleRenderer(
       billboardQuadVerticesVBO(genVBO()),
       particlePositionsVBO(genVBO()),
       particleColoursVBO(genVBO()),
-      particlesVAO(genParticlesVAO(
-        billboardQuadVerticesVBO,
-        particlePositionsVBO,
-        particleColoursVBO
-      ))
+      particlesVAO(genVAO()),
+      // particlesVAO(genParticlesVAO(
+      //   billboardQuadVerticesVBO,
+      //   particlePositionsVBO,
+      //   particleColoursVBO
+      // )),
+      particleCount(particleCount),
+      colourData (std::vector<float>(particleCount * 3))
 {
     // TODO: actually load data into VBOs
     //...
     glUseProgram(shaderProgram);
-    glUniform3f(UNIFORM_LOCATION_LIGHT_POS      , lightPosition.x, lightPosition.y, lightPosition.z);
-    // TODO: MAX_X actually not needed in shader?
-    // glUniform1f(UNIFORM_LOCATION_MAX_X          , MAX_X);
-    // GL.Uniform1(UNIFORM_LOCATION_PARTICLE_RADIUS, PARTICLE_RADIUS);
-    // GL.UniformMatrix4(UNIFORM_LOCATION_VIEW_MATRIX      , true, ref camViewMatrix);
-    // GL.UniformMatrix4(UNIFORM_LOCATION_PROJECTION_MATRIX, true, ref camProjectionMatrix);
+    glUniform3f(lightPosUniformLocation      , lightPosition.x, lightPosition.y, lightPosition.z);
+    glUniform1f(particleRadiusUniformLocation, particleVisualRadius);
+    glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, glm::value_ptr(cameraProjectionMatrix));
+    glUniformMatrix4fv(viewMatrixUniformLocation      , 1, false, glm::value_ptr(cameraViewMatrix));
 
+    auto vboAllocateSpaceAndSetVertexAttrib = [](
+        unsigned int VBO,
+        size_t numFloatsInBuffer,
+        unsigned int attribIndex,
+        unsigned int attribSize,
+        bool instanced
+    ) {
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, numFloatsInBuffer * sizeof(float), nullptr, GL_STATIC_DRAW);
+        glVertexAttribPointer(
+            attribIndex,
+            attribSize,
+            GL_FLOAT,
+            GL_FALSE,
+            attribSize * sizeof(float),
+            reinterpret_cast<void*>(0)
+        );
+        if (instanced) glVertexAttribDivisor(attribIndex, 1);
+        glEnableVertexAttribArray(attribIndex);
+    };
+
+    glBindVertexArray(particlesVAO);
+    vboAllocateSpaceAndSetVertexAttrib(billboardQuadVerticesVBO, billboardQuadVertices.size(), 0, 3, false);
+    vboAllocateSpaceAndSetVertexAttrib(particlePositionsVBO, particleCount * 3, 1, 3, true);
+    vboAllocateSpaceAndSetVertexAttrib(particleColoursVBO  , particleCount * 3, 2, 3, true);
 }
 
 ParticleRenderer::~ParticleRenderer() {
@@ -165,12 +203,21 @@ void ParticleRenderer::render() {
     // const float ratio = width / (float) height;
 
     glViewport(0, 0, width, height);
-    glClear(GL_COLOR_BUFFER_BIT);
+
+    // ...
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    if (colourDirty) {
+        GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
+        GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), colourData.Length * sizeof(float), colourData);
+        colourDirty = false;
+    }
+    GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
+    GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), posData.Length * sizeof(float), posData);
 
     // set stuff
     glBindVertexArray(particlesVAO);
-    // TODO
-    // glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particleCount);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particleCount);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
