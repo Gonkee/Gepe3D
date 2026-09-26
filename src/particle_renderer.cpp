@@ -197,7 +197,7 @@ ParticleRenderer::~ParticleRenderer() {
 
 int ParticleRenderer::shouldClose() { return glfwWindowShouldClose(window); }
 
-void ParticleRenderer::render() {
+void ParticleRenderer::render(const float *posData) {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     // const float ratio = width / (float) height;
@@ -208,12 +208,12 @@ void ParticleRenderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (colourDirty) {
-        GL.BindBuffer(BufferTarget.ArrayBuffer, instanceColours_VBO);
-        GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), colourData.Length * sizeof(float), colourData);
+        glBindBuffer(GL_ARRAY_BUFFER, particleColoursVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * 3 * sizeof(float), colourData.data());
         colourDirty = false;
     }
-    GL.BindBuffer(BufferTarget.ArrayBuffer, instancePositions_VBO);
-    GL.BufferSubData<float>(BufferTarget.ArrayBuffer, new IntPtr(0), posData.Length * sizeof(float), posData);
+    glBindBuffer(GL_ARRAY_BUFFER, particlePositionsVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * 3 * sizeof(float), posData);
 
     // set stuff
     glBindVertexArray(particlesVAO);

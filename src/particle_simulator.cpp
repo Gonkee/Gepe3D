@@ -226,6 +226,10 @@ void ParticleSimulator::cpuSolveDistConstraints(float stiffness, size_t iteratio
     clQueue.finish();
 }
 
+const float *ParticleSimulator::getPosData() {
+    return posData.data();
+}
+
 int testCL() {
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);

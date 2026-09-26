@@ -30,7 +30,7 @@ public:
     ParticleRenderer& operator=(const ParticleRenderer&&) = delete;
 
     int shouldClose();
-    void render();
+    void render(const float *data);
 
 private:
     ParticleRenderer(

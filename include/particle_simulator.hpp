@@ -10,12 +10,15 @@ class ParticleSimulator {
 public:
     static ParticleSimulator create(size_t particleCount);
 
-    ~ParticleSimulator();
+    ~ParticleSimulator() = default;
     // no copy or move constructors/assignment
     ParticleSimulator(const ParticleSimulator&) = delete;
     ParticleSimulator& operator=(const ParticleSimulator&) = delete;
     ParticleSimulator(const ParticleSimulator&&) = delete;
     ParticleSimulator& operator=(const ParticleSimulator&&) = delete;
+
+    void update();
+    const float *getPosData();
 
     static constexpr int
         PHASE_LIQUID = 0,
@@ -127,7 +130,6 @@ private:
     void enqueueFillIntBufferHelper(const cl::Buffer& buffer, int32_t value, size_t count);
     void enqueueFillFloatBufferHelper(const cl::Buffer& buffer, float value, size_t count);
 
-    void update();
     void cpuSolveDistConstraints(float stiffness, size_t iterations);
 };
 
