@@ -7,6 +7,7 @@
 #include <print>
 #include <thread>
 #include <chrono>
+#include <random>
 
 constexpr float PARTICLE_RADIUS = 0.15f;
 constexpr size_t PARTICLE_COUNT = 20000;
@@ -44,6 +45,8 @@ std::pair<glm::mat4, glm::mat4> getCameraMatrices(
 
 int main(void)
 {
+    ParticleSimulator simulator = ParticleSimulator::create(PARTICLE_COUNT);
+
     auto [cameraViewMatrix, cameraProjectionMatrix] = getCameraMatrices(
         50.0f,
         16.0f / 9.0f,
@@ -52,10 +55,10 @@ int main(void)
         ParticleSimulator::lowCenter + glm::vec3(-12, 8, -6),
         ParticleSimulator::lowCenter
     );
-    ParticleSimulator simulator = ParticleSimulator::create(PARTICLE_COUNT);
+
     ParticleRenderer renderer = ParticleRenderer::create(
-        640,
-        480,
+        1280,
+        720,
         "Gepe3D",
         PARTICLE_COUNT,
         PARTICLE_RADIUS,
@@ -63,6 +66,19 @@ int main(void)
         cameraViewMatrix,
         cameraProjectionMatrix
     );
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> distr(0.0f, 1.0f);
+    for (size_t i = 0; i < PARTICLE_COUNT; ++i) {
+        float x = distr(gen) * ParticleSimulator::MAX_X;
+        float y = distr(gen) * ParticleSimulator::MAX_Y * 0.5f;
+        float z = distr(gen) * ParticleSimulator::MAX_Z;
+        simulator.setPos(i, x, y, z);
+        simulator.setPhase(i, ParticleSimulator::PHASE_LIQUID);
+        renderer.setColour( i, 0, 0.5f, 1 );
+    }
+
     while (!renderer.shouldClose()) {
         simulator.update();
         renderer.render(simulator.getPosData());

@@ -97,6 +97,9 @@ ParticleRenderer ParticleRenderer::create(
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to init GLFW");
     }
+
+    // don't show window immediately upon creation (for centering)
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -105,6 +108,17 @@ ParticleRenderer ParticleRenderer::create(
         glfwTerminate();
         throw std::runtime_error("Failed to create GLFW window");
     }
+
+    // center window
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* videoMode = glfwGetVideoMode(primaryMonitor);
+    int monitorX, monitorY;
+    glfwGetMonitorPos(primaryMonitor, &monitorX, &monitorY);
+    int centerX = monitorX + (videoMode->width - width) / 2;
+    int centerY = monitorY + (videoMode->height - height) / 2;
+    glfwSetWindowPos(window, centerX, centerY);
+    glfwShowWindow(window);
+
     glfwMakeContextCurrent(window);
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(0); // 0 disables vsync for max FPS
@@ -155,6 +169,13 @@ ParticleRenderer::ParticleRenderer(
       particleCount(particleCount),
       colourData (std::vector<float>(particleCount * 3))
 {
+
+    glClearColor(0.4f, 0.4f, 0.4f, 1);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    // glCullFace(TriangleFace.Back);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
     // TODO: actually load data into VBOs
     //...
     glUseProgram(shaderProgram);
@@ -195,9 +216,21 @@ ParticleRenderer::~ParticleRenderer() {
     glfwTerminate();
 }
 
+void ParticleRenderer::setColour(size_t index, float r, float g, float b) {
+    colourData[index * 3 + 0] = r;
+    colourData[index * 3 + 1] = g;
+    colourData[index * 3 + 2] = b;
+    colourDirty = true;
+}
+
+
 int ParticleRenderer::shouldClose() { return glfwWindowShouldClose(window); }
 
 void ParticleRenderer::render(const float *posData) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     // const float ratio = width / (float) height;

@@ -19,6 +19,10 @@ public:
 
     void update();
     const float *getPosData();
+    void setPos(size_t index, float x, float y, float z);
+    void addPos(size_t index, float x, float y, float z);
+    glm::vec3 getPos(size_t index);
+    void setPhase(size_t index, int phase);
 
     static constexpr int
         PHASE_LIQUID = 0,

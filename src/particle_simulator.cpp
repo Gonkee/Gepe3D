@@ -118,6 +118,30 @@ void ParticleSimulator::enqueueKernelHelper(cl::Kernel& kernel, size_t numWorkUn
     );
 }
 
+
+void ParticleSimulator::setPos(size_t index, float x, float y, float z) {
+    posData[index * 3 + 0] = x;
+    posData[index * 3 + 1] = y;
+    posData[index * 3 + 2] = z;
+    posDirty = true;
+}
+
+void ParticleSimulator::addPos(size_t index, float x, float y, float z) {
+    posData[index * 3 + 0] += x;
+    posData[index * 3 + 1] += y;
+    posData[index * 3 + 2] += z;
+    posDirty = true;
+}
+
+glm::vec3 ParticleSimulator::getPos(size_t index) {
+    return glm::vec3( posData[index * 3 + 0], posData[index * 3 + 1], posData[index * 3 + 2] );
+}
+
+void ParticleSimulator::setPhase(size_t index, int phase) {
+    phaseData[index] = phase;
+    phaseDirty = true;
+}
+
 template <typename T>
 void ParticleSimulator::enqueueWriteBufferHelper(const cl::Buffer& buffer, const std::vector<T>& vector) {
     clQueue.enqueueWriteBuffer(buffer, false, 0, sizeof(T) * vector.size(), vector.data());
