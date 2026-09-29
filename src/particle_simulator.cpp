@@ -75,8 +75,8 @@ ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
       k03_find_cells_start_and_end  (cl::Kernel(kernels, "find_cells_start_and_end" )),
       k04_sort_particle_ids_by_cell (cl::Kernel(kernels, "sort_particle_ids_by_cell")),
       k05_compute_lambdas           (cl::Kernel(kernels, "compute_lambdas"          )),
-      k07_compute_solid_corrections (cl::Kernel(kernels, "compute_fluid_corrections")),
-      k06_compute_fluid_corrections (cl::Kernel(kernels, "compute_solid_corrections")),
+      k06_compute_fluid_corrections (cl::Kernel(kernels, "compute_fluid_corrections")),
+      k07_compute_solid_corrections (cl::Kernel(kernels, "compute_solid_corrections")),
       k08_apply_corrections         (cl::Kernel(kernels, "apply_corrections"        )),
       k09_update_velocity           (cl::Kernel(kernels, "update_velocity"          )),
       k10_compute_vorticity         (cl::Kernel(kernels, "compute_vorticity"        )),
@@ -159,7 +159,7 @@ void ParticleSimulator::update() {
     // enqueueFillFloatBufferHelper(b_posCorrection, 0, particleCount * 3);
 
     enqueueFillBufferHelper<int32_t>(b_sortedParticleIDs, 0, particleCount);
-    enqueueFillBufferHelper<int32_t>(b_numParticlesPerCell, 0, particleCount);
+    enqueueFillBufferHelper<int32_t>(b_numParticlesPerCell, 0, cellCount);
     enqueueFillBufferHelper<float>  (b_posCorrection, 0, particleCount * 3);
 
     // predict particle positions, then sort particle IDs for neighbour finding accordingly

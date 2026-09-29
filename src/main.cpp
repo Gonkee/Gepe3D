@@ -64,12 +64,7 @@ int main(void)
         cameraProjectionMatrix
     );
     while (!renderer.shouldClose()) {
-        try{
-            simulator.update();
-        } catch (const cl::Error& e) {
-            std::print(stderr, "OpenCL error: {} ({})\n", e.what(), e.err());
-            // return 1;
-        }
+        simulator.update();
         renderer.render(simulator.getPosData());
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
