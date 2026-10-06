@@ -184,15 +184,16 @@ ParticleRenderer::ParticleRenderer(
     glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, glm::value_ptr(cameraProjectionMatrix));
     glUniformMatrix4fv(viewMatrixUniformLocation      , 1, false, glm::value_ptr(cameraViewMatrix));
 
-    auto vboAllocateSpaceAndSetVertexAttrib = [](
+    auto vboSetup = [](
         unsigned int VBO,
         size_t numFloatsInBuffer,
+        const void *data,
         unsigned int attribIndex,
         unsigned int attribSize,
         bool instanced
     ) {
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, numFloatsInBuffer * sizeof(float), nullptr, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, numFloatsInBuffer * sizeof(float), data, GL_STATIC_DRAW);
         glVertexAttribPointer(
             attribIndex,
             attribSize,
@@ -206,9 +207,16 @@ ParticleRenderer::ParticleRenderer(
     };
 
     glBindVertexArray(particlesVAO);
-    vboAllocateSpaceAndSetVertexAttrib(billboardQuadVerticesVBO, billboardQuadVertices.size(), 0, 3, false);
-    vboAllocateSpaceAndSetVertexAttrib(particlePositionsVBO, particleCount * 3, 1, 3, true);
-    vboAllocateSpaceAndSetVertexAttrib(particleColoursVBO  , particleCount * 3, 2, 3, true);
+    vboSetup(
+        billboardQuadVerticesVBO,
+        billboardQuadVertices.size(),
+        billboardQuadVertices.data(),
+        0,
+        3,
+        false
+    );
+    vboSetup(particlePositionsVBO, particleCount * 3, nullptr, 1, 3, true);
+    vboSetup(particleColoursVBO  , particleCount * 3, nullptr, 2, 3, true);
 }
 
 ParticleRenderer::~ParticleRenderer() {
