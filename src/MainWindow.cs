@@ -148,7 +148,6 @@ namespace Gepe3D
 
             int resolution = (int) (radius / particleGap) * 2;
             Dictionary<Vector3i, int> coord2id = new Dictionary<Vector3i, int>();
-            List<int> particlesList = new List<int>();
 
             int currentID = 0;
             for (int px = 0; px < resolution; px++) {
@@ -168,7 +167,6 @@ namespace Gepe3D
                                 z + offsetZ
                             );
                             coord2id[ new Vector3i(px, py, pz) ] = currentID;
-                            particlesList.Add(currentID);
                             currentID++;
                         }
                     }
