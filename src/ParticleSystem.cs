@@ -161,20 +161,21 @@ namespace Gepe3D
             this.k12_correct_fluid_velocity    = CL.CreateKernel( kernelProgram, "correct_fluid_velocity"   , out result);
 
             // create buffers
-            this.b_Pos                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_Vel                 = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_ePos                = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_imass               = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount      , 1);
-            this.b_lambdas             = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount      , 0);
-            this.b_PosCorrection       = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_Vorticities         = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_VelCorrection       = CLUtils.EnqueueMakeFloatBuffer(context, queue,  particleCount * 3  , 0);
-            this.b_phase               = CLUtils.EnqueueMakeIntBuffer  (context, queue,  particleCount      , 0);
-            this.b_sortedParticleIDs   = CLUtils.EnqueueMakeIntBuffer  (context, queue,  particleCount      , 0);
-            this.b_cellIDsOfParticles  = CLUtils.EnqueueMakeIntBuffer  (context, queue,  particleCount      , 0);
-            this.b_particleIDinCell    = CLUtils.EnqueueMakeIntBuffer  (context, queue,  particleCount      , 0);
-            this.b_cellStartAndEndIDs  = CLUtils.EnqueueMakeIntBuffer  (context, queue,  cellCount * 2      , 0);
-            this.b_numParticlesPerCell = CLUtils.EnqueueMakeIntBuffer  (context, queue,  cellCount          , 0);
+            this.b_Pos                 = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_Vel                 = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_ePos                = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_PosCorrection       = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_Vorticities         = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_VelCorrection       = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount * 3, 0);
+            this.b_imass               = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount, 1);
+            this.b_lambdas             = CLUtils.EnqueueMakeFloatBuffer(context, queue, particleCount, 0);
+
+            this.b_phase               = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount, 0);
+            this.b_sortedParticleIDs   = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount, 0);
+            this.b_cellIDsOfParticles  = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount, 0);
+            this.b_particleIDinCell    = CLUtils.EnqueueMakeIntBuffer(context, queue, particleCount, 0);
+            this.b_cellStartAndEndIDs  = CLUtils.EnqueueMakeIntBuffer(context, queue, cellCount * 2, 0);
+            this.b_numParticlesPerCell = CLUtils.EnqueueMakeIntBuffer(context, queue, cellCount, 0);
 
             // ensure fills are completed
             CL.Flush(queue);

@@ -69,10 +69,6 @@ namespace Gepe3D
                 camProjectionMatrix: camProjectionMatrix
             );
 
-            ///////////////////////////////////////
-            // Setting up fluid, ball and spikes //
-            ///////////////////////////////////////
-
             Random rand = new Random();
             for (int i = 0; i < particleSystem.ParticleCount; i++) {
                 float x = (float) rand.NextDouble() * ParticleSystem.MAX_X;
