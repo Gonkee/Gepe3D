@@ -87,22 +87,21 @@ ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
       b_pos           (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
       b_vel           (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
       b_ePos          (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
-      b_vorticities   (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
       b_posCorrection (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
+      b_vorticities   (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
       b_velCorrection (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
       b_imass         (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount)),
       b_lambdas       (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount)),
 
       b_phase               (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
       b_sortedParticleIDs   (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
-      b_cellStartAndEndIDs  (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
       b_cellIDsOfParticles  (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
-      b_numParticlesPerCell (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount * 2)),
-      b_particleIDinCell    (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount))
+      b_particleIDinCell    (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * particleCount)),
+      b_cellStartAndEndIDs  (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount * 2)),
+      b_numParticlesPerCell (cl::Buffer(CL_MEM_READ_WRITE, sizeof(int32_t) * cellCount))
 
 {
-    // TODO: fill imass with 1's
-    enqueueFillFloatBufferHelper(b_imass, 0, particleCount);
+    enqueueFillBufferHelper<float>(b_imass, 1, particleCount);
     clQueue.finish();
 }
 
@@ -157,14 +156,6 @@ void ParticleSimulator::enqueueFillBufferHelper(const cl::Buffer& buffer, std::t
     clQueue.enqueueFillBuffer(buffer, value, 0, sizeof(T) * count);
 }
 
-void ParticleSimulator::enqueueFillIntBufferHelper(const cl::Buffer& buffer, int32_t value, size_t count) {
-    clQueue.enqueueFillBuffer(buffer, value, 0, sizeof(int32_t) * count);
-}
-
-void ParticleSimulator::enqueueFillFloatBufferHelper(const cl::Buffer& buffer, float value, size_t count) {
-    clQueue.enqueueFillBuffer(buffer, value, 0, sizeof(float) * count);
-}
-
 void ParticleSimulator::update() {
     if (posDirty) {
         enqueueWriteBufferHelper(b_pos, posData);
@@ -178,9 +169,6 @@ void ParticleSimulator::update() {
         enqueueWriteBufferHelper(b_phase, phaseData);
         phaseDirty = false;
     }
-    // enqueueFillIntBufferHelper(b_sortedParticleIDs, 0, particleCount);
-    // enqueueFillIntBufferHelper(b_numParticlesPerCell, 0, particleCount);
-    // enqueueFillFloatBufferHelper(b_posCorrection, 0, particleCount * 3);
 
     enqueueFillBufferHelper<int32_t>(b_sortedParticleIDs, 0, particleCount);
     enqueueFillBufferHelper<int32_t>(b_numParticlesPerCell, 0, cellCount);

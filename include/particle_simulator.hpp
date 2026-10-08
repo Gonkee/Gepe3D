@@ -89,19 +89,19 @@ private:
         b_pos,              // positions
         b_vel,              // velocities
         b_ePos,             // estimated positions
-        b_vorticities,      // fluid vorticities
         b_posCorrection,    // position correction
+        b_vorticities,      // fluid vorticities
         b_velCorrection,    // velocity correction
         b_imass,            // inverse masses
         b_lambdas,          // fluid correction scalar
+        // int buffers below
         b_phase,            // particle phase
-
         // buffers for neighbour search
         b_sortedParticleIDs,
-        b_cellStartAndEndIDs,
         b_cellIDsOfParticles,
-        b_numParticlesPerCell,
-        b_particleIDinCell;
+        b_particleIDinCell,
+        b_cellStartAndEndIDs,
+        b_numParticlesPerCell;
 
     bool
         posDirty = false,
@@ -127,12 +127,6 @@ private:
 
     template <typename T>
     void enqueueFillBufferHelper(const cl::Buffer& buffer, std::type_identity_t<T> value, size_t count);
-
-    // void enqueueWriteBufferHelper(cl::Buffer& buffer, std::vector<T>& vector) {
-    //     clQueue.enqueueWriteBuffer(buffer, false, 0, sizeof(T) * vector.size(), vector.data());
-    // }
-    void enqueueFillIntBufferHelper(const cl::Buffer& buffer, int32_t value, size_t count);
-    void enqueueFillFloatBufferHelper(const cl::Buffer& buffer, float value, size_t count);
 
     void cpuSolveDistConstraints(float stiffness, size_t iterations);
 };
