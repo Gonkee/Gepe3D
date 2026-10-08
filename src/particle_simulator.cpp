@@ -141,6 +141,10 @@ void ParticleSimulator::setPhase(size_t index, int phase) {
     phaseDirty = true;
 }
 
+void ParticleSimulator::addDistConstraint(size_t p1, size_t p2, float distance) {
+    constraints.emplace_back(p1, p2, distance);
+}
+
 template <typename T>
 void ParticleSimulator::enqueueWriteBufferHelper(const cl::Buffer& buffer, const std::vector<T>& vector) {
     clQueue.enqueueWriteBuffer(buffer, false, 0, sizeof(T) * vector.size(), vector.data());

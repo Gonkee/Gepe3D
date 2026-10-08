@@ -23,6 +23,7 @@ public:
     void addPos(size_t index, float x, float y, float z);
     glm::vec3 getPos(size_t index);
     void setPhase(size_t index, int phase);
+    void addDistConstraint(size_t particleIndex1, size_t particleIndex2, float dist);
 
     static constexpr int
         PHASE_LIQUID = 0,
