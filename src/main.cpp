@@ -126,6 +126,36 @@ void createBall(
     }
 }
 
+void createBlock(
+    ParticleSimulator& simulator,
+    ParticleRenderer& renderer,
+    std::vector<std::pair<size_t, glm::vec3>>& particlesList,
+    float x, float y, float z,
+    float dimX, float dimY, float dimZ,
+    float particleGap, int startParticleIndex
+) {
+    size_t resX = (dimX / particleGap) + 1;
+    size_t resY = (dimY / particleGap) + 1;
+    size_t resZ = (dimZ / particleGap) + 1;
+    size_t currentParticleIndex = startParticleIndex;
+    for (size_t i = 0; i < resX; i++) {
+        for (size_t j = 0; j < resY; j++) {
+            for (size_t k = 0; k < resZ; k++) {
+                simulator.setPhase(currentParticleIndex, ParticleSimulator::PHASE_STATIC);
+                renderer.setColour(currentParticleIndex, 0.4f, 0.4f, 0.4f);
+                float px = x + i * particleGap;
+                float py = y + j * particleGap;
+                float pz = z + k * particleGap;
+                simulator.setPos(currentParticleIndex, px, py, pz);
+                particlesList.push_back(
+                    std::pair(currentParticleIndex, glm::vec3(px, py, pz))
+                );
+                currentParticleIndex++;
+            }
+        }
+    }
+}
+
 int main() {
     ParticleSimulator simulator = ParticleSimulator::create(PARTICLE_COUNT);
 
@@ -169,9 +199,29 @@ int main() {
         1.2f, 0.15f
     );
 
+    std::vector<std::pair<size_t, glm::vec3>> particlesList;
+    createBlock(
+        simulator, renderer, particlesList,
+        ParticleSimulator::MAX_X * 0.4f, ParticleSimulator::MAX_Y * 0.1f, ParticleSimulator::MAX_Z * 0.4f,
+        ParticleSimulator::MAX_X * 0.2f, ParticleSimulator::MAX_Y * 0.3f, ParticleSimulator::MAX_Z * 0.2f,
+        0.15f, 3000
+    );
+
+    float totalTime = 0;
     while (!renderer.shouldClose()) {
+        // move the block around
+        for (auto& blockParticle : particlesList) {
+            size_t& blockParticleIndex = blockParticle.first;
+            glm::vec3& blockParticlePosition = blockParticle.second;
+            simulator.setPos(blockParticleIndex,
+                blockParticlePosition.x + cos(totalTime * 1.5f) * ParticleSimulator::MAX_X * 0.3f,
+                blockParticlePosition.y,
+                blockParticlePosition.z + sin(totalTime * 1.5f) * ParticleSimulator::MAX_Z * 0.3f
+            );
+        }
         simulator.update();
         renderer.render(simulator.getPosData());
+        totalTime += ParticleSimulator::DELTA_TIME;
     }
     return 0;
 }
