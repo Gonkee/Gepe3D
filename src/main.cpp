@@ -5,8 +5,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <print>
-#include <thread>
-#include <chrono>
 #include <random>
 
 constexpr float PARTICLE_RADIUS = 0.15f;
@@ -73,8 +71,10 @@ void createBall(
     };
 
     size_t resolution = radius / particleGap * 2;
-    std::vector<std::optional<size_t>> gridCoordsToParticleIndex(resolution * resolution * resolution, false);
+    std::vector<std::optional<size_t>> gridCoordsToParticleIndex(resolution * resolution * resolution, std::nullopt);
     auto flattenCoords = [resolution](size_t x, size_t y, size_t z) {
+        if (x >= resolution || y >= resolution || z >= resolution)
+            throw std::runtime_error("coordinates out of bounds");
         return (x * resolution * resolution) + (y * resolution) + (z);
     };
 
@@ -100,14 +100,15 @@ void createBall(
     for (size_t gridX = 0; gridX < resolution; ++gridX) {
         for (size_t gridY = 0; gridY < resolution; ++gridY) {
             for (size_t gridZ = 0; gridZ < resolution; ++gridZ) {
-                // TODO figure out how to match with old version
-                // auto& currentParticleEntry = gridCoordsToParticleIndex[
-                //     flattenCoords(gridX, gridY, gridZ)];
-                // if (!currentParticleEntry.has_value()) continue;
                 for (const std::pair<glm::uvec3, glm::uvec3>& connection : connections) {
                     glm::uvec3 currentCoords(gridX, gridY, gridZ);
                     glm::uvec3 coords1 = currentCoords + connection.first;
                     glm::uvec3 coords2 = currentCoords + connection.second;
+
+                    if (coords1.x >= resolution || coords1.y >= resolution || coords1.z >= resolution ||
+                        coords2.x >= resolution || coords2.y >= resolution || coords2.z >= resolution) {
+                        continue; // out of bounds
+                    }
 
                     auto& particleEntry1 = gridCoordsToParticleIndex[
                         flattenCoords(coords1.x, coords1.y, coords1.z)];
@@ -171,7 +172,6 @@ int main() {
     while (!renderer.shouldClose()) {
         simulator.update();
         renderer.render(simulator.getPosData());
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     return 0;
 }
