@@ -7,7 +7,7 @@
 #include <print>
 #include <random>
 
-constexpr float PARTICLE_RADIUS = 0.15f;
+constexpr float PARTICLE_RADIUS = 0.2f;
 constexpr size_t PARTICLE_COUNT = 20000;
 
 constexpr glm::vec3 LIGHT_POSITION(0, 10, 0);

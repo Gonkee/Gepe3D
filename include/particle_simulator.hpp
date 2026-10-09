@@ -132,5 +132,3 @@ private:
     void cpuSolveDistConstraints(float stiffness, size_t iterations);
 };
 
-void setupOpenCL();
-int testCL();
