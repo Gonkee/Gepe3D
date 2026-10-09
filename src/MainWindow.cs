@@ -1,5 +1,6 @@
 
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -11,6 +12,7 @@ namespace Gepe3D
 {
     public class MainWindow : GameWindow
     {
+        static readonly int PARTICLE_COUNT = 20000;
 
         static void Main(string[] args)
         {
@@ -23,7 +25,7 @@ namespace Gepe3D
                 new NativeWindowSettings()
                 {
                     ClientSize = new Vector2i(1280, 720),
-                    Title = "Gepe3D",
+                    Title = getWindowTitle(0),
                 }
             );
 
@@ -36,7 +38,6 @@ namespace Gepe3D
         public ParticleSystem particleSystem;
         (int, float, float, float)[] barParticles;
 
-        private float totalTime = 0;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -63,7 +64,7 @@ namespace Gepe3D
             );
 
             particleSystem = new ParticleSystem(
-                particleCount: 20000,
+                particleCount: PARTICLE_COUNT,
                 lightPos: new Vector3(0f, 10f, 0f),
                 camViewMatrix: camViewMatrix,
                 camProjectionMatrix: camProjectionMatrix
@@ -221,30 +222,44 @@ namespace Gepe3D
             return particlesList.ToArray();
         }
 
+        static String getWindowTitle(double fps) {
+            return $"Gepe3D C# | {PARTICLE_COUNT} particles | {fps:F1} FPS";
+        }
+
+        int frameCount = 0;
+        double fps;
+        long lastRealTime = Stopwatch.GetTimestamp();
+        private float totalSimulationTime = 0;
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            // update
             if (KeyboardState.IsKeyDown(Keys.Escape)) Close();
-
-            float delta = 0.01f;
-            totalTime += delta;
-            particleSystem.Update(delta);
-
-            // render
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             // update bar position
             foreach ((int id, float px, float py, float pz) in barParticles) {
                 particleSystem.SetPos(id,
-                    px + MathF.Cos(totalTime * 1.5f) * ParticleSystem.MAX_X * 0.3f,
+                    px + MathF.Cos(totalSimulationTime * 1.5f) * ParticleSystem.MAX_X * 0.3f,
                     py,
-                    pz + MathF.Sin(totalTime * 1.5f) * ParticleSystem.MAX_Z * 0.3f
+                    pz + MathF.Sin(totalSimulationTime * 1.5f) * ParticleSystem.MAX_Z * 0.3f
                 );
             }
 
+            float delta = 0.01f;
+            totalSimulationTime += delta;
+            particleSystem.Update(delta);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             particleSystem.Render(this);
-
             SwapBuffers();
+
+            // track performance
+            frameCount++;
+            long nowRealTime = Stopwatch.GetTimestamp();
+            double elapsedRealTime = (double) (nowRealTime - lastRealTime) / Stopwatch.Frequency;
+            if (elapsedRealTime >= 1.0) {
+                fps = frameCount / elapsedRealTime;
+                frameCount = 0;
+                lastRealTime = nowRealTime;
+                Title = getWindowTitle(fps);
+            }
         }
 
         // using same function for both update and render
