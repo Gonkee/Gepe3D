@@ -231,6 +231,9 @@ void ParticleRenderer::setColour(size_t index, float r, float g, float b) {
     colourDirty = true;
 }
 
+void ParticleRenderer::setWindowTitle(std::string& title) {
+    glfwSetWindowTitle(window, title.c_str());
+}
 
 int ParticleRenderer::shouldClose() { return glfwWindowShouldClose(window); }
 

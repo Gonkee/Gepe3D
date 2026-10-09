@@ -5,6 +5,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <string>
 #include <array>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -29,6 +30,7 @@ public:
     ParticleRenderer(const ParticleRenderer&&) = delete;
     ParticleRenderer& operator=(const ParticleRenderer&&) = delete;
 
+    void setWindowTitle(std::string& title);
     int shouldClose();
     void render(const float *data);
     void setColour(size_t index, float r, float g, float b);

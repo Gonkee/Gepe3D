@@ -5,7 +5,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <print>
+#include <format>
 #include <random>
+#include <chrono>
 
 constexpr float PARTICLE_RADIUS = 0.2f;
 constexpr size_t PARTICLE_COUNT = 20000;
@@ -156,6 +158,14 @@ void createBlock(
     }
 }
 
+std::string getWindowTitle(double fps) {
+    return std::format(
+        "Gepe3D C++ | {} particles | {:.1f} FPS",
+        PARTICLE_COUNT,
+        fps
+    );
+}
+
 int main() {
     ParticleSimulator simulator = ParticleSimulator::create(PARTICLE_COUNT);
 
@@ -171,7 +181,7 @@ int main() {
     ParticleRenderer renderer = ParticleRenderer::create(
         1280,
         720,
-        "Gepe3D",
+        getWindowTitle(0).c_str(),
         PARTICLE_COUNT,
         PARTICLE_RADIUS,
         LIGHT_POSITION,
@@ -207,21 +217,36 @@ int main() {
         0.15f, 3000
     );
 
-    float totalTime = 0;
+    size_t frameCount = 0;
+    double fps;
+    auto lastRealTime = std::chrono::steady_clock::now();
+    float totalSimulationTime = 0;
     while (!renderer.shouldClose()) {
         // move the block around
         for (auto& blockParticle : particlesList) {
             size_t& blockParticleIndex = blockParticle.first;
             glm::vec3& blockParticlePosition = blockParticle.second;
             simulator.setPos(blockParticleIndex,
-                blockParticlePosition.x + cos(totalTime * 1.5f) * ParticleSimulator::MAX_X * 0.3f,
+                blockParticlePosition.x + cos(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_X * 0.3f,
                 blockParticlePosition.y,
-                blockParticlePosition.z + sin(totalTime * 1.5f) * ParticleSimulator::MAX_Z * 0.3f
+                blockParticlePosition.z + sin(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_Z * 0.3f
             );
         }
         simulator.update();
         renderer.render(simulator.getPosData());
-        totalTime += ParticleSimulator::DELTA_TIME;
+        totalSimulationTime += ParticleSimulator::DELTA_TIME;
+
+        // track performance
+        frameCount++;
+        const auto nowRealTime = std::chrono::steady_clock::now();
+        double elapsedRealTime = std::chrono::duration<double>(nowRealTime - lastRealTime).count();
+        if (elapsedRealTime >= 1.0) {
+            fps = frameCount / elapsedRealTime;
+            frameCount = 0;
+            lastRealTime = nowRealTime;
+            std::string newTitle = getWindowTitle(fps);
+            renderer.setWindowTitle(newTitle);
+        }
     }
     return 0;
 }
