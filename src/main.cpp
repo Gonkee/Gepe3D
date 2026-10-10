@@ -8,6 +8,9 @@
 #include <format>
 #include <random>
 #include <chrono>
+#include <iostream>
+
+constexpr size_t BENCHMARK_NUM_SECONDS = 30;
 
 constexpr float PARTICLE_RADIUS = 0.2f;
 constexpr size_t PARTICLE_COUNT = 20000;
@@ -166,7 +169,15 @@ std::string getWindowTitle(double fps) {
     );
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    bool bench = false;
+    if (argc == 2 && std::string_view(argv[1]) == "bench") {
+        bench = true;
+    } else if (argc != 1) {
+        std::cerr << "Too many/unknown arguments!" << std::endl;
+        return 1;
+    }
+
     ParticleSimulator simulator = ParticleSimulator::create(PARTICLE_COUNT);
 
     auto [cameraViewMatrix, cameraProjectionMatrix] = getCameraMatrices(
@@ -221,6 +232,8 @@ int main() {
     double fps;
     auto lastRealTime = std::chrono::steady_clock::now();
     float totalSimulationTime = 0;
+    double benchFpsTotal = 0;
+    size_t benchFpsCount = 0;
     while (!renderer.shouldClose()) {
         // move the block around
         for (auto& blockParticle : particlesList) {
@@ -246,6 +259,19 @@ int main() {
             lastRealTime = nowRealTime;
             std::string newTitle = getWindowTitle(fps);
             renderer.setWindowTitle(newTitle);
+
+            if (bench) {
+                benchFpsTotal += fps;
+                benchFpsCount++;
+                if (benchFpsCount >= BENCHMARK_NUM_SECONDS) {
+                    std::print(
+                        "Gepe3D C++ benchmark results: average {:.1f} FPS over {} seconds.\n",
+                        benchFpsTotal / benchFpsCount,
+                        BENCHMARK_NUM_SECONDS
+                    );
+                    renderer.closeWindow();
+                }
+            }
         }
     }
     return 0;

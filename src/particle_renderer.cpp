@@ -161,11 +161,6 @@ ParticleRenderer::ParticleRenderer(
       particlePositionsVBO(genVBO()),
       particleColoursVBO(genVBO()),
       particlesVAO(genVAO()),
-      // particlesVAO(genParticlesVAO(
-      //   billboardQuadVerticesVBO,
-      //   particlePositionsVBO,
-      //   particleColoursVBO
-      // )),
       particleCount(particleCount),
       colourData (std::vector<float>(particleCount * 3))
 {
@@ -173,11 +168,8 @@ ParticleRenderer::ParticleRenderer(
     glClearColor(0.4f, 0.4f, 0.4f, 1);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    // glCullFace(TriangleFace.Back);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
-    // TODO: actually load data into VBOs
-    //...
     glUseProgram(shaderProgram);
     glUniform3f(lightPosUniformLocation      , lightPosition.x, lightPosition.y, lightPosition.z);
     glUniform1f(particleRadiusUniformLocation, particleVisualRadius);
@@ -235,6 +227,10 @@ void ParticleRenderer::setWindowTitle(std::string& title) {
     glfwSetWindowTitle(window, title.c_str());
 }
 
+void ParticleRenderer::closeWindow() {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
 int ParticleRenderer::shouldClose() { return glfwWindowShouldClose(window); }
 
 void ParticleRenderer::render(const float *posData) {
@@ -244,11 +240,9 @@ void ParticleRenderer::render(const float *posData) {
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    // const float ratio = width / (float) height;
 
     glViewport(0, 0, width, height);
 
-    // ...
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (colourDirty) {
@@ -259,7 +253,6 @@ void ParticleRenderer::render(const float *posData) {
     glBindBuffer(GL_ARRAY_BUFFER, particlePositionsVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * 3 * sizeof(float), posData);
 
-    // set stuff
     glBindVertexArray(particlesVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particleCount);
 

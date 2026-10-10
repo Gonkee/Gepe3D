@@ -31,6 +31,7 @@ public:
     ParticleRenderer& operator=(const ParticleRenderer&&) = delete;
 
     void setWindowTitle(std::string& title);
+    void closeWindow();
     int shouldClose();
     void render(const float *data);
     void setColour(size_t index, float r, float g, float b);
