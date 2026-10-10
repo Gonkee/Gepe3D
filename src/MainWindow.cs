@@ -12,25 +12,36 @@ namespace Gepe3D
 {
     public class MainWindow : GameWindow
     {
+        static readonly int BENCHMARK_NUM_SECONDS = 30;
         static readonly int PARTICLE_COUNT = 20000;
+        static readonly float DELTA_TIME = 0.01f;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+            bool bench = false;
+            if (args.Length == 1 && args[0] == "bench") {
+                bench = true;
+            } else if (args.Length != 0) {
+                System.Console.Error.WriteLine("Too many/unknown arguments!");
+                return 1;
+            }
 
             GameWindowSettings settings = GameWindowSettings.Default;
             settings.UpdateFrequency = 0; // update as fast as possible
 
             MainWindow game = new MainWindow(
+                bench,
                 settings,
                 new NativeWindowSettings()
                 {
                     ClientSize = new Vector2i(1280, 720),
-                    Title = getWindowTitle(0),
+                    Title = GetWindowTitle(0),
                 }
             );
 
             game.CenterWindow();
             game.Run();
+            return 0;
         }
 
 
@@ -39,9 +50,14 @@ namespace Gepe3D
         (int, float, float, float)[] barParticles;
 
 
-        public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
+        private bool bench;
+        public MainWindow(
+            bool bench,
+            GameWindowSettings gameWindowSettings,
+            NativeWindowSettings nativeWindowSettings
+        )
             : base(gameWindowSettings, nativeWindowSettings)
-        {}
+        { this.bench = bench; }
 
         protected override void OnLoad()
         {
@@ -222,7 +238,7 @@ namespace Gepe3D
             return particlesList.ToArray();
         }
 
-        static String getWindowTitle(double fps) {
+        static String GetWindowTitle(double fps) {
             return $"Gepe3D C# | {PARTICLE_COUNT} particles | {fps:F1} FPS";
         }
 
@@ -230,6 +246,8 @@ namespace Gepe3D
         double fps;
         long lastRealTime = Stopwatch.GetTimestamp();
         private float totalSimulationTime = 0;
+        double benchFpsTotal = 0;
+        int benchFpsCount = 0;
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             if (KeyboardState.IsKeyDown(Keys.Escape)) Close();
@@ -243,9 +261,8 @@ namespace Gepe3D
                 );
             }
 
-            float delta = 0.01f;
-            totalSimulationTime += delta;
-            particleSystem.Update(delta);
+            totalSimulationTime += DELTA_TIME;
+            particleSystem.Update(DELTA_TIME);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             particleSystem.Render(this);
             SwapBuffers();
@@ -258,7 +275,19 @@ namespace Gepe3D
                 fps = frameCount / elapsedRealTime;
                 frameCount = 0;
                 lastRealTime = nowRealTime;
-                Title = getWindowTitle(fps);
+                Title = GetWindowTitle(fps);
+
+                if (bench) {
+                    benchFpsTotal += fps;
+                    benchFpsCount++;
+                    if (benchFpsCount >= BENCHMARK_NUM_SECONDS) {
+                        System.Console.WriteLine(
+                            $"Gepe3D C# benchmark results: average " +
+                            $"{(benchFpsTotal / benchFpsCount):F1} " +
+                            $"FPS over {BENCHMARK_NUM_SECONDS} seconds");
+                        Close();
+                    }
+                }
             }
         }
 
