@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::pair<size_t, glm::vec3>> particlesList;
     createBlock(
         simulator, renderer, particlesList,
-        ParticleSimulator::MAX_X * 0.4f, ParticleSimulator::MAX_Y * 0.1f, ParticleSimulator::MAX_Z * 0.4f,
+        ParticleSimulator::MAX_X * 0.4f, ParticleSimulator::MAX_Y * 0.1f, ParticleSimulator::MAX_Z * 0.1f,
         ParticleSimulator::MAX_X * 0.2f, ParticleSimulator::MAX_Y * 0.3f, ParticleSimulator::MAX_Z * 0.2f,
         0.15f, 3000
     );
@@ -237,17 +237,11 @@ int main(int argc, char *argv[]) {
     double benchFpsTotal = 0;
     size_t benchFpsCount = 0;
     while (!renderer.shouldClose()) {
-        // move the block around
-        for (auto& blockParticle : particlesList) {
-            size_t& blockParticleIndex = blockParticle.first;
-            glm::vec3& blockParticlePosition = blockParticle.second;
-            simulator.setPos(blockParticleIndex,
-                blockParticlePosition.x + cos(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_X * 0.3f,
-                blockParticlePosition.y,
-                blockParticlePosition.z + sin(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_Z * 0.3f
-            );
-        }
-        simulator.update();
+        simulator.update( // move the block around
+            cos(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_X * 0.4f,
+            0,
+            sin(totalSimulationTime * 1.5f) * ParticleSimulator::MAX_Z * 0.4f
+        );
         renderer.render(simulator.getPosData());
         totalSimulationTime += ParticleSimulator::DELTA_TIME;
 

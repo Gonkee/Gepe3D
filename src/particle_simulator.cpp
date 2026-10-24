@@ -126,26 +126,26 @@ void ParticleSimulator::enqueueKernelHelper(cl::Kernel& kernel, size_t numWorkUn
 
 
 void ParticleSimulator::setPos(size_t index, float x, float y, float z) {
+    if (setupFinalised) {
+        throw std::runtime_error("attempted to set position after setup has been finalised");
+    }
     posData[index * 3 + 0] = x;
     posData[index * 3 + 1] = y;
     posData[index * 3 + 2] = z;
-    posDirty = true;
-}
-
-void ParticleSimulator::addPos(size_t index, float x, float y, float z) {
-    posData[index * 3 + 0] += x;
-    posData[index * 3 + 1] += y;
-    posData[index * 3 + 2] += z;
-    posDirty = true;
 }
 
 glm::vec3 ParticleSimulator::getPos(size_t index) {
+    if (setupFinalised) {
+        throw std::runtime_error("attempted to get position after setup has been finalised");
+    }
     return glm::vec3( posData[index * 3 + 0], posData[index * 3 + 1], posData[index * 3 + 2] );
 }
 
 void ParticleSimulator::setPhase(size_t index, int phase) {
+    if (setupFinalised) {
+        throw std::runtime_error("attempted to set phase after setup has been finalised");
+    }
     phaseData[index] = phase;
-    phaseDirty = true;
 }
 
 void ParticleSimulator::addDistConstraint(size_t p1, size_t p2, float distance) {
@@ -205,22 +205,9 @@ void ParticleSimulator::enqueueFillBufferHelper(const cl::Buffer& buffer, std::t
     clQueue.enqueueFillBuffer(buffer, value, 0, sizeof(T) * count);
 }
 
-void ParticleSimulator::update() {
+void ParticleSimulator::update(float staticParticleVelX, float staticParticleVelY, float staticParticleVelZ) {
     if (!setupFinalised) {
         throw std::runtime_error("attempted to update simulator state before setup has been finalised; call finaliseSetup()");
-    }
-
-    if (posDirty) {
-        enqueueWriteBufferHelper(b_pos, posData);
-        posDirty = false;
-    }
-    if (velDirty) {
-        enqueueWriteBufferHelper(b_vel, velData);
-        velDirty = false;
-    }
-    if (phaseDirty) {
-        enqueueWriteBufferHelper(b_phase, phaseData);
-        phaseDirty = false;
     }
 
     enqueueFillBufferHelper<int32_t>(b_sortedParticleIDs, 0, particleCount);
@@ -242,7 +229,7 @@ void ParticleSimulator::update() {
     enqueueKernelHelper(k08_apply_corrections        , particleCount  , b_pos, b_ePos, b_posCorrection, b_phase); // repeated, unaesthetic
 
     // update particle velocities using corrected predictions, then correct fluid velocities for vorticity & viscosity
-    enqueueKernelHelper(k10_update_velocity          , particleCount  , DELTA_TIME, b_pos, b_vel, b_ePos, b_phase);
+    enqueueKernelHelper(k10_update_velocity          , particleCount  , DELTA_TIME, b_pos, b_vel, b_ePos, b_phase, staticParticleVelX, staticParticleVelY, staticParticleVelZ);
     enqueueKernelHelper(k11_compute_vorticity        , particleCount  , b_pos, b_vel, b_vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
     enqueueKernelHelper(k12_apply_vorticity_viscosity, particleCount  , b_pos, b_vel, b_vorticities, b_velCorrection, b_imass, DELTA_TIME, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
     enqueueKernelHelper(k13_correct_fluid_velocity   , particleCount  , b_vel, b_velCorrection);

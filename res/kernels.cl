@@ -267,21 +267,26 @@ kernel void apply_corrections(
     setVec(eposBuffer, i, epos);
 }
 
-
-
 kernel void update_velocity(
     float delta,
     global float *posBuffer,
     global float *velBuffer,
     global float *eposBuffer,
-    global int *phase
+    global int *phase,
+    float staticParticleVelX,
+    float staticParticleVelY,
+    float staticParticleVelZ
 ) {
     int i = get_global_id(0);
     float3 pos  = getVec( posBuffer, i);
     float3 vel  = getVec( velBuffer, i);
     float3 epos = getVec(eposBuffer, i);
-    if (phase[i] == PHASE_STATIC) epos = pos;
-    vel = (epos - pos) / delta;
+    if (phase[i] == PHASE_STATIC) {
+        vel = (float3) (staticParticleVelX, staticParticleVelY, staticParticleVelZ);
+        epos = pos + vel * delta;
+    } else {
+        vel = (epos - pos) / delta;
+    }
     pos = epos;
     if      (pos.x <     0) {  pos.x =     0;  vel.x = fmax( (float) 0, (float) vel.x);  }
     else if (pos.x > MAX_X) {  pos.x = MAX_X;  vel.x = fmin( (float) 0, (float) vel.x);  }

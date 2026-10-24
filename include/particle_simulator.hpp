@@ -17,10 +17,9 @@ public:
     ParticleSimulator(const ParticleSimulator&&) = delete;
     ParticleSimulator& operator=(const ParticleSimulator&&) = delete;
 
-    void update();
+    void update(float staticParticleVelX, float staticParticleVelY, float staticParticleVelZ);
     const float *getPosData();
     void setPos(size_t index, float x, float y, float z);
-    void addPos(size_t index, float x, float y, float z);
     glm::vec3 getPos(size_t index);
     void setPhase(size_t index, int phase);
     void addDistConstraint(size_t particleIndex1, size_t particleIndex2, float dist);
@@ -116,11 +115,7 @@ private:
 
     cl::Buffer b_particleConstraints, b_particleConstraintsOffsets;
 
-    bool
-        setupFinalised = false,
-        posDirty = false,
-        velDirty = false,
-        phaseDirty = false;
+    bool setupFinalised = false;
 
     struct Constraint {
         uint32_t p1;
