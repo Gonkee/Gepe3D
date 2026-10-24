@@ -24,6 +24,7 @@ std::string ParticleSimulator::generateKernelDefines() {
     defines += std::format("#define PHASE_LIQUID {}\n"     , PHASE_LIQUID);
     defines += std::format("#define PHASE_SOLID {}\n"      , PHASE_SOLID);
     defines += std::format("#define PHASE_STATIC {}\n"     , PHASE_STATIC);
+    defines += std::format("#define CONSTRAINT_SOLVER_STIFFNESS {:.4f}f\n", CONSTRAINT_SOLVER_STIFFNESS);
     return defines;
 }
 
@@ -31,7 +32,6 @@ ParticleSimulator ParticleSimulator::create(size_t particleCount) {
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
     if (platforms.empty()) throw std::runtime_error("Could not find OpenCL platform");
-
     cl::Platform platform = platforms[0];
     if (cl::Platform::setDefault(platform) != platform)
         throw std::runtime_error("Error setting default platform");
@@ -70,18 +70,19 @@ ParticleSimulator::ParticleSimulator(size_t particleCount, cl::Program kernels)
 
       clQueue(cl::CommandQueue(cl::Context::getDefault(), cl::Device::getDefault())),
       // TODO: probably change to kernel functors for convenience
-      k01_predict_positions         (cl::Kernel(kernels, "predict_positions"        )),
-      k02_assign_particle_cells     (cl::Kernel(kernels, "assign_particle_cells"    )),
-      k03_find_cells_start_and_end  (cl::Kernel(kernels, "find_cells_start_and_end" )),
-      k04_sort_particle_ids_by_cell (cl::Kernel(kernels, "sort_particle_ids_by_cell")),
-      k05_compute_lambdas           (cl::Kernel(kernels, "compute_lambdas"          )),
-      k06_compute_fluid_corrections (cl::Kernel(kernels, "compute_fluid_corrections")),
-      k07_compute_solid_corrections (cl::Kernel(kernels, "compute_solid_corrections")),
-      k08_apply_corrections         (cl::Kernel(kernels, "apply_corrections"        )),
-      k09_update_velocity           (cl::Kernel(kernels, "update_velocity"          )),
-      k10_compute_vorticity         (cl::Kernel(kernels, "compute_vorticity"        )),
-      k11_apply_vorticity_viscosity (cl::Kernel(kernels, "apply_vorticity_viscosity")),
-      k12_correct_fluid_velocity    (cl::Kernel(kernels, "correct_fluid_velocity"   )),
+      k01_predict_positions         (cl::Kernel(kernels, "predict_positions"         )),
+      k02_assign_particle_cells     (cl::Kernel(kernels, "assign_particle_cells"     )),
+      k03_find_cells_start_and_end  (cl::Kernel(kernels, "find_cells_start_and_end"  )),
+      k04_sort_particle_ids_by_cell (cl::Kernel(kernels, "sort_particle_ids_by_cell" )),
+      k05_compute_lambdas           (cl::Kernel(kernels, "compute_lambdas"           )),
+      k06_compute_fluid_corrections (cl::Kernel(kernels, "compute_fluid_corrections" )),
+      k07_compute_solid_corrections (cl::Kernel(kernels, "compute_solid_corrections" )),
+      k08_apply_corrections         (cl::Kernel(kernels, "apply_corrections"         )),
+      k09_solve_distance_constraints(cl::Kernel(kernels, "solve_distance_constraints")),
+      k10_update_velocity           (cl::Kernel(kernels, "update_velocity"           )),
+      k11_compute_vorticity         (cl::Kernel(kernels, "compute_vorticity"         )),
+      k12_apply_vorticity_viscosity (cl::Kernel(kernels, "apply_vorticity_viscosity" )),
+      k13_correct_fluid_velocity    (cl::Kernel(kernels, "correct_fluid_velocity"    )),
 
       // TODO: must use fixed width types like int32_t to match opencl
       b_pos           (cl::Buffer(CL_MEM_READ_WRITE, sizeof(float) * particleCount * 3)),
@@ -142,7 +143,45 @@ void ParticleSimulator::setPhase(size_t index, int phase) {
 }
 
 void ParticleSimulator::addDistConstraint(size_t p1, size_t p2, float distance) {
+    if (setupFinalised) {
+        throw std::runtime_error("attempted to add constraint after setup has been finalised");
+    }
     constraints.emplace_back(p1, p2, distance);
+}
+
+void ParticleSimulator::finaliseSetup() {
+    enqueueWriteBufferHelper(b_pos, posData);
+    enqueueWriteBufferHelper(b_vel, velData);
+    enqueueWriteBufferHelper(b_phase, phaseData);
+
+    // convert constraints to particle centric
+    std::vector<uint32_t> particleConstraintsOffsets(particleCount + 1, 0);
+    for (Constraint& c : constraints) {
+        // first calculate the constraint counts for each particle
+        // at the slot immediately after it
+        // (p0's constraints start at 0, p1's start at p0's count)
+        particleConstraintsOffsets[c.p1 + 1]++;
+        particleConstraintsOffsets[c.p2 + 1]++;
+    }
+    for (size_t i = 0; i < particleCount; ++i) {
+        // then prefix sum the counts so that they turn into offsets
+        particleConstraintsOffsets[i + 1] += particleConstraintsOffsets[i];
+    }
+    // cursors = which position to put the next constraint (separately incremented for each particle)
+    std::vector<uint32_t> particleConstraintsCursors(particleConstraintsOffsets);
+    std::vector<ParticleConstraint> particleConstraints(constraints.size() * 2);
+    for (Constraint& c : constraints) {
+        particleConstraints[particleConstraintsCursors[c.p1]++] = { c.p2, c.distance };
+        particleConstraints[particleConstraintsCursors[c.p2]++] = { c.p1, c.distance };
+    }
+    // send the calculated constraint data to the device
+    b_particleConstraints = cl::Buffer(CL_MEM_READ_ONLY, sizeof(ParticleConstraint) * particleConstraints.size());
+    b_particleConstraintsOffsets = cl::Buffer(CL_MEM_READ_ONLY, sizeof(uint32_t) * particleConstraintsOffsets.size());
+    enqueueWriteBufferHelper(b_particleConstraints, particleConstraints);
+    enqueueWriteBufferHelper(b_particleConstraintsOffsets, particleConstraintsOffsets);
+    clQueue.finish();
+
+    setupFinalised = true;
 }
 
 template <typename T>
@@ -161,6 +200,10 @@ void ParticleSimulator::enqueueFillBufferHelper(const cl::Buffer& buffer, std::t
 }
 
 void ParticleSimulator::update() {
+    if (!setupFinalised) {
+        throw std::runtime_error("attempted to update simulator state before setup has been finalised; call finaliseSetup()");
+    }
+
     if (posDirty) {
         enqueueWriteBufferHelper(b_pos, posData);
         posDirty = false;
@@ -189,56 +232,18 @@ void ParticleSimulator::update() {
     enqueueKernelHelper(k06_compute_fluid_corrections, particleCount  , b_ePos, b_imass, b_lambdas, b_posCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
     enqueueKernelHelper(k07_compute_solid_corrections, particleCount  , b_ePos, b_imass, b_posCorrection, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
     enqueueKernelHelper(k08_apply_corrections        , particleCount  , b_pos, b_ePos, b_posCorrection, b_phase);
-
-    cpuSolveDistConstraints(0.2f, 2); // parameters: stiffness, iterations
+    enqueueKernelHelper(k09_solve_distance_constraints, particleCount, b_particleConstraints, b_particleConstraintsOffsets, b_imass, b_ePos, b_posCorrection);
+    enqueueKernelHelper(k08_apply_corrections        , particleCount  , b_pos, b_ePos, b_posCorrection, b_phase); // repeated, unaesthetic
 
     // update particle velocities using corrected predictions, then correct fluid velocities for vorticity & viscosity
-    enqueueKernelHelper(k09_update_velocity          , particleCount  , DELTA_TIME, b_pos, b_vel, b_ePos, b_phase);
-    enqueueKernelHelper(k10_compute_vorticity        , particleCount  , b_pos, b_vel, b_vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-    enqueueKernelHelper(k11_apply_vorticity_viscosity, particleCount  , b_pos, b_vel, b_vorticities, b_velCorrection, b_imass, DELTA_TIME, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
-    enqueueKernelHelper(k12_correct_fluid_velocity   , particleCount  , b_vel, b_velCorrection);
+    enqueueKernelHelper(k10_update_velocity          , particleCount  , DELTA_TIME, b_pos, b_vel, b_ePos, b_phase);
+    enqueueKernelHelper(k11_compute_vorticity        , particleCount  , b_pos, b_vel, b_vorticities, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+    enqueueKernelHelper(k12_apply_vorticity_viscosity, particleCount  , b_pos, b_vel, b_vorticities, b_velCorrection, b_imass, DELTA_TIME, b_cellIDsOfParticles, b_cellStartAndEndIDs, b_sortedParticleIDs, b_phase);
+    enqueueKernelHelper(k13_correct_fluid_velocity   , particleCount  , b_vel, b_velCorrection);
 
     // read position and velocity data from GPU
     enqueueReadBufferHelper(b_pos, posData);
     enqueueReadBufferHelper(b_vel, velData);
-
-    clQueue.finish();
-}
-
-void ParticleSimulator::cpuSolveDistConstraints(float stiffness, size_t iterations) {
-    stiffness = 1.0f - pow(1.0f - stiffness, 1.0f / iterations);
-
-    enqueueReadBufferHelper(b_ePos, ePosData);
-    clQueue.finish();
-
-    for (size_t i = 0; i < iterations; ++i) {
-        for (Constraint& c : constraints) {
-            float imass1 = 1;
-            float imass2 = 1;
-
-            glm::vec3 ePos1(ePosData[c.p1 * 3 + 0], ePosData[c.p1 * 3 + 1], ePosData[c.p1 * 3 + 2]);
-            glm::vec3 ePos2(ePosData[c.p2 * 3 + 0], ePosData[c.p2 * 3 + 1], ePosData[c.p2 * 3 + 2]);
-
-            glm::vec3 diff = ePos1 - ePos2;
-            float displacement = glm::length(diff) - c.distance;
-            glm::vec3 dir = glm::normalize(diff);
-
-            float w1 = imass1 / (imass1 + imass2);
-            float w2 = imass2 / (imass1 + imass2);
-
-            glm::vec3 correction1 = -w1 * displacement * dir;
-            glm::vec3 correction2 = +w2 * displacement * dir;
-
-            ePosData[c.p1 * 3 + 0] += correction1.x * stiffness;
-            ePosData[c.p1 * 3 + 1] += correction1.y * stiffness;
-            ePosData[c.p1 * 3 + 2] += correction1.z * stiffness;
-
-            ePosData[c.p2 * 3 + 0] += correction2.x * stiffness;
-            ePosData[c.p2 * 3 + 1] += correction2.y * stiffness;
-            ePosData[c.p2 * 3 + 2] += correction2.z * stiffness;
-        }
-    }
-    enqueueWriteBufferHelper(b_ePos, ePosData);
     clQueue.finish();
 }
 

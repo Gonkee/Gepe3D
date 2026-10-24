@@ -24,6 +24,7 @@ public:
     glm::vec3 getPos(size_t index);
     void setPhase(size_t index, int phase);
     void addDistConstraint(size_t particleIndex1, size_t particleIndex2, float dist);
+    void finaliseSetup();
 
     static constexpr int
         PHASE_LIQUID = 0,
@@ -42,6 +43,7 @@ public:
 
     static constexpr float
         DELTA_TIME = 0.01f,
+        CONSTRAINT_SOLVER_STIFFNESS = 0.1f,
 
         PARTICLE_RADIUS = 0.2f,
         GRID_CELL_WIDTH = 0.6f,
@@ -81,10 +83,11 @@ private:
         k06_compute_fluid_corrections,
         k07_compute_solid_corrections,
         k08_apply_corrections,
-        k09_update_velocity,
-        k10_compute_vorticity,
-        k11_apply_vorticity_viscosity,
-        k12_correct_fluid_velocity;
+        k09_solve_distance_constraints,
+        k10_update_velocity,
+        k11_compute_vorticity,
+        k12_apply_vorticity_viscosity,
+        k13_correct_fluid_velocity;
 
     const cl::Buffer
         b_pos,              // positions
@@ -104,16 +107,25 @@ private:
         b_cellStartAndEndIDs,
         b_numParticlesPerCell;
 
+    cl::Buffer b_particleConstraints, b_particleConstraintsOffsets;
+
     bool
+        setupFinalised = false,
         posDirty = false,
         velDirty = false,
         phaseDirty = false;
 
     struct Constraint {
-        size_t p1;
-        size_t p2;
+        uint32_t p1;
+        uint32_t p2;
         float distance;
     };
+
+    struct ParticleConstraint {
+        uint32_t other;
+        float distance;
+    };
+
 
     std::vector<Constraint> constraints;
 

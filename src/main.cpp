@@ -228,6 +228,8 @@ int main(int argc, char *argv[]) {
         0.15f, 3000
     );
 
+    simulator.finaliseSetup();
+
     size_t frameCount = 0;
     double fps;
     auto lastRealTime = std::chrono::steady_clock::now();

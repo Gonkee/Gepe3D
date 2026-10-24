@@ -1,9 +1,10 @@
 
-// #define variables added in the C# code - don't use these as var names
+// #define variables added in the host code - don't use these as var names
 // CELLCOUNT_X, CELLCOUNT_Y, CELLCOUNT_Z, CELL_WIDTH
 // MAX_X, MAX_Y, MAX_Z
 // KERNEL_SIZE, REST_DENSITY
 // PHASE_LIQUID, PHASE_SOLID, PHASE_STATIC
+// CONSTRAINT_SOLVER_STIFFNESS
 
 
 // code to gather neighbours, must match input buffer names for particle ids, try not to use var names that might overlap
@@ -478,6 +479,36 @@ kernel void correct_fluid_velocity(
     setVec(velBuffer, i, vel);
 }
 
+typedef struct {
+    uint other;
+    float distance;
+} ParticleConstraint;
 
-
-
+kernel void solve_distance_constraints(
+    global ParticleConstraint *constraints,
+    global uint *constraintsOffsets,
+    global float *imasses,
+    global float *eposBuffer,
+    global float *corrections
+) {
+    uint self = get_global_id(0);
+    float imassSelf = imasses[self];
+    float3 ePosSelf = getVec(eposBuffer, self);
+    float3 totalCorrection = (float3)(0.0f, 0.0f, 0.0f);
+    for (
+        uint constraintIndex = constraintsOffsets[self];
+        constraintIndex < constraintsOffsets[self + 1];
+        constraintIndex++
+    ) {
+        uint other = constraints[constraintIndex].other;
+        float distance = constraints[constraintIndex].distance;
+        float imassOther = imasses[other];
+        float3 ePosOther = getVec(eposBuffer, other);
+        float3 diff = ePosOther - ePosSelf;
+        if (length(diff) == 0.0f) continue;
+        float displacement = length(diff) - distance;
+        float3 dir = normalize(diff);
+        totalCorrection += displacement * dir * (imassSelf / (imassSelf + imassOther));
+    }
+    setVec(corrections, self, totalCorrection * CONSTRAINT_SOLVER_STIFFNESS);
+}
