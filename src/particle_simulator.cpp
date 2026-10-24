@@ -24,6 +24,12 @@ std::string ParticleSimulator::generateKernelDefines() {
     defines += std::format("#define PHASE_LIQUID {}\n"     , PHASE_LIQUID);
     defines += std::format("#define PHASE_SOLID {}\n"      , PHASE_SOLID);
     defines += std::format("#define PHASE_STATIC {}\n"     , PHASE_STATIC);
+    defines += std::format("#define MAX_VEL {:.4f}f\n", PARTICLE_MAX_VELOCITY);
+    defines += std::format("#define RELAXATION {:.4f}f\n", RELAXATION);
+    defines += std::format("#define K_P {:.4f}f\n", K_P);
+    defines += std::format("#define E_P {:.4f}f\n", E_P);
+    defines += std::format("#define DQ_P {:.4f}f\n", DQ_P);
+    defines += std::format("#define VISCOSITY_COEFF {:.4f}f\n", VISCOSITY_COEFF);
     defines += std::format("#define CONSTRAINT_SOLVER_STIFFNESS {:.4f}f\n", CONSTRAINT_SOLVER_STIFFNESS);
     return defines;
 }

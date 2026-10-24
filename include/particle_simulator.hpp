@@ -44,6 +44,13 @@ public:
     static constexpr float
         DELTA_TIME = 0.01f,
         CONSTRAINT_SOLVER_STIFFNESS = 0.1f,
+        PARTICLE_MAX_VELOCITY = 5,
+
+        RELAXATION = 0.01f,
+        K_P  = 0.1f,
+        E_P  = 4.0f,
+        DQ_P = 0.2f,
+        VISCOSITY_COEFF = 0.001f,
 
         PARTICLE_RADIUS = 0.2f,
         GRID_CELL_WIDTH = 0.6f,
