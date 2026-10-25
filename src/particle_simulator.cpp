@@ -8,6 +8,8 @@
 #include <print>
 #include <format>
 #include <cmath>
+#include <ranges>
+#include <sstream>
 #include <glm/geometric.hpp>
 
 std::string ParticleSimulator::generateKernelDefines() {
@@ -34,13 +36,78 @@ std::string ParticleSimulator::generateKernelDefines() {
     return defines;
 }
 
+static bool hasGlSharingExtension(const std::string& extensions) {
+    std::istringstream stream(extensions);
+    std::string item;
+    while (stream >> item) {
+        if (item == "cl_khr_gl_sharing") return true;
+    }
+    return false;
+}
+
 ParticleSimulator ParticleSimulator::create(size_t particleCount) {
+    struct PlatformAndDevice {
+        cl::Platform platform;
+        cl::Device device;
+    };
+    std::vector<PlatformAndDevice> platformsAndDevices;
+
     std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
-    if (platforms.empty()) throw std::runtime_error("Could not find OpenCL platform");
-    cl::Platform platform = platforms[0];
-    if (cl::Platform::setDefault(platform) != platform)
+    if (cl::Platform::get(&platforms) != CL_SUCCESS)
+        throw std::runtime_error("Error finding OpenCL platforms");
+    for (cl::Platform& platform : platforms) {
+        if (!hasGlSharingExtension(platform.getInfo<CL_PLATFORM_EXTENSIONS>())) continue;
+        std::vector<cl::Device> devices;
+        if (platform.getDevices(CL_DEVICE_TYPE_ALL, devices) != CL_SUCCESS) continue;
+        for (cl::Device& device : devices) {
+            if (!hasGlSharingExtension(device.getInfo<CL_DEVICE_EXTENSIONS>())) continue;
+            platformsAndDevices.emplace_back(platform, device);
+        }
+    }
+    if (platformsAndDevices.empty())
+        throw std::runtime_error("Could not find OpenCL platform and device with OpenGL sharing extension");
+
+    for (const auto& [i, pnd] : std::views::enumerate(platformsAndDevices)) {
+        const auto& [platform, device] = pnd;
+        std::println("[{}] device [{}] on platform [{}]", i, device.getInfo<CL_DEVICE_NAME>(), platform.getInfo<CL_PLATFORM_NAME>());
+        std::println("- Max compute units: {}", device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>());
+        std::println("- Max work group size: {}", device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>());
+        std::println("- Max work item dimensions: {}", device.getInfo<CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS>());
+        std::println("- Global memory size: {}", device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>());
+    }
+    cl::Platform defaultPlatform;
+    cl::Device defaultDevice;
+    if (platformsAndDevices.size() == 1) {
+        std::println("Only one platform and device found, setting as default");
+        defaultPlatform = platformsAndDevices[0].platform;
+        defaultDevice = platformsAndDevices[0].device;
+    } else {
+        std::println("Enter number to select platform and device:");
+        std::print("> ");
+        size_t choice;
+        while (true) {
+            if (std::cin >> choice) {
+                if (choice < platformsAndDevices.size()) {
+                    defaultPlatform = platformsAndDevices[choice].platform;
+                    defaultDevice = platformsAndDevices[choice].device;
+                    break;
+                }
+                std::println("Number out of range.");
+                std::print("> ");
+            } else {
+                if (std::cin.eof()) throw std::runtime_error("Input ended");
+                std::cin.clear();
+                std::println("Invalid input.");
+                std::print("> ");
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+    }
+
+    if (cl::Platform::setDefault(defaultPlatform) != defaultPlatform)
         throw std::runtime_error("Error setting default platform");
+    if (cl::Device::setDefault(defaultDevice) != defaultDevice)
+        throw std::runtime_error("Error setting default device");
 
     std::string sourceWithoutDefines(reinterpret_cast<const char*>(kernels_cl), sizeof(kernels_cl));
     std::string sourceDefines = generateKernelDefines();
